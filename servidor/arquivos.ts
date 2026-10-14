@@ -1,6 +1,6 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { constants, createReadStream, createWriteStream, existsSync, mkdirSync, readdirSync, renameSync, rmSync, statSync, unlinkSync } from "node:fs";
-import { copyFile, mkdir, readdir, stat } from "node:fs/promises";
+import { copyFile, mkdir, readdir, stat, writeFile } from "node:fs/promises";
 import { extname, join, parse } from "node:path";
 import { randomUUID } from "node:crypto";
 import { pastaDados } from "./ia.ts";
@@ -203,6 +203,40 @@ export async function baixarArquivo(banco: string, materia: string, id: string) 
   const pasta = await plataforma.pastaDeDownloads();
   await mkdir(pasta, { recursive: true });
   const destino = await copiarSemSubstituir(caminho, pasta, nome);
+  plataforma.mostrarArquivoNaPasta(destino);
+  return { caminho: destino };
+}
+
+const EXPORTAVEIS = new Set([".json", ".csv", ".ics", ".md", ".niko-visual"]);
+const LIMITE_EXPORTACAO = 20 * 1024 * 1024;
+
+export function nomeDeExportacaoValido(nome: unknown): string {
+  if (typeof nome !== "string") throw new Error("nome_invalido");
+  const limpo = nome.replace(/[<>:"/\\|?*\u0000-\u001f]/g, "").replace(/^\.+/, "").trim();
+  if (!limpo || limpo.length > 120 || !EXPORTAVEIS.has(extname(limpo).toLowerCase())) throw new Error("nome_invalido");
+  return limpo;
+}
+
+async function gravarSemSubstituir(pasta: string, nome: string, conteudo: string): Promise<string> {
+  const { name, ext } = parse(nome);
+  for (let i = 1; i < 1000; i++) {
+    const destino = join(pasta, i === 1 ? nome : `${name} (${i})${ext}`);
+    try {
+      await writeFile(destino, conteudo, { encoding: "utf8", flag: "wx" });
+      return destino;
+    } catch (erro) {
+      if ((erro as NodeJS.ErrnoException).code !== "EEXIST") throw erro;
+    }
+  }
+  throw new Error("sem_nome_disponivel");
+}
+
+export async function exportarParaDownloads(corpo: Record<string, unknown>) {
+  const nome = nomeDeExportacaoValido(corpo.nome);
+  if (typeof corpo.conteudo !== "string" || Buffer.byteLength(corpo.conteudo) > LIMITE_EXPORTACAO) throw new Error("conteudo_invalido");
+  const pasta = await plataforma.pastaDeDownloads();
+  await mkdir(pasta, { recursive: true });
+  const destino = await gravarSemSubstituir(pasta, nome, corpo.conteudo);
   plataforma.mostrarArquivoNaPasta(destino);
   return { caminho: destino };
 }

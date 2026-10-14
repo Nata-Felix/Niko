@@ -16,10 +16,11 @@ import { useInterface } from "../../estado/interface";
 import { usePomodoro } from "../../estado/pomodoro";
 import { T } from "../../textos/textos";
 import { contraste, hexValido, FUNDO_DESTAQUE } from "../../utilitarios/cores";
-import { baixarArquivo, lerArquivoTexto, normalizarTexto } from "../../utilitarios/basicos";
+import { lerArquivoTexto, normalizarTexto } from "../../utilitarios/basicos";
+import { exportarArquivo } from "../../ponte/exportacao";
 import { abaLigada, rotaLigada } from "../../utilitarios/funcoes";
 import { hojeISO } from "../../utilitarios/datas";
-import { validarBackup } from "../../utilitarios/backupValido";
+import { lerBackup } from "../../utilitarios/backupValido";
 import { listarChaves, lerChave, gravarChave, salvarAgora, modoArmazenamento, zerarTudo, tamanhoGuardado, PREFIXO } from "../../ponte/armazenamento";
 import { TODOS_OS_SONS, tocarSom, type CategoriaSom } from "../../ponte/sons";
 import { DESTAQUE_SISTEMA } from "../../janelas/area-de-trabalho/usarTema";
@@ -146,7 +147,7 @@ function validarVisual(dados: unknown): Partial<ReturnType<typeof useConfig.getS
 
 function SecaoDados() {
   const avisar = useInterface((s) => s.avisar);
-  const [previa, setPrevia] = useState<{ dados: Record<string, string>; resumo: string[] } | null>(null);
+  const [previa, setPrevia] = useState<{ dados: Record<string, string>; resumo: string[]; ignoradas: string[] } | null>(null);
   const [erro, setErro] = useState("");
   const [apagar, setApagar] = useState(false);
   const [confirmacao, setConfirmacao] = useState("");
@@ -154,20 +155,21 @@ function SecaoDados() {
   const [zerando, setZerando] = useState(false);
   const comBanco = modoArmazenamento() === "banco";
 
-  const exportar = (nome = `niko-backup-${hojeISO()}.json`) => {
+  const exportar = async (nome = `niko-backup-${hojeISO()}.json`) => {
+    await salvarAgora().catch(() => undefined);
     const dados: Record<string, string> = {};
     for (const k of listarChaves()) {
       const v = lerChave(k);
       if (v != null) dados[k] = v;
     }
-    baixarArquivo(nome, JSON.stringify({ tipo: "niko-backup", versao: 1, criadoEm: new Date().toISOString(), dados }, null, 1));
+    return exportarArquivo(nome, JSON.stringify({ tipo: "niko-backup", versao: 1, criadoEm: new Date().toISOString(), dados }, null, 1));
   };
 
   const ler = async (arquivo: File) => {
     setPrevia(null);
     try {
       const texto = await lerArquivoTexto(arquivo, 20 * 1024 * 1024);
-      const dados = validarBackup(JSON.parse(texto));
+      const { dados, ignoradas } = lerBackup(JSON.parse(texto));
       const resumo: string[] = [];
       for (const [k, v] of Object.entries(dados)) {
         const nome = k.replace(PREFIXO, "");
@@ -176,7 +178,7 @@ function SecaoDados() {
         resumo.push(`${nome}${contagens.length ? ` (${contagens.slice(0, 4).join(", ")})` : ""}`);
       }
       if (Object.keys(dados).length === 0) throw new Error("vazio");
-      setPrevia({ dados, resumo });
+      setPrevia({ dados, resumo, ignoradas });
       setErro("");
     } catch (e) {
       setErro((e as Error).message === "arquivo_grande" ? T.validacao.arquivoGrande : T.validacao.arquivoInvalido);
@@ -205,7 +207,7 @@ function SecaoDados() {
         </Botao>
       </LinhaAjuste>
       <LinhaAjuste rotulo={T.configuracoes.backup} dica={T.configuracoes.backupDica}>
-        <Botao icone={<Download size={13} />} onClick={() => exportar()}>{T.geral.exportar}</Botao>
+        <Botao icone={<Download size={13} />} onClick={() => void exportar()}>{T.geral.exportar}</Botao>
       </LinhaAjuste>
       <LinhaAjuste rotulo={T.configuracoes.restaurar} dica={erro ? <span className="ajuste-dica-erro" role="alert">{erro}</span> : undefined}>
         <label className="botao botao-secundario" style={{ cursor: "pointer" }}>
@@ -224,13 +226,14 @@ function SecaoDados() {
         {previa && (
           <div className="formulario">
             <AvisoFaixa tipo="alerta">{T.configuracoes.restaurarAviso}</AvisoFaixa>
+            {previa.ignoradas.length > 0 && <AvisoFaixa tipo="erro">{T.configuracoes.restaurarIgnoradas(previa.ignoradas.join(", "))}</AvisoFaixa>}
             <ul className="texto-2" style={{ paddingLeft: 16, fontSize: 12 }}>{previa.resumo.map((r) => <li key={r}>{r}</li>)}</ul>
             <div className="formulario-acoes">
               <Botao onClick={() => setPrevia(null)}>{T.geral.cancelar}</Botao>
               <Botao
                 variante="primario"
-                onClick={() => {
-                  exportar(`niko-antes-de-restaurar-${hojeISO()}.json`);
+                onClick={async () => {
+                  if (!(await exportar(`niko-antes-de-restaurar-${hojeISO()}.json`))) return;
                   for (const [k, v] of Object.entries(previa.dados)) gravarChave(k, v);
                   void salvarAgora().then(() => {
                     avisar(T.configuracoes.restaurado);
@@ -252,8 +255,11 @@ function SecaoDados() {
             e.preventDefault();
             if (confirmacao !== "APAGAR" || zerando) return;
             setZerando(true);
-            exportar(`niko-antes-de-zerar-${hojeISO()}.json`);
-            zerarTudo(apagarChaves)
+            void exportar(`niko-antes-de-zerar-${hojeISO()}.json`)
+              .then((salvou) => {
+                if (!salvou) throw new Error("backup_falhou");
+                return zerarTudo(apagarChaves);
+              })
               .then(() => window.location.reload())
               .catch(() => {
                 setZerando(false);
@@ -464,7 +470,7 @@ export default function Configuracoes() {
             icone={<Download size={13} />}
             onClick={() => {
               const visual = Object.fromEntries(CHAVES_VISUAL.map((k) => [k, cfg[k]]));
-              baixarArquivo(`visual-${hojeISO()}.niko-visual`, JSON.stringify({ tipo: "niko-visual", versao: 1, visual }, null, 2));
+              void exportarArquivo(`visual-${hojeISO()}.niko-visual`, JSON.stringify({ tipo: "niko-visual", versao: 1, visual }, null, 2));
             }}
           >
             {T.configuracoes.exportarVisual}

@@ -9,14 +9,26 @@
 Adaptação do Niko para Linux: a ilha, o dock e a janela do sistema rodando sobre o mesmo código, com as partes exclusivas do Windows trocadas por equivalentes do Linux.
 
 ![Linux](https://img.shields.io/badge/Fedora%20%7C%20Ubuntu-GNOME-0b0d10?style=flat-square)
-![Versão base](https://img.shields.io/badge/base-0.2.2-0b0d10?style=flat-square)
+![Versão](https://img.shields.io/badge/versão-0.2.3-0b0d10?style=flat-square)
 ![Licença](https://img.shields.io/badge/licença-proprietária-b42318?style=flat-square)
 
 </div>
 
 ---
 
-Este documento descreve a adaptação para Linux feita sobre o código da versão 0.2.2. O [README](README.md) continua sendo a referência do app. O app foi testado em Fedora com GNOME em Wayland. Para Ubuntu, os pacotes foram conferidos no Ubuntu 24.04, mas o app ainda não foi executado nele. Outras distribuições e ambientes podem precisar de ajustes.
+Este documento descreve a adaptação para Linux, que começou no código da versão 0.2.2 e entrou no app a partir da 0.2.3. O [README](README.md) continua sendo a referência do app. O app foi testado em Fedora com GNOME em Wayland. Para Ubuntu, os pacotes foram conferidos no Ubuntu 24.04, mas o app ainda não foi executado nele. Outras distribuições e ambientes podem precisar de ajustes.
+
+## Instalar
+
+Baixe o pacote na [página de releases](https://github.com/vitorcgo/niko/releases/latest). O Node já vem dentro do pacote.
+
+```bash
+sudo apt install ./Niko_*_amd64.deb        # Ubuntu e Debian
+sudo dnf install ./Niko-*.x86_64.rpm       # Fedora
+chmod +x Niko_*_amd64.AppImage && ./Niko_*_amd64.AppImage   # outras distribuições
+```
+
+Depois instale as ferramentas da tabela abaixo que quiser usar. Sem elas o Niko abre, mas o recurso correspondente fica indisponível. No Linux o app avisa quando sai versão nova, mas não se atualiza sozinho: baixe o pacote novo e instale por cima.
 
 ## O que foi feito
 
@@ -52,7 +64,8 @@ A pasta de dados do app fica em `~/.local/share/com.niko.desktop`. No Linux o Ni
 - O botão **Iniciar** abre e fecha a visão geral do GNOME.
 - Não há "abrir como administrador".
 - Atalhos globais estão sujeitos às restrições do Wayland.
-- O atualizador e os scripts de release (`pnpm lancar`) seguem só o fluxo do Windows.
+- Sem atualização automática: o app avisa da versão nova e o pacote é baixado à mão.
+- Os pacotes da release saem do GitHub Actions (`.github/workflows/pacotes-linux.yml`), num Ubuntu 22.04, para abrirem também em sistemas mais antigos. O `pnpm lancar` continua gerando só os instaladores do Windows.
 - Sem a extensão Window Calls, apps nativos de Wayland não aparecem no dock.
 
 ## Como rodar
@@ -124,9 +137,11 @@ O Niko aceita uma só instância. Para reiniciar o app, rode `pkill -x niko` ant
 
 ```bash
 pnpm tauri build --bundles deb                     # Ubuntu e Debian
-pnpm tauri build --bundles rpm                     # Fedora, depende do pacote nodejs
-NO_STRIP=true pnpm tauri build --bundles appimage  # qualquer uma, exige Node no PATH
+pnpm tauri build --bundles rpm                     # Fedora
+NO_STRIP=true pnpm tauri build --bundles appimage  # qualquer uma
 ```
+
+O build copia o Node que estiver rodando para dentro do pacote (`src-tauri/recursos/node`), como no Windows. Use o Node 22 ou mais novo. O pacote só abre em sistemas com glibc igual ou mais nova que a da máquina que o gerou, por isso a release é gerada no Ubuntu 22.04.
 
 Para instalar:
 
@@ -135,7 +150,7 @@ sudo apt install ./src-tauri/target/release/bundle/deb/*.deb   # Ubuntu
 sudo dnf install ./src-tauri/target/release/bundle/rpm/*.rpm   # Fedora
 ```
 
-No Ubuntu, o `.deb` não exige o pacote `nodejs`, para não trazer o Node antigo do repositório: mantenha o Node 22 no PATH. As opções de pacote do Linux ficam em `src-tauri/tauri.linux.conf.json`, que o Tauri mescla sobre o `tauri.conf.json` só no Linux. Sem `--bundles`, o `pnpm tauri build` gera os três pacotes.
+As opções de pacote do Linux ficam em `src-tauri/tauri.linux.conf.json`, que o Tauri mescla sobre o `tauri.conf.json` só no Linux. Sem `--bundles`, o `pnpm tauri build` gera os três pacotes.
 
 ### Variáveis de ambiente
 
@@ -169,13 +184,15 @@ servidor/
   sistema.ts, controleRapido.ts, janelas.ts, midia.ts, ocr.ts, segredos.ts
                       validação e cache, iguais para os dois sistemas
 src-tauri/
-  tauri.linux.conf.json   pacotes deb, rpm e AppImage
+  tauri.linux.conf.json   pacotes deb, rpm e AppImage, com o Node embutido
   src/plataforma/
     mod.rs            escolhe windows/ ou linux/ na compilação
     windows/          barra de tarefas, janela da frente, miniaturas, teclado e foco
     linux/            as mesmas funções, com o equivalente do Linux ou sem efeito
 .github/workflows/verificar.yml
                       tipos, testes, Clippy e testes do Rust no Windows e no Ubuntu
+.github/workflows/pacotes-linux.yml
+                      gera os pacotes do Linux e anexa na release publicada
 ```
 
 ## Para quem for mexer no código

@@ -171,7 +171,20 @@ export const T = {
     tiposDeMudanca: { novo: "Novo", melhoria: "Melhoria", correcao: "Correção" },
     historico: [
       {
+        versao: "0.2.3",
+        data: "2026-10-14",
+        mudancas: [
+          ["novo", "Primeira base do Niko para Linux (Fedora e Ubuntu com GNOME), a partir da contribuição do PR #11. Ainda sem instalador oficial."],
+          ["melhoria", "Cada versão na página de novidades vira uma gaveta, com a quantidade de mudanças, e a versão atual abre direto pelo aviso de novidades."],
+          ["melhoria", "Na ilha compacta, o personagem só se mexe quando está pensando ou escrevendo."],
+          ["melhoria", "Perguntas longas do Claude Code na ilha rolam sem esconder os botões de responder."],
+          ["melhoria", "Tudo o que depende do sistema foi reorganizado num só lugar, com verificação automática no Windows e no Linux a cada mudança."],
+          ["melhoria", "Agradecimento a @CarvalhoGLC pela adaptação para Linux no PR #11."],
+        ],
+      },
+      {
         versao: "0.2.2",
+        data: "2026-10-10",
         mudancas: [
           ["novo", "Clique num evento do calendário para editar, ou arraste para outro dia."],
           ["novo", "Eventos que se repetem perguntam se a mudança ou a exclusão vale só para aquele dia ou para todos."],

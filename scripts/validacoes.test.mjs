@@ -574,6 +574,36 @@ test("Journal traz para hoje só as tarefas pendentes de dias anteriores", async
   }
 });
 
+test("ilha e dock somem em tela cheia só se a opção estiver ligada, e somem com os apps da lista", async () => {
+  const { deveSumirPelaFrente } = await vite.ssrLoadModule("/src/desktop/desktop.ts");
+  const regras = (esconderTelaCheia, apps = "") => ({ esconderTelaCheia, apps });
+  assert.equal(deveSumirPelaFrente(true, "chrome.exe", regras(true)), true);
+  assert.equal(deveSumirPelaFrente(true, "chrome.exe", regras(false)), false);
+  assert.equal(deveSumirPelaFrente(false, "obs64.exe", regras(false, "spotify.exe\r\nOBS64")), true);
+  assert.equal(deveSumirPelaFrente(false, "obs64.exe", regras(false, " obs64.exe \n")), true);
+  assert.equal(deveSumirPelaFrente(false, "obs.exe", regras(false, "obs64.exe")), false);
+  assert.equal(deveSumirPelaFrente(false, "", regras(false, "\n\n")), false);
+});
+
+test("no AppImage a status line do Claude usa uma cópia fixa do Node", async () => {
+  const { nodeDaStatus } = await vite.ssrLoadModule("/servidor/statusClaude.ts");
+  const { mkdtempSync, writeFileSync: gravar, readFileSync: ler, rmSync } = await import("node:fs");
+  const { tmpdir } = await import("node:os");
+  const { join: juntar } = await import("node:path");
+  const pasta = mkdtempSync(juntar(tmpdir(), "niko-status-"));
+  const montagem = juntar(pasta, "montagem-temporaria-node");
+  gravar(montagem, "node falso");
+  try {
+    assert.equal(nodeDaStatus("/usr/lib/Niko/recursos/node", undefined, pasta), "/usr/lib/Niko/recursos/node");
+    const fixa = nodeDaStatus(montagem, "/home/a/Niko.AppImage", juntar(pasta, "dados"));
+    assert.equal(fixa, juntar(pasta, "dados", "node-da-status"));
+    assert.equal(ler(fixa, "utf8"), "node falso");
+    assert.equal(nodeDaStatus(montagem, "/home/a/Niko.AppImage", juntar(pasta, "dados")), fixa);
+  } finally {
+    rmSync(pasta, { recursive: true, force: true });
+  }
+});
+
 test("o app instalado liga a ponte no Windows e no Linux, e o modo de desenvolvimento não", async () => {
   const { paginaDoAppInstalado } = await vite.ssrLoadModule("/src/desktop/desktop.ts");
   assert.equal(paginaDoAppInstalado(new URL("http://tauri.localhost/index.html")), true);
@@ -595,6 +625,32 @@ test("exportação só grava nomes simples com extensões conhecidas", async () 
   assert.equal(nomeDeExportacaoValido("visual-2026-10-14.niko-visual"), "visual-2026-10-14.niko-visual");
   assert.equal(nomeDeExportacaoValido("..\\..\\Windows\\backup.json"), "Windowsbackup.json");
   for (const nome of ["programa.exe", "atalho.lnk", "", ".json", "a".repeat(130) + ".json", 42]) assert.throws(() => nomeDeExportacaoValido(nome), String(nome).slice(0, 20));
+});
+
+test("exportação grava o conteúdo cru sem substituir um arquivo de mesmo nome", async () => {
+  const { exportarParaDownloads } = await vite.ssrLoadModule("/servidor/arquivos.ts");
+  const { plataforma } = await vite.ssrLoadModule("/servidor/plataforma/index.ts");
+  const { mkdtempSync, readFileSync: ler, rmSync } = await import("node:fs");
+  const { tmpdir } = await import("node:os");
+  const { join: juntar } = await import("node:path");
+  const { Readable } = await import("node:stream");
+  const pasta = mkdtempSync(juntar(tmpdir(), "niko-exportar-"));
+  const original = { pastaDeDownloads: plataforma.pastaDeDownloads, mostrarArquivoNaPasta: plataforma.mostrarArquivoNaPasta };
+  const mostrados = [];
+  plataforma.pastaDeDownloads = async () => pasta;
+  plataforma.mostrarArquivoNaPasta = (c) => mostrados.push(c);
+  const pedido = (texto) => Object.assign(Readable.from([Buffer.from(texto)]), { headers: {} });
+  try {
+    const primeiro = await exportarParaDownloads(pedido('{"a":"ção"}'), "niko-backup.json", true);
+    const segundo = await exportarParaDownloads(pedido("outro"), "niko-backup.json", false);
+    assert.equal(ler(primeiro.caminho, "utf8"), '{"a":"ção"}');
+    assert.match(segundo.caminho, /niko-backup \(2\)\.json$/);
+    assert.deepEqual(mostrados, [primeiro.caminho]);
+    await assert.rejects(exportarParaDownloads(pedido(""), "vazio.json", false));
+  } finally {
+    Object.assign(plataforma, original);
+    rmSync(pasta, { recursive: true, force: true });
+  }
 });
 
 test("todas as coleções reais atuais podem ser exportadas e validadas", async () => {

@@ -106,17 +106,19 @@ function consultasSimuladas(nome) {
       return [inicial, (valor) => { estado = typeof valor === "function" ? valor(estado) : valor; }];
     },
     useEffect(fn) { limpar = fn(); },
+    useRef: (inicial) => ({ current: inicial }),
     invocar: () => new Promise((resolver) => pedidos.push({ resolver })),
     fetch: (_url, opcoes) => new Promise((resolver) => pedidos.push({ resolver, sinal: opcoes.signal })),
   });
   const periodica = lerCodigo("src/desktop/consultaPeriodica.ts").replace("export function", "function");
   const desktop = lerCodigo("src/desktop/desktop.ts");
-  const inicio = desktop.indexOf(`export function ${nome}(`);
-  const resto = desktop.slice(inicio);
-  const fim = resto.indexOf("\nexport ", 1);
-  const funcao = (fim === -1 ? resto : resto.slice(0, fim)).replace("export function", "function");
-  vm.runInContext(`${periodica}\n${funcao}\nglobalThis.usar = ${nome};`, contexto);
-  contexto.usar(true);
+  const trecho = (nomeDaFuncao) => {
+    const resto = desktop.slice(desktop.search(new RegExp(`(export )?function ${nomeDaFuncao}\\(`)));
+    const fim = resto.search(/\n(export |function |interface )/);
+    return (fim === -1 ? resto : resto.slice(0, fim)).replace("export function", "function");
+  };
+  vm.runInContext(`${periodica}\n${trecho("semExe")}\n${trecho("deveSumirPelaFrente")}\n${trecho(nome)}\nglobalThis.usar = ${nome};`, contexto);
+  contexto.usar(true, { esconderTelaCheia: true, apps: "" });
   return { pedidos, relogio, limpar: () => limpar(), estado: () => estado };
 }
 

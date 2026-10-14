@@ -4,11 +4,12 @@
 
 # Niko
 
-**Seu sistema de vida para Windows.**
+**Seu sistema de vida para Windows e Linux.**
 
 Rotina, estudos, finanças, metas e os serviços que você acompanha, reunidos em um só lugar e cuidados por um time de agentes com personalidade própria.
 
 ![Windows 10 e 11](https://img.shields.io/badge/Windows-10%20%7C%2011-0b0d10?style=flat-square)
+![Linux](https://img.shields.io/badge/Linux-Ubuntu%20%7C%20Fedora%20(GNOME)-0b0d10?style=flat-square)
 ![Versão](https://img.shields.io/badge/versão-0.2.3-0b0d10?style=flat-square)
 ![Licença](https://img.shields.io/badge/licença-proprietária-b42318?style=flat-square)
 
@@ -28,7 +29,7 @@ Este README descreve o código atual do repositório. Algumas mudanças podem ai
 
 ## Sobre
 
-O Niko é um aplicativo desktop que fica junto do Windows, e não dentro de uma aba do navegador. Ele aparece em três camadas:
+O Niko é um aplicativo desktop que fica junto do sistema, e não dentro de uma aba do navegador. Ele roda no Windows 10 e 11 e no Linux (Ubuntu e Fedora com GNOME). Este README descreve a versão do Windows; o que muda no Linux está no [README-linux](README-linux.md). Ele aparece em três camadas:
 
 | Camada | Onde fica | Para que serve |
 | ------ | --------- | -------------- |
@@ -254,15 +255,33 @@ Perguntas sobre Cloudflare e Supabase são encaminhadas ao Java. Menções expl�
 
 | Camada | Tecnologia |
 | ------ | ---------- |
-| Desktop | Tauri 2 e Rust, com APIs nativas do Windows |
+| Desktop | Tauri 2 e Rust, com APIs nativas do Windows e equivalentes do Linux |
 | Interface | React 19, TypeScript e Vite |
 | Animações | Motion e Three.js |
 | Estado | Zustand |
 | Ponte local | Node, empacotado junto com o app |
 
-## Download e avisos do Windows
+## Download
 
-Baixe o instalador somente pelas [releases oficiais deste repositório](https://github.com/vitorcgo/niko/releases). Este README descreve o código atual; confira as notas da release para saber quais recursos estão no instalador.
+Baixe somente pelas [releases oficiais deste repositório](https://github.com/vitorcgo/niko/releases). Este README descreve o código atual; confira as notas da release para saber quais recursos estão no instalador.
+
+| Sistema | Arquivo | Atualização |
+| ------- | ------- | ----------- |
+| **Windows 10 e 11** | `Niko_x.y.z_x64-setup.exe` | Automática, pelo próprio app |
+| **Ubuntu e Debian** | `Niko_x.y.z_amd64.deb` | Manual: baixe o pacote novo e instale por cima |
+| **Fedora** | `Niko-x.y.z-1.x86_64.rpm` | Manual |
+| **Outras distribuições** | `Niko_x.y.z_amd64.AppImage` | Manual |
+
+O `.msi` do Windows fica nas releases só para quem já instalou por ele.
+
+### Linux
+
+A versão para Linux foi feita para GNOME e está em teste. O Node já vem dentro do pacote. Alguns recursos do Windows ainda não existem no Linux, como as prévias das janelas no dock e a detecção de tela cheia, e outros dependem de programas do sistema, como `playerctl` para a mídia e `tesseract` para o OCR. A lista completa, com os comandos de instalação, está no [README-linux](README-linux.md).
+
+```bash
+sudo apt install ./Niko_*_amd64.deb     # Ubuntu e Debian
+sudo dnf install ./Niko-*.x86_64.rpm    # Fedora
+```
 
 ### Windows Defender e SmartScreen
 
@@ -278,6 +297,8 @@ Isso é diferente de uma **detecção de ameaça pelo Defender**. Não tratamos 
 - Node 22 ou mais novo e pnpm
 - Rust estável, para a versão desktop
 - WebView2, que já vem no Windows 11
+
+Para compilar e rodar no Linux, siga o [README-linux](README-linux.md).
 
 ### Interface no navegador
 

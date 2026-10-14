@@ -176,6 +176,7 @@ export const T = {
         mudancas: [
           ["novo", "Fixe apps no dock pelo botão direito em um app aberto. Eles ficam no dock mesmo fechados e abrem com um clique."],
           ["novo", "Tamanho do dock de 70% a 120%, pelo menu do dock ou pelos Ajustes. No modo fixo, o espaço reservado na tela acompanha o tamanho."],
+          ["novo", "Com o dock em vários monitores, escolha se cada dock mostra só as janelas do próprio monitor ou as de todos, pelo menu do dock ou pelos Ajustes."],
           ["novo", "Escolha se a música tocando aparece na ilha fechada, pelo botão de olho na aba Mídia ou pelos Ajustes da ilha. A aba Mídia continua funcionando."],
           ["novo", "Primeira base do Niko para Linux (Fedora e Ubuntu com GNOME), a partir da contribuição do PR #11. Ainda sem instalador oficial."],
           ["correcao", "O plugin do OpenCode funciona no OpenCode v2 e continua funcionando na v1. Quem já instalou vê a opção de atualizar na aba Código."],
@@ -185,7 +186,7 @@ export const T = {
           ["melhoria", "Na ilha compacta, o personagem só se mexe quando está pensando ou escrevendo."],
           ["melhoria", "Perguntas longas do Claude Code na ilha rolam sem esconder os botões de responder."],
           ["melhoria", "Tudo o que depende do sistema foi reorganizado num só lugar, com verificação automática no Windows e no Linux a cada mudança."],
-          ["melhoria", "Agradecimento a @CarvalhoGLC pela adaptação para Linux no PR #11, a @b-boldrin pelas sugestões do dock na issue #9 e pelo relato do OpenCode v2 na issue #10, e a @wsskakoal pelo apoio à sugestão de fixar apps."],
+          ["melhoria", "Agradecimento a @CarvalhoGLC pela adaptação para Linux no PR #11, a @b-boldrin pelas sugestões do dock na issue #9 e pelo relato do OpenCode v2 na issue #10, e a @wsskakoal pelo apoio à sugestão de fixar apps e pela sugestão dos monitores na issue #12."],
         ],
       },
       {
@@ -368,6 +369,8 @@ export const T = {
       abrirApp: "Abrir",
       novaJanela: "Abrir nova janela",
       tamanho: "Tamanho do dock",
+      appsDeTodosOsMonitores: "Mostrar as janelas de todos os monitores",
+      appsDeTodosOsMonitoresDica: "Com o dock em vários monitores, cada dock mostra só as janelas do próprio monitor. Ligado, todos os docks mostram todas as janelas.",
       tamanhoOpcao: (escala: number) => `${Math.round(escala * 100)}%`,
       fixarSemApp: (nome: string) => `Não achei ${nome} entre os apps instalados, então não dá para fixar.`,
       fixarLimite: (limite: number) => `O dock aceita até ${limite} apps fixados.`,

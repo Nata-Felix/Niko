@@ -150,7 +150,7 @@ export interface Configuracoes {
   blocosInicio: { id: BlocoInicio; visivel: boolean }[];
   ilha: ConfigIlha;
   assistive: ConfigAssistive;
-  dock: { ativo: boolean; modo: ModoBorda; favoritos: Rota[]; atalhos: AtalhoDock[]; fixados: AppFixado[]; escala: number; ampliar: boolean; mostrarIniciar: boolean; mostrarBusca: boolean; fundo: string; opacidade: number; monitores: string; buscador: Buscador };
+  dock: { ativo: boolean; modo: ModoBorda; favoritos: Rota[]; atalhos: AtalhoDock[]; fixados: AppFixado[]; escala: number; appsDeTodosOsMonitores: boolean; ampliar: boolean; mostrarIniciar: boolean; mostrarBusca: boolean; fundo: string; opacidade: number; monitores: string; buscador: Buscador };
   atalhosGlobais: Record<AcaoGlobal, string>;
   pomodoro: { foco: number; curta: number; longa: number; ciclos: number; autoProxima: boolean; tique: boolean };
   agua: { meta: number; copo: number };
@@ -208,7 +208,7 @@ export const CONFIG_PADRAO: Configuracoes = {
     monitor: "",
     midiaNaCompacta: true,
   },
-  dock: { ativo: true, modo: "inteligente", favoritos: ["chat", "journal", "estudos", "financas", "calendario"], atalhos: [], fixados: [], escala: 1, ampliar: true, mostrarIniciar: true, mostrarBusca: true, fundo: FUNDO_PADRAO_DAS_BORDAS, opacidade: 1, monitores: "todos", buscador: "google" },
+  dock: { ativo: true, modo: "inteligente", favoritos: ["chat", "journal", "estudos", "financas", "calendario"], atalhos: [], fixados: [], escala: 1, appsDeTodosOsMonitores: false, ampliar: true, mostrarIniciar: true, mostrarBusca: true, fundo: FUNDO_PADRAO_DAS_BORDAS, opacidade: 1, monitores: "todos", buscador: "google" },
   assistive: ASSISTIVE_PADRAO,
   atalhosGlobais: ATALHOS_PADRAO,
   pomodoro: { foco: 25, curta: 5, longa: 15, ciclos: 4, autoProxima: false, tique: false },

@@ -412,7 +412,7 @@ export function Dock() {
   const monitores = usarMonitores();
   const meu = meuMonitor(monitores, ROTULO);
   const ativoAqui = cfg.ativo && dockAtivoNoMonitor(escolhaDeMonitor, meu, monitores, ROTULO);
-  const monitorDosApps = cadaDockMostraSeusApps(escolhaDeMonitor, monitores) ? meu?.nome : undefined;
+  const monitorDosApps = cadaDockMostraSeusApps(escolhaDeMonitor, monitores, cfg.appsDeTodosOsMonitores) ? meu?.nome : undefined;
   const frente = usarEstadoDaFrente(ativoAqui);
   const principal = !NATIVO || ROTULO === "dock";
 
@@ -516,6 +516,8 @@ export function Dock() {
     })) },
     { id: "ampliar", texto: T.dock.menu.ampliar, icone: MousePointer, marcado: cfg.ampliar,
       acao: () => { const s = useConfig.getState(); s.definir({ dock: { ...s.dock, ampliar: !s.dock.ampliar } }); } },
+    ...(monitores.length >= 2 && escolhaDeMonitor === TODOS_OS_MONITORES ? [{ id: "appsDeTodosOsMonitores", texto: T.dock.menu.appsDeTodosOsMonitores, icone: AppWindow, marcado: cfg.appsDeTodosOsMonitores,
+      acao: () => alterarDock((dock) => ({ appsDeTodosOsMonitores: !dock.appsDeTodosOsMonitores })) }] : []),
     { id: "tamanho", texto: T.dock.menu.tamanho, icone: Maximize2, itens: ESCALAS_DO_DOCK.map((escala) => ({
       id: String(escala), texto: T.dock.menu.tamanhoOpcao(escala), marcado: cfg.escala === escala,
       acao: () => alterarDock(() => ({ escala })),

@@ -435,6 +435,16 @@ test("apps fixados no dock são limpos e a escala cai na opção válida mais pr
   assert.equal(muitos.dock.fixados.length, 20);
 });
 
+test("dock em vários monitores escolhe entre as janelas do próprio monitor e as de todos", async () => {
+  const { cadaDockMostraSeusApps } = await vite.ssrLoadModule("/src/janelas/dock/monitores.ts");
+  const dois = [{ nome: "A", rotulo: "dock", numero: 1, principal: true }, { nome: "B", rotulo: "dock-B", numero: 2, principal: false }];
+  assert.equal(cadaDockMostraSeusApps("todos", dois), true);
+  assert.equal(cadaDockMostraSeusApps("todos", dois, true), false);
+  assert.equal(cadaDockMostraSeusApps("A", dois), false);
+  assert.equal(cadaDockMostraSeusApps("todos", dois.slice(0, 1)), false);
+  assert.equal(configuracoesValidas({ dock: {} }, CONFIG_PADRAO).dock.appsDeTodosOsMonitores, false);
+});
+
 test("mídia na ilha fechada vem ligada em configurações antigas e respeita a escolha salva", () => {
   assert.equal(configuracoesValidas({ ilha: { ativa: true } }, CONFIG_PADRAO).ilha.midiaNaCompacta, true);
   assert.equal(configuracoesValidas({ ilha: { midiaNaCompacta: false } }, CONFIG_PADRAO).ilha.midiaNaCompacta, false);

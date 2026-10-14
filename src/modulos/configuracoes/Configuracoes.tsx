@@ -136,6 +136,7 @@ function validarVisual(dados: unknown): Partial<ReturnType<typeof useConfig.getS
       modo: ["fixo", "esconder", "inteligente"].includes(k.modo as string) ? (k.modo as ModoBorda) : "inteligente",
       fundo: fundoValido(k.fundo) ? k.fundo : CONFIG_PADRAO.dock.fundo,
       opacidade: opacidadeValida(k.opacidade) ? k.opacidade : 1,
+      appsDeTodosOsMonitores: k.appsDeTodosOsMonitores === true,
       escala: ESCALAS_DO_DOCK.includes(k.escala as (typeof ESCALAS_DO_DOCK)[number]) ? (k.escala as number) : CONFIG_PADRAO.dock.escala,
     };
   }
@@ -562,6 +563,7 @@ export default function Configuracoes() {
           {segModo(cfg.dock.modo, (modo) => cfg.definir({ dock: { ...cfg.dock, modo } }))}
         </LinhaAjuste>
         <AlternadorAjuste rotulo={T.configuracoes.ampliarDock} ligado={cfg.dock.ampliar} aoMudar={(v) => cfg.definir({ dock: { ...cfg.dock, ampliar: v } })} />
+        <AlternadorAjuste rotulo={T.dock.menu.appsDeTodosOsMonitores} dica={T.dock.menu.appsDeTodosOsMonitoresDica} ligado={cfg.dock.appsDeTodosOsMonitores} aoMudar={(v) => cfg.definir({ dock: { ...cfg.dock, appsDeTodosOsMonitores: v } })} />
         <LinhaAjuste rotulo={T.dock.menu.tamanho} para="dk-tamanho">
           <select id="dk-tamanho" className="seletor ajuste-valor" value={cfg.dock.escala} onChange={(e) => cfg.definir({ dock: { ...cfg.dock, escala: Number(e.target.value) } })}>
             {ESCALAS_DO_DOCK.map((escala) => <option key={escala} value={escala}>{T.dock.menu.tamanhoOpcao(escala)}</option>)}

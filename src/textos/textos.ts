@@ -174,12 +174,17 @@ export const T = {
         versao: "0.2.3",
         data: "2026-10-14",
         mudancas: [
+          ["novo", "Fixe apps no dock pelo botão direito em um app aberto. Eles ficam no dock mesmo fechados e abrem com um clique."],
+          ["novo", "Tamanho do dock de 70% a 120%, pelo menu do dock ou pelos Ajustes. No modo fixo, o espaço reservado na tela acompanha o tamanho."],
           ["novo", "Primeira base do Niko para Linux (Fedora e Ubuntu com GNOME), a partir da contribuição do PR #11. Ainda sem instalador oficial."],
+          ["correcao", "O plugin do OpenCode funciona no OpenCode v2 e continua funcionando na v1. Quem já instalou vê a opção de atualizar na aba Código."],
+          ["correcao", "O AtalhoTouch aparecia, piscava e sumia ao ser ligado no app instalado. Uma janela relia dados antigos logo depois de outra salvar e desfazia a mudança."],
+          ["melhoria", "O cartão do criador fica no topo da página de Atualização."],
           ["melhoria", "Cada versão na página de novidades vira uma gaveta, com a quantidade de mudanças, e a versão atual abre direto pelo aviso de novidades."],
           ["melhoria", "Na ilha compacta, o personagem só se mexe quando está pensando ou escrevendo."],
           ["melhoria", "Perguntas longas do Claude Code na ilha rolam sem esconder os botões de responder."],
           ["melhoria", "Tudo o que depende do sistema foi reorganizado num só lugar, com verificação automática no Windows e no Linux a cada mudança."],
-          ["melhoria", "Agradecimento a @CarvalhoGLC pela adaptação para Linux no PR #11."],
+          ["melhoria", "Agradecimento a @CarvalhoGLC pela adaptação para Linux no PR #11, a @b-boldrin pelas sugestões do dock na issue #9 e pelo relato do OpenCode v2 na issue #10, e a @wsskakoal pelo apoio à sugestão de fixar apps."],
         ],
       },
       {

@@ -169,8 +169,12 @@ function enviarPelaPonte(base: string, token: string | null) {
   };
 }
 
+export function paginaDoAppInstalado(endereco: { protocol: string; hostname: string }) {
+  return endereco.hostname === "tauri.localhost" || endereco.protocol === "tauri:";
+}
+
 export async function prepararPonte() {
-  if (NATIVO && window.location.hostname === "tauri.localhost") {
+  if (NATIVO && paginaDoAppInstalado(window.location)) {
     let limite = 0;
     try {
       const [token, porta] = await Promise.race([

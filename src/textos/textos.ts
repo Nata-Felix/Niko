@@ -37,7 +37,9 @@ export const T = {
     recarregar: "Recarregar o Niko",
     ponteFalhou: "O Niko não conseguiu iniciar o serviço local.",
     tentarNovamente: "Tentar novamente",
-    ponteFalhouDica: "Feche pelo ícone da bandeja e abra de novo. Se continuar, o erro está em %APPDATA%\\com.niko.desktop\\ponte.log e niko.log.",
+    ponteFalhouDica: NO_LINUX
+      ? "Feche pelo ícone do Niko na barra do sistema e abra de novo. Se continuar, o erro está em ~/.local/share/com.niko.desktop/ponte.log e niko.log."
+      : "Feche pelo ícone da bandeja e abra de novo. Se continuar, o erro está em %APPDATA%\\com.niko.desktop\\ponte.log e niko.log.",
     nome: "Niko",
     versao: manifesto.version,
   },

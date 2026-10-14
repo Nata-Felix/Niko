@@ -28,7 +28,7 @@ import { abaLigada } from "../../utilitarios/funcoes";
 import { tiposDeCapturaLigados } from "../../utilitarios/captura";
 import { useClaudeCode, sessaoAtiva, nomeDoModelo } from "../../estado/claudeCode";
 import { useAtualizacao } from "../../estado/atualizacao";
-import { NATIVO, liberarSistemaInicial, ouvirAtalho, ouvirEvento, usarAreaInterativa, usarCursorFora, usarEstadoDaFrente } from "../../desktop/desktop";
+import { NATIVO, liberarSistemaInicial, ouvirAtalho, ouvirEvento, usarAreaInterativa, usarCliqueFora, usarCursorFora, usarEstadoDaFrente } from "../../desktop/desktop";
 import { Saudacao } from "./animacoes/Saudacao";
 import { usarSaudacaoDiaria } from "./animacoes/usarSaudacaoDiaria";
 import { ALTURA_DA_SAUDACAO, EVENTO_DA_SAUDACAO, LARGURA_DA_SAUDACAO } from "./animacoes/pedirSaudacao";
@@ -178,6 +178,8 @@ export function Ilha() {
   }, []);
   usarAreaInterativa([".ilha-raiz:not(.ilha-raiz-oculta) .ilha", ".ilha-gatilho", ".ilha-barra-aba", ".ilha-pop"]);
   usarCursorFora(useCallback(() => setSobre(false), []));
+  const aoClicarForaDaJanela = useRef<() => void>(() => undefined);
+  usarCliqueFora(useCallback(() => aoClicarForaDaJanela.current(), []));
   useEffect(() => {
     let ativo = true;
     let desligar: () => void = () => undefined;
@@ -328,9 +330,13 @@ export function Ilha() {
       if (e.target instanceof Element && e.target.closest(".ilha-barra, .ilha-pop")) return;
       if (!fixada && raiz.current && !raiz.current.contains(e.target as Node)) recolher();
     };
+    aoClicarForaDaJanela.current = () => {
+      if (!fixada) recolher();
+    };
     window.addEventListener("keydown", aoTeclar);
     window.addEventListener("pointerdown", aoClicarFora, true);
     return () => {
+      aoClicarForaDaJanela.current = () => undefined;
       window.removeEventListener("keydown", aoTeclar);
       window.removeEventListener("pointerdown", aoClicarFora, true);
     };

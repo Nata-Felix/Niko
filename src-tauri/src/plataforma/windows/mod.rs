@@ -62,6 +62,14 @@ pub fn abrir_no_sistema(endereco: &str) -> Result<(), String> {
     }
 }
 
+pub fn botao_do_mouse_pressionado() -> bool {
+    use windows::Win32::UI::Input::KeyboardAndMouse::{GetAsyncKeyState, VK_LBUTTON, VK_MBUTTON, VK_RBUTTON};
+    [VK_LBUTTON, VK_RBUTTON, VK_MBUTTON].iter().any(|botao| {
+        let estado = unsafe { GetAsyncKeyState(i32::from(botao.0)) } as u16;
+        estado & 0x8000 != 0 || estado & 1 != 0
+    })
+}
+
 pub fn ignorar_cursor(janela: &WebviewWindow, ignorar: bool) -> bool {
     janela.set_ignore_cursor_events(ignorar).is_ok()
 }

@@ -50,6 +50,10 @@ pub fn abrir_no_sistema(endereco: &str) -> Result<(), String> {
     Ok(())
 }
 
+pub fn botao_do_mouse_pressionado() -> bool {
+    false
+}
+
 pub fn ignorar_cursor(janela: &WebviewWindow, ignorar: bool) -> bool {
     if !janela.is_visible().unwrap_or(false) {
         return false;

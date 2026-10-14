@@ -214,6 +214,8 @@ fn atualizar_cursor(app: &AppHandle, mut fora: HashMap<String, bool>) -> HashMap
         Err(_) => return fora,
     };
     let Ok(cursor) = app.cursor_position() else { return fora };
+    let pressionado = plataforma::botao_do_mouse_pressionado();
+    let clicou = pressionado && !BOTAO_PRESSIONADO.swap(pressionado, Ordering::Relaxed);
     let sobrepostas: Vec<(String, WebviewWindow)> = app.webview_windows().into_iter().filter(|(r, _)| r == "ilha" || r == "assistive" || docks::eh_dock(r)).collect();
     fora.retain(|r, _| sobrepostas.iter().any(|(s, _)| s == r));
     for (rotulo, janela) in &sobrepostas {
@@ -227,6 +229,9 @@ fn atualizar_cursor(app: &AppHandle, mut fora: HashMap<String, bool>) -> HashMap
             lista.iter().any(|r| x >= r.x - 4.0 && x <= r.x + r.w + 4.0 && y >= r.y - 4.0 && y <= r.y + r.h + 4.0)
         } else { false };
         let agora_fora = !dentro;
+        if clicou && agora_fora {
+            let _ = janela.emit_to(rotulo, "niko://clique-fora", ());
+        }
         if fora.get(rotulo) != Some(&agora_fora) {
             if !plataforma::ignorar_cursor(janela, agora_fora) { continue; }
             if agora_fora {
@@ -330,6 +335,7 @@ async fn preparar_atualizacao(app: AppHandle) -> Result<(), String> {
 }
 
 static ENCERRANDO: AtomicBool = AtomicBool::new(false);
+static BOTAO_PRESSIONADO: AtomicBool = AtomicBool::new(false);
 static ENCERRAMENTO_PEDIDO: AtomicBool = AtomicBool::new(false);
 const MAXIMO_REINICIOS_DA_PONTE: u32 = 5;
 

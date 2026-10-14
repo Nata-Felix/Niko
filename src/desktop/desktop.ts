@@ -250,11 +250,19 @@ export function usarAreaInterativa(seletores: string[]) {
 }
 
 export function usarCursorFora(fn: () => void) {
+  usarEventoDaJanela("niko://cursor-fora", fn);
+}
+
+export function usarCliqueFora(fn: () => void) {
+  usarEventoDaJanela("niko://clique-fora", fn);
+}
+
+function usarEventoDaJanela(evento: string, fn: () => void) {
   useEffect(() => {
     if (!NATIVO) return;
     let desligar: () => void = () => undefined;
     let ativo = true;
-    void ouvirEvento("niko://cursor-fora", fn, true).then((f) => {
+    void ouvirEvento(evento, fn, true).then((f) => {
       if (ativo) desligar = f;
       else f();
     });
@@ -262,8 +270,9 @@ export function usarCursorFora(fn: () => void) {
       ativo = false;
       desligar();
     };
-  }, [fn]);
+  }, [evento, fn]);
 }
+
 export interface AppAberto {
   id: string;
   pid: number;

@@ -62,6 +62,6 @@ jobs:
         working-directory: src-tauri
         run: |
           mkdir -p ../dist recursos
-          touch recursos/ponte.mjs recursos/node.exe
+          touch recursos/ponte.mjs recursos/node.exe recursos/node
           cargo clippy --all-targets -- -D warnings
           cargo test

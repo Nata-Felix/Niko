@@ -8,15 +8,11 @@
     ],
     "resources": {
       "recursos/node.exe": null,
+      "recursos/node": "recursos/node",
       "recursos/ponte.mjs": "recursos/ponte.mjs"
     },
     "shortDescription": "Niko, seu sistema de vida",
     "category": "Productivity",
-    "createUpdaterArtifacts": false,
-    "linux": {
-      "rpm": {
-        "depends": ["nodejs"]
-      }
-    }
+    "createUpdaterArtifacts": false
   }
 }

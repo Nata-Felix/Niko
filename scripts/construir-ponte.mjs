@@ -1,5 +1,5 @@
 import { build } from "vite";
-import { copyFileSync, mkdirSync, existsSync, statSync } from "node:fs";
+import { copyFileSync, chmodSync, mkdirSync, existsSync, statSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -27,11 +27,8 @@ await build({
   ssr: { noExternal: true },
 });
 
-if (process.platform === "win32") {
-  const node = process.execPath;
-  const copia = join(destino, "node.exe");
-  if (!existsSync(copia) || statSync(copia).size !== statSync(node).size) copyFileSync(node, copia);
-} else {
-  console.log("Linux: o Niko usa o Node instalado no sistema (pacote nodejs), sem embutir um binário.");
-}
+const node = process.execPath;
+const copia = join(destino, process.platform === "win32" ? "node.exe" : "node");
+if (!existsSync(copia) || statSync(copia).size !== statSync(node).size) copyFileSync(node, copia);
+if (process.platform !== "win32") chmodSync(copia, 0o755);
 console.log("ponte pronta em", destino);

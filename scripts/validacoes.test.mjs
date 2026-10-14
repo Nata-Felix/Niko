@@ -435,6 +435,12 @@ test("apps fixados no dock são limpos e a escala cai na opção válida mais pr
   assert.equal(muitos.dock.fixados.length, 20);
 });
 
+test("mídia na ilha fechada vem ligada em configurações antigas e respeita a escolha salva", () => {
+  assert.equal(configuracoesValidas({ ilha: { ativa: true } }, CONFIG_PADRAO).ilha.midiaNaCompacta, true);
+  assert.equal(configuracoesValidas({ ilha: { midiaNaCompacta: false } }, CONFIG_PADRAO).ilha.midiaNaCompacta, false);
+  assert.equal(configuracoesValidas({ ilha: { midiaNaCompacta: "não" } }, CONFIG_PADRAO).ilha.midiaNaCompacta, true);
+});
+
 test("dock mostra fixados primeiro, junta com as janelas abertas e mantém os outros apps depois", async () => {
   const { agruparApps, ordenarComFixados } = await vite.ssrLoadModule("/src/janelas/dock/grupos.ts");
   const janela = (id, caminho, grupo) => ({ id, pid: 1, titulo: id, minimizada: false, ativa: false, app: "x", nome: "x", caminho, icone: null, grupo });

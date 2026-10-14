@@ -123,6 +123,7 @@ function validarVisual(dados: unknown): Partial<ReturnType<typeof useConfig.getS
       fechamentoSeg: typeof i.fechamentoSeg === "number" && Number.isFinite(i.fechamentoSeg) && (i.fechamentoSeg === -1 || i.fechamentoSeg >= 0 && i.fechamentoSeg <= 300) ? i.fechamentoSeg : 15,
       abrirHover: i.abrirHover === true,
       laterais: i.laterais !== false,
+      midiaNaCompacta: i.midiaNaCompacta !== false,
     };
   }
   if (v.dock && typeof v.dock === "object") {
@@ -526,6 +527,7 @@ export default function Configuracoes() {
           </select>
         </LinhaAjuste>
         <AlternadorAjuste rotulo={T.configuracoes.abrirHover} ligado={cfg.ilha.abrirHover} aoMudar={(v) => cfg.definirIlha({ abrirHover: v })} />
+        <AlternadorAjuste rotulo={T.ilha.midiaNaCompacta} dica={T.ilha.midiaNaCompactaDica} ligado={cfg.ilha.midiaNaCompacta} aoMudar={(v) => cfg.definirIlha({ midiaNaCompacta: v })} />
         <AlternadorAjuste rotulo={T.configuracoes.lateraisIlha} dica={T.configuracoes.lateraisDica} ligado={cfg.ilha.laterais} aoMudar={(v) => cfg.definirIlha({ laterais: v })} />
         <LinhaAjuste rotulo={T.configuracoes.notificacoesIlha} dica={T.configuracoes.notificacoesDica[cfg.ilha.notificacoes]}>
           <Segmentado rotulo={T.configuracoes.notificacoesIlha} valor={cfg.ilha.notificacoes} aoMudar={(v) => cfg.definirIlha({ notificacoes: v })} opcoes={(["importantes", "todas", "nenhuma"] as const).map((v) => ({ valor: v, rotulo: T.configuracoes.notificacoesOpcoes[v] }))} />

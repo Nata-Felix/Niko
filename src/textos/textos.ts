@@ -176,6 +176,7 @@ export const T = {
         mudancas: [
           ["novo", "Fixe apps no dock pelo botão direito em um app aberto. Eles ficam no dock mesmo fechados e abrem com um clique."],
           ["novo", "Tamanho do dock de 70% a 120%, pelo menu do dock ou pelos Ajustes. No modo fixo, o espaço reservado na tela acompanha o tamanho."],
+          ["novo", "Escolha se a música tocando aparece na ilha fechada, pelo botão de olho na aba Mídia ou pelos Ajustes da ilha. A aba Mídia continua funcionando."],
           ["novo", "Primeira base do Niko para Linux (Fedora e Ubuntu com GNOME), a partir da contribuição do PR #11. Ainda sem instalador oficial."],
           ["correcao", "O plugin do OpenCode funciona no OpenCode v2 e continua funcionando na v1. Quem já instalou vê a opção de atualizar na aba Código."],
           ["correcao", "O AtalhoTouch aparecia, piscava e sumia ao ser ligado no app instalado. Uma janela relia dados antigos logo depois de outra salvar e desfazia a mudança."],
@@ -581,6 +582,10 @@ export const T = {
       esconderRedes: "Esconder as redes",
     },
     midia: "Mídia",
+    midiaNaCompacta: "Mostrar a mídia na ilha fechada",
+    midiaNaCompactaDica: "Quando desligado, a música tocando não aparece na ilha fechada. A aba Mídia continua funcionando.",
+    mostrarMidiaNaCompacta: "Mostrar a mídia na ilha fechada",
+    esconderMidiaNaCompacta: "Esconder a mídia da ilha fechada",
     foco: "Foco",
     avisos: "Avisos",
     abrirSistema: "Abrir o sistema",

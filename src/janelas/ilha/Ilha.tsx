@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import {
-  Plus, Music, Timer, CalendarDays, MessageCircle, Plug, Bell, Volume2, VolumeX, AppWindow, ChevronUp, Pin, PinOff, Check, CircleAlert, Download, CodeXml, ShieldAlert, LoaderCircle,
+  Plus, Eye, EyeOff, Music, Timer, CalendarDays, MessageCircle, Plug, Bell, Volume2, VolumeX, AppWindow, ChevronUp, Pin, PinOff, Check, CircleAlert, Download, CodeXml, ShieldAlert, LoaderCircle,
   Users, type LucideIcon,
 } from "lucide-react";
 import { useConfig, type AbaIlha, type SecaoHoje, type VisaoIlha } from "../../estado/configuracoes";
@@ -362,14 +362,14 @@ export function Ilha() {
     if (atualizacao.fase !== "nada") return { tipo: "atualizacao" as const, largura: 350 };
     if (pedidosClaude.length > 0) return { tipo: "claudePedido" as const, largura: 340 };
     if (pomodoroIniciado) return { tipo: "pomodoro" as const, largura: midia.tocando ? 330 : 290 };
-    if (cfg.blocos.midia && midiaAtivaNaIlha(midia)) return { tipo: "midia" as const, largura: 330 };
+    if (cfg.blocos.midia && cfg.midiaNaCompacta && midiaAtivaNaIlha(midia)) return { tipo: "midia" as const, largura: 330 };
     if (claudeAtivo) return { tipo: "claude" as const, largura: 330 };
     if (trabalhando.length > 0) return { tipo: "trabalho" as const, largura: 280 };
     if (cfg.repouso === "relogio") return { tipo: "relogio" as const, largura: 190 };
     if (cfg.repouso === "midia") return { tipo: "relogio" as const, largura: 190 };
     if (cfg.repouso === "agente") return { tipo: "agente" as const, largura: 230 };
     return { tipo: "nada" as const, largura: 120 };
-  }, [revelacao, pomodoroIniciado, midia.tocando, Boolean(midia.faixa), trabalhando.length, cfg.repouso, cfg.blocos.midia, atualizacao.fase, pedidosClaude.length, Boolean(claudeAtivo)]);
+  }, [revelacao, pomodoroIniciado, midia.tocando, Boolean(midia.faixa), trabalhando.length, cfg.repouso, cfg.blocos.midia, cfg.midiaNaCompacta, atualizacao.fase, pedidosClaude.length, Boolean(claudeAtivo)]);
 
   if (!cfg.ativa || frente.telaCheia) return null;
 
@@ -709,6 +709,22 @@ export function Ilha() {
                           }}
                         >
                           <Plus size={15} />
+                        </button>
+                      )}
+                      {abaAtual === "midia" && (
+                        <button
+                          type="button"
+                          className="ilha-acao"
+                          aria-label={T.ilha.midiaNaCompacta}
+                          data-dica={cfg.midiaNaCompacta ? T.ilha.esconderMidiaNaCompacta : T.ilha.mostrarMidiaNaCompacta}
+                          aria-pressed={cfg.midiaNaCompacta}
+                          data-ativa={cfg.midiaNaCompacta || undefined}
+                          onClick={() => {
+                            void tocarSom("blip");
+                            useConfig.getState().definirIlha({ midiaNaCompacta: !cfg.midiaNaCompacta });
+                          }}
+                        >
+                          {cfg.midiaNaCompacta ? <Eye size={14} /> : <EyeOff size={14} />}
                         </button>
                       )}
                       <button

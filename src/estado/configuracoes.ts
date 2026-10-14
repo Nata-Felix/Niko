@@ -124,6 +124,7 @@ export interface ConfigIlha {
   laterais: boolean;
   iconesDaBarra: Record<IconeDaBarra, boolean>;
   monitor: string;
+  midiaNaCompacta: boolean;
 }
 
 export type CategoriaDeAviso = "lembretes" | "habitos" | "estudos" | "financas" | "conexoes" | "codigo" | "conquistas" | "consumo";
@@ -205,6 +206,7 @@ export const CONFIG_PADRAO: Configuracoes = {
     laterais: true,
     iconesDaBarra: { rede: true, volume: true, bateria: true },
     monitor: "",
+    midiaNaCompacta: true,
   },
   dock: { ativo: true, modo: "inteligente", favoritos: ["chat", "journal", "estudos", "financas", "calendario"], atalhos: [], fixados: [], escala: 1, ampliar: true, mostrarIniciar: true, mostrarBusca: true, fundo: FUNDO_PADRAO_DAS_BORDAS, opacidade: 1, monitores: "todos", buscador: "google" },
   assistive: ASSISTIVE_PADRAO,

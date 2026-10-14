@@ -413,6 +413,46 @@ test("datas de estudo e revisões rejeitam dados inválidos", () => {
   assert.equal(useEstudos.getState().paginas[0].conteudo, "Conteúdo válido");
 });
 
+test("apps fixados no dock são limpos e a escala cai na opção válida mais próxima", () => {
+  const icone = "data:image/png;base64,AAAA";
+  const c = configuracoesValidas({ dock: { escala: 0.74, fixados: [
+    { id: "Microsoft.VisualStudioCode", nome: "Visual Studio Code", chave: "c:\\code.exe", icone },
+    { id: "Microsoft.VisualStudioCode", nome: "Repetido", chave: "c:\\code.exe", icone },
+    { id: "sem-chave", nome: "Sem chave" },
+    { id: "ruim", nome: "Ruim\n", chave: "x" },
+    { id: "icone-estranho", nome: "App", chave: "c:\\app.exe", icone: "javascript:alert(1)" },
+    null,
+  ] } }, CONFIG_PADRAO);
+  assert.equal(c.dock.escala, 0.7);
+  assert.deepEqual(c.dock.fixados, [
+    { id: "Microsoft.VisualStudioCode", nome: "Visual Studio Code", chave: "c:\\code.exe", icone },
+    { id: "icone-estranho", nome: "App", chave: "c:\\app.exe", icone: null },
+  ]);
+  const antigos = configuracoesValidas({ dock: { ativo: true } }, CONFIG_PADRAO);
+  assert.equal(antigos.dock.escala, 1);
+  assert.deepEqual(antigos.dock.fixados, []);
+  const muitos = configuracoesValidas({ dock: { fixados: Array.from({ length: 40 }, (_, i) => ({ id: `a${i}`, nome: `App ${i}`, chave: `k${i}` })) } }, CONFIG_PADRAO);
+  assert.equal(muitos.dock.fixados.length, 20);
+});
+
+test("dock mostra fixados primeiro, junta com as janelas abertas e mantém os outros apps depois", async () => {
+  const { agruparApps, ordenarComFixados } = await vite.ssrLoadModule("/src/janelas/dock/grupos.ts");
+  const janela = (id, caminho, grupo) => ({ id, pid: 1, titulo: id, minimizada: false, ativa: false, app: "x", nome: "x", caminho, icone: null, grupo });
+  const grupos = agruparApps([janela("1", "c:\\zen.exe"), janela("2", "c:\\chrome.exe", "Perfil 1"), janela("3", "c:\\chrome.exe", "Perfil 2"), janela("4", "c:\\code.exe")]);
+  const fixados = [
+    { id: "discord", nome: "Discord", chave: "c:\\discord.exe", icone: null },
+    { id: "chrome", nome: "Chrome", chave: "c:\\chrome.exe", icone: null },
+  ];
+  const entradas = ordenarComFixados(grupos, fixados);
+  assert.deepEqual(entradas.map((e) => [e.chave, e.lista.length, e.fixado?.id ?? null]), [
+    ["fixado:discord", 0, "discord"],
+    ["c:\\chrome.exe|Perfil 1", 1, "chrome"],
+    ["c:\\chrome.exe|Perfil 2", 1, null],
+    ["c:\\zen.exe", 1, null],
+    ["c:\\code.exe", 1, null],
+  ]);
+});
+
 test("botões opcionais do dock mantêm o padrão em configurações antigas e salvam escolhas independentes", async () => {
   const antigos = configuracoesValidas({ dock: { ativo: true } }, CONFIG_PADRAO);
   assert.equal(antigos.dock.mostrarIniciar, true);

@@ -79,7 +79,12 @@ export const iconesDeApps = (d: Record<string, unknown>) => {
   return controle.iconesDeApps(ids);
 };
 export const abrirApp = (d: Record<string, unknown>) => controle.abrirApp(idDeApp(d.id), d.admin === true);
-export const abrirComandoDoSistema = (d: Record<string, unknown>) => {
+export const appDaJanela = (d: Record<string, unknown>) => {
+  const caminho = d.caminho === null || d.caminho === undefined ? null : idDeApp(d.caminho);
+  const nome = typeof d.nome === "string" && d.nome.length <= 200 && !/[\u0000-\u001f]/.test(d.nome) ? d.nome : "";
+  return controle.appDaJanela(caminho, nome);
+};
+export const abrirComandoDoSistema =(d: Record<string, unknown>) => {
   if (!COMANDOS_DO_SISTEMA.includes(d.comando as ComandoDoSistema)) throw new Error("valor_invalido");
   return controle.comandoDoSistema(d.comando as ComandoDoSistema);
 };

@@ -189,6 +189,7 @@ export interface Plataforma {
     apps(forcar: boolean): Promise<{ apps: AppInstalado[] }>;
     iconesDeApps(ids: string[]): Promise<{ icones: { id: string; icone: string | null }[] }>;
     abrirApp(id: string, admin: boolean): Promise<{ ok: boolean }>;
+    appDaJanela(caminho: string | null, nome: string): Promise<{ id: string | null; nome: string | null }>;
     comandoDoSistema(comando: ComandoDoSistema): Promise<{ ok: boolean }>;
     donoDaConexao(portaLocal: number, portaRemota: number): Promise<number>;
     focarProcesso(pid: number): Promise<{ ok: boolean; janela: string }>;

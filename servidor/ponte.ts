@@ -11,7 +11,7 @@ import { estadoConexoes, lerConexao, salvarChaveConexao, removerChaveConexao, se
 import { buscarGmail, criarRascunhoGmail, enviarGmail } from "./gmail.ts";
 import { lerAgendaGoogle } from "./agendaGoogle.ts";
 import { lerCotacoes } from "./cotacoes.ts";
-import { lerAudio, definirVolume, definirMudo, ajustarSessao, lerTema, lerIniciar, definirTema, abrirFerramenta, agirNaEnergia, lerBandeja, abrirDaBandeja, pastaDaBandeja, encerrarDaBandeja, listarApps, iconesDeApps, abrirApp, abrirComandoDoSistema } from "./controleRapido.ts";
+import { lerAudio, definirVolume, definirMudo, ajustarSessao, lerTema, lerIniciar, definirTema, abrirFerramenta, agirNaEnergia, lerBandeja, abrirDaBandeja, pastaDaBandeja, encerrarDaBandeja, listarApps, iconesDeApps, abrirApp, appDaJanela, abrirComandoDoSistema } from "./controleRapido.ts";
 import { ocrDaRequisicao } from "./ocr.ts";
 import { receberEventoDoGancho, ehRotaDoGancho, ouvirEventos, decidirPedido, estadoDaInstalacao, previaDaInstalacao, instalarGanchos, removerGanchos, abrirProjeto, trazerTerminal, ehRotaDaStatus, receberStatusDoClaude } from "./claude.ts";
 import { ehRotaDeAgente, receberEventoDeAgente, estadoDosAgentes, instalarAgente, removerAgente } from "./agentesDeCodigo.ts";
@@ -239,6 +239,7 @@ export const rotas: Connect.NextHandleFunction = async (req, res, proximo) => {
         apps: listarApps,
         iconesApps: iconesDeApps,
         abrirApp,
+        appDaJanela,
         comandoDoSistema: abrirComandoDoSistema,
       };
       if (req.method === "GET" && leitura[acao]) return responder(res, 200, await leitura[acao]());

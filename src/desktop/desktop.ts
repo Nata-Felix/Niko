@@ -357,8 +357,8 @@ export function ocultarBarraDoWindows(ocultar: boolean) {
   return invocar("barra_windows", { ocultarBarra: ocultar });
 }
 
-export function reservarEspacoDoDock(reservar: boolean) {
-  return invocar("reservar_dock", { reservar });
+export function reservarEspacoDoDock(reservar: boolean, altura: number) {
+  return invocar("reservar_dock", { reservar, altura });
 }
 
 export type TipoDaFrente = "area_de_trabalho" | "sobreposta" | "app";

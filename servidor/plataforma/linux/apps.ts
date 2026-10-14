@@ -130,6 +130,17 @@ export const iconesDeApps: Plataforma["controle"]["iconesDeApps"] = async (ids) 
   return { icones: ids.map((id) => ({ id, icone: iconeDoApp(porId.get(id)?.icone) })) };
 };
 
+export const appDaJanela: Plataforma["controle"]["appDaJanela"] = async (caminho, nome) => {
+  const { porChave, porId } = catalogoDeApps();
+  const candidatos = [caminho ? basename(caminho).toLowerCase() : "", nome.toLowerCase()].filter(Boolean);
+  for (const chave of candidatos) {
+    const app = porChave.get(chave);
+    if (app?.visivel) return { id: app.id, nome: app.nome };
+  }
+  const porNome = [...porId.values()].find((a) => a.visivel && a.nome.toLowerCase() === nome.toLowerCase());
+  return { id: porNome?.id ?? null, nome: porNome?.nome ?? null };
+};
+
 export const abrirApp: Plataforma["controle"]["abrirApp"] = async (id, admin) => {
   if (admin) throw new Error("sem_admin");
   const app = appConhecido(id);

@@ -526,6 +526,50 @@ function AbrirApp($id, $admin) {
   Start-Process ('shell:AppsFolder\' + $id)
 }
 
+function AppDaJanela($caminho, $nome) {
+  $lista = @((ListarApps $false).apps)
+  $alvo = ([string]$caminho).ToLowerInvariant()
+  if ($alvo) {
+    foreach ($a in $lista) {
+      $exe = ExeDoApp $a.id
+      if ($exe -and $exe.ToLowerInvariant() -eq $alvo) { return $a }
+    }
+    $atalhos = New-Object -ComObject WScript.Shell
+    $pastas = @((Join-Path $env:ProgramData 'Microsoft\Windows\Start Menu\Programs'), (Join-Path $env:APPDATA 'Microsoft\Windows\Start Menu\Programs'))
+    $arquivo = [IO.Path]::GetFileName($alvo)
+    $exatos = @()
+    $vizinhos = @()
+    foreach ($pasta in $pastas) {
+      foreach ($f in @(Get-ChildItem -LiteralPath $pasta -Filter *.lnk -Recurse -ErrorAction SilentlyContinue)) {
+        $destino = $null
+        try {
+          $atalho = $atalhos.CreateShortcut($f.FullName)
+          if ([string]$atalho.Arguments) { continue }
+          $destino = ([string]$atalho.TargetPath).ToLowerInvariant()
+        } catch { continue }
+        if (-not $destino) { continue }
+        if ($destino -eq $alvo) { $exatos += $f }
+        elseif ([IO.Path]::GetFileName($destino) -eq $arquivo -and $alvo.StartsWith([IO.Path]::GetDirectoryName($destino) + '\')) { $vizinhos += $f }
+      }
+    }
+    if ($arquivo -eq 'explorer.exe') {
+      $explorador = $lista | Where-Object { $_.id -eq 'Microsoft.Windows.Explorer' } | Select-Object -First 1
+      if ($explorador) { return $explorador }
+    }
+    foreach ($f in @($exatos + $vizinhos)) {
+      $porNome = $lista | Where-Object { $_.nome -eq $f.BaseName } | Select-Object -First 1
+      if ($porNome) { return $porNome }
+      $porAtalho = $lista | Where-Object { $_.id -eq ('lnk:' + $f.FullName) } | Select-Object -First 1
+      if ($porAtalho) { return $porAtalho }
+    }
+  }
+  if ($nome) {
+    $porNome = $lista | Where-Object { $_.nome -eq [string]$nome } | Select-Object -First 1
+    if ($porNome) { return $porNome }
+  }
+  return $null
+}
+
 while ($true) {
   $linha = [Console]::In.ReadLine()
   if ($null -eq $linha) { break }
@@ -582,6 +626,10 @@ while ($true) {
         $r = @{ icones = $lista }
       }
       'abrirApp' { AbrirApp ([string]$pedido.id) ($pedido.admin -eq $true); $r = @{ ok = $true } }
+      'appDaJanela' {
+        $achado = AppDaJanela $pedido.caminho $pedido.nome
+        $r = @{ app = $(if ($achado) { [string]$achado.id } else { $null }); nomeDoApp = $(if ($achado) { [string]$achado.nome } else { $null }) }
+      }
       'donoDaConexao' { $r = @{ pid = (DonoDaConexao $pedido.portaLocal $pedido.portaRemota) } }
       'focarProcesso' { $r = @{ ok = $true; janela = (FocarJanelaDoProcesso $pedido.pid) } }
       'comandoDoSistema' {
@@ -628,6 +676,11 @@ export const controle: Plataforma["controle"] = {
   apps: (forcar) => pedir({ acao: "apps", forcar }, 40000),
   iconesDeApps: (ids) => pedir({ acao: "iconesApps", ids }, 30000),
   abrirApp: (id, admin) => pedir({ acao: "abrirApp", id, admin }, 30000),
+  async appDaJanela(caminho, nome) {
+    const r = await pedir<{ app?: unknown; nomeDoApp?: unknown }>({ acao: "appDaJanela", caminho, nome }, 40000);
+    const id = typeof r.app === "string" && r.app ? r.app : null;
+    return { id, nome: id && typeof r.nomeDoApp === "string" && r.nomeDoApp ? r.nomeDoApp : null };
+  },
   comandoDoSistema: (comando) => pedir({ acao: "comandoDoSistema", comando }),
   async donoDaConexao(portaLocal, portaRemota) {
     const r = await pedir<{ pid?: unknown }>({ acao: "donoDaConexao", portaLocal, portaRemota }, 5000);

@@ -1,6 +1,6 @@
 import { readlinkSync } from "node:fs";
 import type { ComandoDoSistema, EstadoDoAudio, Fluxo, Plataforma, PontaDeAudio } from "../tipos.ts";
-import { abrirApp, iconesDeApps, listarApps } from "./apps.ts";
+import { abrirApp, appDaJanela, iconesDeApps, listarApps } from "./apps.ts";
 import { esperar, funcionou, iconeDoApp, lerArquivo, primeiraQueAbre, rodar, tentar } from "./comum.ts";
 import { janelas } from "./janelas.ts";
 
@@ -216,6 +216,7 @@ export const controle: Plataforma["controle"] = {
   apps: listarApps,
   iconesDeApps,
   abrirApp,
+  appDaJanela,
   async comandoDoSistema(comando) {
     if (!(await primeiraQueAbre(COMANDOS[comando]))) throw new Error("ferramenta_indisponivel");
     return { ok: true };

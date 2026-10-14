@@ -181,6 +181,7 @@ export const T = {
           ["novo", "Primeira base do Niko para Linux (Fedora e Ubuntu com GNOME), a partir da contribuição do PR #11, com pacotes .deb, .rpm e AppImage. Versão de teste."],
           ["correcao", "O plugin do OpenCode funciona no OpenCode v2 e continua funcionando na v1. Quem já instalou vê a opção de atualizar na aba Código."],
           ["correcao", "O AtalhoTouch aparecia, piscava e sumia ao ser ligado no app instalado. Uma janela relia dados antigos logo depois de outra salvar e desfazia a mudança."],
+          ["correcao", "O instalador do Windows podia dar erro ao gravar arquivos e deixar a versão antiga, pedindo para atualizar de novo. Agora ele fecha antes o que o Niko deixou rodando, inclusive a status line do Claude Code."],
           ["melhoria", "O cartão do criador fica no topo da página de Atualização."],
           ["melhoria", "Cada versão na página de novidades vira uma gaveta, com a quantidade de mudanças, e a versão atual abre direto pelo aviso de novidades."],
           ["melhoria", "Na ilha compacta, o personagem só se mexe quando está pensando ou escrevendo."],

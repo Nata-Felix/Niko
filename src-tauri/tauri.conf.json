@@ -42,7 +42,8 @@
                                                 "languages":  [
                                                                   "PortugueseBR"
                                                               ],
-                                                "displayLanguageSelector":  false
+                                                "displayLanguageSelector":  false,
+                                                "installerHooks":  "windows/ganchos.nsh"
                                             },
                                    "wix":  {
                                                "language":  "pt-BR",

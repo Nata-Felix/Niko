@@ -161,6 +161,7 @@ export const T = {
     oQueMudouDica: "As novidades de cada versão do Niko.",
     estaVersao: "Esta versão",
     versoesAnteriores: (n: number) => `Versões anteriores (${n})`,
+    quantidadeDeMudancas: (n: number) => (n === 1 ? "1 mudança" : `${n} mudanças`),
     tiposDeMudanca: { novo: "Novo", melhoria: "Melhoria", correcao: "Correção" },
     historico: [
       {

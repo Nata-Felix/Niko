@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState } f
 import { Search, X, Activity, FolderOpen, SquareTerminal, Settings, AppWindow, Minus, MousePointer, SlidersHorizontal, Pin, PinOff, Plus, Maximize2 } from "lucide-react";
 import { MenuDock, type AlvoMenuDock, type ItemMenuDock } from "./MenuDock";
 import { executarNasJanelas } from "./acoesDoMenu";
+import { NO_LINUX } from "../../desktop/plataforma";
 import { NATIVO, ROTULO, usarAreaInterativa, usarCursorFora, usarAppsAbertos, agirNaJanela, alternarSistemaNativo, mostrarMiniaturas, ocultarBarraDoWindows, reservarEspacoDoDock, usarEstadoDaFrente, definirDocks, usarMonitores, ouvirEvento, devolverFoco, type AppAberto } from "../../desktop/desktop";
 import { BuscaApps } from "./BuscaApps";
 import { cadaDockMostraSeusApps, dockAtivoNoMonitor, meuMonitor, TODOS_OS_MONITORES } from "./monitores";
@@ -413,7 +414,8 @@ export function Dock() {
   const meu = meuMonitor(monitores, ROTULO);
   const ativoAqui = cfg.ativo && dockAtivoNoMonitor(escolhaDeMonitor, meu, monitores, ROTULO);
   const monitorDosApps = cadaDockMostraSeusApps(escolhaDeMonitor, monitores, cfg.appsDeTodosOsMonitores) ? meu?.nome : undefined;
-  const frente = usarEstadoDaFrente(ativoAqui);
+  const esconderTelaCheia = useConfig((s) => s.esconderTelaCheia);
+  const frente = usarEstadoDaFrente(ativoAqui, { esconderTelaCheia, apps: "" });
   const principal = !NATIVO || ROTULO === "dock";
 
   useEffect(() => {
@@ -516,7 +518,7 @@ export function Dock() {
     })) },
     { id: "ampliar", texto: T.dock.menu.ampliar, icone: MousePointer, marcado: cfg.ampliar,
       acao: () => { const s = useConfig.getState(); s.definir({ dock: { ...s.dock, ampliar: !s.dock.ampliar } }); } },
-    ...(monitores.length >= 2 && escolhaDeMonitor === TODOS_OS_MONITORES ? [{ id: "appsDeTodosOsMonitores", texto: T.dock.menu.appsDeTodosOsMonitores, icone: AppWindow, marcado: cfg.appsDeTodosOsMonitores,
+    ...(!NO_LINUX && monitores.length >= 2 && escolhaDeMonitor === TODOS_OS_MONITORES ? [{ id: "appsDeTodosOsMonitores", texto: T.dock.menu.appsDeTodosOsMonitores, icone: AppWindow, marcado: cfg.appsDeTodosOsMonitores,
       acao: () => alterarDock((dock) => ({ appsDeTodosOsMonitores: !dock.appsDeTodosOsMonitores })) }] : []),
     { id: "tamanho", texto: T.dock.menu.tamanho, icone: Maximize2, itens: ESCALAS_DO_DOCK.map((escala) => ({
       id: String(escala), texto: T.dock.menu.tamanhoOpcao(escala), marcado: cfg.escala === escala,

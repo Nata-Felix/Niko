@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { emitTo, listen } from "@tauri-apps/api/event";
 import type { Rota, ServicoId } from "../tipos";
 import { iniciarConsultaPeriodica } from "./consultaPeriodica";
@@ -385,6 +385,21 @@ export interface EstadoDaFrente {
 
 const FRENTE_LIVRE: EstadoDaFrente = { cobre: false, telaCheia: false, maximizada: false, frente: "area_de_trabalho" };
 
+export interface RegrasDeSumir {
+  esconderTelaCheia: boolean;
+  apps: string;
+}
+
+function semExe(nome: string) {
+  return nome.trim().toLowerCase().replace(/\.exe$/, "");
+}
+
+export function deveSumirPelaFrente(telaCheia: boolean, programa: string, regras: RegrasDeSumir): boolean {
+  if (telaCheia && regras.esconderTelaCheia) return true;
+  const atual = semExe(programa);
+  return Boolean(atual) && regras.apps.split(/\r?\n/).some((linha) => semExe(linha) === atual);
+}
+
 export async function permitirNotificacoes(): Promise<boolean> {
   if (!NATIVO) return false;
   try {
@@ -416,18 +431,20 @@ export async function frenteEmTelaCheia(): Promise<boolean> {
   return Boolean(r?.telaCheia);
 }
 
-export function usarEstadoDaFrente(ativo: boolean): EstadoDaFrente {
+export function usarEstadoDaFrente(ativo: boolean, regras: RegrasDeSumir): EstadoDaFrente {
   const [estado, setEstado] = useState<EstadoDaFrente>(FRENTE_LIVRE);
+  const regrasAtuais = useRef(regras);
+  regrasAtuais.current = regras;
   useEffect(() => {
     if (!NATIVO || !ativo) {
       setEstado(FRENTE_LIVRE);
       return;
     }
     return iniciarConsultaPeriodica(async (sinal) => {
-      const r = await invocar<EstadoDaFrente>("frente_cobre_tela");
+      const r = await invocar<EstadoDaFrente & { programa?: unknown }>("frente_cobre_tela");
       if (sinal.aborted || !r) return;
       const cobre = Boolean(r?.cobre);
-      const telaCheia = Boolean(r?.telaCheia);
+      const telaCheia = deveSumirPelaFrente(Boolean(r?.telaCheia), typeof r.programa === "string" ? r.programa : "", regrasAtuais.current);
       const maximizada = Boolean(r?.maximizada);
       const frente: TipoDaFrente = r?.frente === "app" || r?.frente === "sobreposta" ? r.frente : "area_de_trabalho";
       setEstado((anterior) => (anterior.cobre === cobre && anterior.telaCheia === telaCheia && anterior.maximizada === maximizada && anterior.frente === frente ? anterior : { cobre, telaCheia, maximizada, frente }));

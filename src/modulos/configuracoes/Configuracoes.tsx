@@ -18,6 +18,7 @@ import { T } from "../../textos/textos";
 import { contraste, hexValido, FUNDO_DESTAQUE } from "../../utilitarios/cores";
 import { lerArquivoTexto, normalizarTexto } from "../../utilitarios/basicos";
 import { exportarArquivo } from "../../ponte/exportacao";
+import { NO_LINUX } from "../../desktop/plataforma";
 import { abaLigada, rotaLigada } from "../../utilitarios/funcoes";
 import { hojeISO } from "../../utilitarios/datas";
 import { lerBackup } from "../../utilitarios/backupValido";
@@ -153,16 +154,36 @@ function SecaoDados() {
   const [confirmacao, setConfirmacao] = useState("");
   const [apagarChaves, setApagarChaves] = useState(false);
   const [zerando, setZerando] = useState(false);
+  const [restaurando, setRestaurando] = useState(false);
   const comBanco = modoArmazenamento() === "banco";
 
-  const exportar = async (nome = `niko-backup-${hojeISO()}.json`) => {
+  const exportar = async (nome = `niko-backup-${hojeISO()}.json`, automatico = false) => {
     await salvarAgora().catch(() => undefined);
     const dados: Record<string, string> = {};
     for (const k of listarChaves()) {
       const v = lerChave(k);
       if (v != null) dados[k] = v;
     }
-    return exportarArquivo(nome, JSON.stringify({ tipo: "niko-backup", versao: 1, criadoEm: new Date().toISOString(), dados }, null, 1));
+    return exportarArquivo(nome, JSON.stringify({ tipo: "niko-backup", versao: 1, criadoEm: new Date().toISOString(), dados }, null, 1), { mostrarNaPasta: !automatico });
+  };
+
+  const restaurar = async (dados: Record<string, string>) => {
+    if (restaurando) return;
+    setRestaurando(true);
+    if (!(await exportar(`niko-antes-de-restaurar-${hojeISO()}.json`, true))) {
+      setRestaurando(false);
+      avisar(T.configuracoes.semBackupNadaMudou);
+      return;
+    }
+    for (const [k, v] of Object.entries(dados)) gravarChave(k, v);
+    try {
+      await salvarAgora();
+      avisar(T.configuracoes.restaurado);
+      window.setTimeout(() => window.location.reload(), 400);
+    } catch {
+      setRestaurando(false);
+      avisar(T.configuracoes.restaurarFalhou);
+    }
   };
 
   const ler = async (arquivo: File) => {
@@ -230,17 +251,7 @@ function SecaoDados() {
             <ul className="texto-2" style={{ paddingLeft: 16, fontSize: 12 }}>{previa.resumo.map((r) => <li key={r}>{r}</li>)}</ul>
             <div className="formulario-acoes">
               <Botao onClick={() => setPrevia(null)}>{T.geral.cancelar}</Botao>
-              <Botao
-                variante="primario"
-                onClick={async () => {
-                  if (!(await exportar(`niko-antes-de-restaurar-${hojeISO()}.json`))) return;
-                  for (const [k, v] of Object.entries(previa.dados)) gravarChave(k, v);
-                  void salvarAgora().then(() => {
-                    avisar(T.configuracoes.restaurado);
-                    window.setTimeout(() => window.location.reload(), 400);
-                  }).catch(() => avisar(T.configuracoes.restaurarFalhou));
-                }}
-              >
+              <Botao variante="primario" disabled={restaurando} onClick={() => void restaurar(previa.dados)}>
                 {T.configuracoes.restaurar}
               </Botao>
             </div>
@@ -255,16 +266,19 @@ function SecaoDados() {
             e.preventDefault();
             if (confirmacao !== "APAGAR" || zerando) return;
             setZerando(true);
-            void exportar(`niko-antes-de-zerar-${hojeISO()}.json`)
-              .then((salvou) => {
-                if (!salvou) throw new Error("backup_falhou");
-                return zerarTudo(apagarChaves);
-              })
-              .then(() => window.location.reload())
-              .catch(() => {
+            void exportar(`niko-antes-de-zerar-${hojeISO()}.json`, true).then((salvou) => {
+              if (!salvou) {
                 setZerando(false);
-                avisar(T.configuracoes.zerarFalhou);
-              });
+                avisar(T.configuracoes.semBackupNadaMudou);
+                return;
+              }
+              return zerarTudo(apagarChaves)
+                .then(() => window.location.reload())
+                .catch(() => {
+                  setZerando(false);
+                  avisar(T.configuracoes.zerarFalhou);
+                });
+            });
           }}
         >
           <AvisoFaixa tipo="erro">{T.configuracoes.apagarTudoAviso}</AvisoFaixa>
@@ -569,7 +583,7 @@ export default function Configuracoes() {
           {segModo(cfg.dock.modo, (modo) => cfg.definir({ dock: { ...cfg.dock, modo } }))}
         </LinhaAjuste>
         <AlternadorAjuste rotulo={T.configuracoes.ampliarDock} ligado={cfg.dock.ampliar} aoMudar={(v) => cfg.definir({ dock: { ...cfg.dock, ampliar: v } })} />
-        <AlternadorAjuste rotulo={T.dock.menu.appsDeTodosOsMonitores} dica={T.dock.menu.appsDeTodosOsMonitoresDica} ligado={cfg.dock.appsDeTodosOsMonitores} aoMudar={(v) => cfg.definir({ dock: { ...cfg.dock, appsDeTodosOsMonitores: v } })} />
+        {!NO_LINUX && <AlternadorAjuste rotulo={T.dock.menu.appsDeTodosOsMonitores} dica={T.dock.menu.appsDeTodosOsMonitoresDica} ligado={cfg.dock.appsDeTodosOsMonitores} aoMudar={(v) => cfg.definir({ dock: { ...cfg.dock, appsDeTodosOsMonitores: v } })} />}
         <LinhaAjuste rotulo={T.dock.menu.tamanho} para="dk-tamanho">
           <select id="dk-tamanho" className="seletor ajuste-valor" value={cfg.dock.escala} onChange={(e) => cfg.definir({ dock: { ...cfg.dock, escala: Number(e.target.value) } })}>
             {ESCALAS_DO_DOCK.map((escala) => <option key={escala} value={escala}>{T.dock.menu.tamanhoOpcao(escala)}</option>)}
@@ -673,10 +687,18 @@ export default function Configuracoes() {
         <NotaAjuste>
           <AvisoFaixa>{T.configuracoes.telaNavegador}</AvisoFaixa>
         </NotaAjuste>
-        <AlternadorAjuste rotulo={T.configuracoes.esconderTelaCheia} ligado={cfg.esconderTelaCheia} aoMudar={(v) => cfg.definir({ esconderTelaCheia: v })} />
-        <LinhaAjuste rotulo={T.configuracoes.appsEsconder} dica={T.configuracoes.appsDica} para="tc-apps" bloco>
-          <textarea id="tc-apps" className="area-texto ajuste-area" value={cfg.appsEsconder} maxLength={1000} onChange={(e) => cfg.definir({ appsEsconder: e.target.value })} />
-        </LinhaAjuste>
+        {NO_LINUX ? (
+          <NotaAjuste>
+            <AvisoFaixa tipo="alerta">{T.configuracoes.telaLinux}</AvisoFaixa>
+          </NotaAjuste>
+        ) : (
+          <>
+            <AlternadorAjuste rotulo={T.configuracoes.esconderTelaCheia} ligado={cfg.esconderTelaCheia} aoMudar={(v) => cfg.definir({ esconderTelaCheia: v })} />
+            <LinhaAjuste rotulo={T.configuracoes.appsEsconder} dica={T.configuracoes.appsDica} para="tc-apps" bloco>
+              <textarea id="tc-apps" className="area-texto ajuste-area" value={cfg.appsEsconder} maxLength={1000} onChange={(e) => cfg.definir({ appsEsconder: e.target.value })} />
+            </LinhaAjuste>
+          </>
+        )}
       </>
     ),
     atalhos: (

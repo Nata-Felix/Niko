@@ -235,7 +235,9 @@ export function Ilha() {
       desligar();
     };
   }, [abrir]);
-  const frente = usarEstadoDaFrente(cfg.ativa);
+  const esconderTelaCheia = useConfig((s) => s.esconderTelaCheia);
+  const appsEsconder = useConfig((s) => s.appsEsconder);
+  const frente = usarEstadoDaFrente(cfg.ativa, { esconderTelaCheia, apps: appsEsconder });
   const [lateraisLivresNativo, setLateraisLivresNativo] = useState(true);
   useEffect(() => {
     setLateraisLivresNativo((anterior) => areaDeTrabalhoNaFrente(frente, anterior));

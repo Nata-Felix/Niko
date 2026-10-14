@@ -21,7 +21,7 @@ import type { ComandoDoSistema } from "../ponte/ponteLocal";
 import type { Buscador } from "../utilitarios/buscaApps";
 import type { AcaoGlobal, SituacaoDoAtalho } from "../utilitarios/atalhos";
 import manifesto from "../../package.json";
-import { NO_LINUX } from "../desktop/plataforma";
+import { NO_LINUX, TECLA_SUPER } from "../desktop/plataforma";
 
 const SISTEMA = NO_LINUX ? "Linux" : "Windows";
 const COFRE = NO_LINUX ? "chaveiro do sistema" : "Gerenciador de Credenciais do Windows";
@@ -174,6 +174,20 @@ export const T = {
     quantidadeDeMudancas: (n: number) => (n === 1 ? "1 mudança" : `${n} mudanças`),
     tiposDeMudanca: { novo: "Novo", melhoria: "Melhoria", correcao: "Correção" },
     historico: [
+      {
+        versao: "0.2.4",
+        data: "2026-10-14",
+        mudancas: [
+          ["novo", "No Journal, as tarefas pendentes de dias anteriores aparecem no dia de hoje, com Trazer todas ou uma por uma. Em qualquer dia, o menu da tarefa tem Trazer para hoje."],
+          ["correcao", "No Linux, o app instalado abria numa tela branca dizendo que não conseguiu iniciar o serviço local."],
+          ["correcao", "Exportar o backup, o CSV de Finanças, o calendário, uma conversa ou o visual salva o arquivo na pasta Downloads e mostra onde ele ficou. No app instalado o arquivo podia não ser salvo."],
+          ["correcao", "Um backup com uma área danificada restaura as outras e mostra qual ficou de fora, em vez de recusar o arquivo inteiro."],
+          ["correcao", "A ilha aberta recolhe ao clicar fora dela no app instalado do Windows."],
+          ["correcao", "As opções Esconder ilha e dock em tela cheia e Apps que sempre escondem a ilha passam a funcionar no Windows."],
+          ["correcao", "No AppImage do Linux, a status line do Claude Code parava de funcionar toda vez que o Niko era aberto de novo."],
+          ["melhoria", "No Linux, os atalhos mostram a tecla Super, e as opções que o Linux ainda não suporta ficam escondidas, com um aviso."],
+        ],
+      },
       {
         versao: "0.2.3",
         data: "2026-10-14",
@@ -2938,6 +2952,7 @@ export const T = {
     limiteMensal: "Limite mensal (US$)",
     esconderTelaCheia: "Esconder ilha e dock em tela cheia",
     appsEsconder: "Apps que sempre escondem a ilha",
+    telaLinux: "No Linux o Niko ainda não detecta tela cheia nem qual app está na frente, então a ilha e o dock não somem sozinhos. Use o modo Esconder da ilha e do dock.",
     telaNavegador: "No navegador não há como detectar tela cheia de outros apps.",
     atalhosDica: "No navegador, os atalhos globais funcionam só com esta aba em foco.",
     atalhosGlobais: {
@@ -2965,12 +2980,12 @@ export const T = {
       situacoes: {
         ok: "",
         desligado: "",
-        invalido: "Combinação inválida. Use Ctrl, Alt ou Win com uma letra, número ou F1 a F12.",
+        invalido: `Combinação inválida. Use Ctrl, Alt ou ${TECLA_SUPER} com uma letra, número ou F1 a F12.`,
         repetido: "Já está em uso por outra ação do Niko.",
         digita_caractere: "Essa combinação digita um caractere no seu teclado (AltGr). Escolha outra.",
         em_uso: "Outro programa já usa essa combinação.",
       } satisfies Record<SituacaoDoAtalho, string>,
-      precisaModificador: "Use Ctrl, Alt ou Win junto com a tecla, ou uma tecla F1 a F12.",
+      precisaModificador: `Use Ctrl, Alt ou ${TECLA_SUPER} junto com a tecla, ou uma tecla F1 a F12.`,
     },
     privacidade: "Modo privacidade",
     privacidadeDica: "Esconde títulos de música, textos de alerta e valores. O atalho fica em Configurações > Atalhos.",
@@ -2983,6 +2998,7 @@ export const T = {
     restaurar: "Restaurar backup",
     restaurarPrevia: "Prévia da restauração",
     restaurarAviso: "Os dados atuais serão substituídos. Antes, um backup automático deles é salvo na pasta Downloads.",
+    semBackupNadaMudou: "O backup automático não pôde ser salvo na pasta Downloads, então nada foi alterado.",
     restaurarIgnoradas: (areas: string) => `Estas áreas do arquivo estão danificadas e ficam como estão hoje: ${areas}.`,
     restaurado: "Backup restaurado.",
     apagarTudo: "Apagar tudo e começar do zero",
@@ -3003,7 +3019,7 @@ export const T = {
     refazerPrimeira: "Refazer a primeira execução",
     blocosDica: "Arraste para mudar a ordem das abas da ilha. Pelo menos uma precisa ficar ligada.",
     agenteFavorito: "Agente que aparece na ilha em repouso",
-    appsDica: "Um nome de programa por linha, por exemplo obs64.exe.",
+    appsDica: "Um programa por linha, por exemplo obs64.exe. Quando ele está na frente, no monitor da ilha, a ilha some.",
     estadoReal: "Estado real",
     alertaTeste: "Alerta de teste. Clique em Ver ou Dispensar.",
     tarefaTeste: "Tarefa de teste",

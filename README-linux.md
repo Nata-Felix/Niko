@@ -59,7 +59,9 @@ A pasta de dados do app fica em `~/.local/share/com.niko.desktop`. No Linux o Ni
 ## O que muda ou não existe
 
 - O dock **não reserva espaço** na tela nem esconde a barra do sistema.
-- Sem prévias ao vivo das janelas e sem detecção de tela cheia: o dock fica sempre visível.
+- Sem prévias ao vivo das janelas e sem detecção de tela cheia: o dock fica sempre visível. As opções de esconder em tela cheia e por app ficam ocultas nos Ajustes.
+- A ilha aberta não recolhe ao clicar fora dela. Ela fecha pelo Esc, pelo botão ou pelo tempo de fechamento.
+- O dock não sabe em qual monitor cada janela está, então todos os docks mostram todas as janelas.
 - A bandeja de apps em segundo plano do Windows não existe; os ícones ficam na barra do GNOME (extensão AppIndicator).
 - O botão **Iniciar** abre e fecha a visão geral do GNOME.
 - Não há "abrir como administrador".

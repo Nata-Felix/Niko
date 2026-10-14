@@ -545,6 +545,58 @@ test("backup rejeita referências inválidas e elimina campos que sobrescreveria
   assert.equal(JSON.parse(dados["niko:organizacao"]).state.criarEvento, undefined);
 });
 
+test("Journal traz para hoje só as tarefas pendentes de dias anteriores", async () => {
+  const { useRotina, pendentesAntesDe } = await vite.ssrLoadModule("/src/estado/rotina.ts");
+  const base = { descricao: "", prioridade: "media", checklist: [], criadaEm: new Date().toISOString() };
+  const tarefas = [
+    { ...base, id: "a", titulo: "Ontem pendente", status: "a_fazer", data: "2026-10-13", ordem: 1 },
+    { ...base, id: "b", titulo: "Ontem feita", status: "concluida", data: "2026-10-13", ordem: 2 },
+    { ...base, id: "c", titulo: "Semana passada aguardando", status: "em_aguardo", data: "2026-10-06", hora: "09:00", ordem: 3 },
+    { ...base, id: "d", titulo: "Cancelada", status: "cancelada", data: "2026-10-10", ordem: 4 },
+    { ...base, id: "e", titulo: "Hoje", status: "a_fazer", data: "2026-10-14", ordem: 5 },
+    { ...base, id: "f", titulo: "Sem data", status: "a_fazer", ordem: 6 },
+  ];
+  assert.deepEqual(pendentesAntesDe(tarefas, "2026-10-14").map((t) => t.id), ["a", "c"]);
+  const anterior = useRotina.getState();
+  useRotina.setState({ tarefas, passado: [], futuro: [] });
+  try {
+    assert.equal(useRotina.getState().moverTarefas(["a", "c", "e"], "2026-10-14"), 2);
+    const porId = Object.fromEntries(useRotina.getState().tarefas.map((t) => [t.id, t]));
+    assert.equal(porId.a.data, "2026-10-14");
+    assert.equal(porId.c.data, "2026-10-14");
+    assert.equal(porId.c.hora, "09:00");
+    assert.equal(porId.b.data, "2026-10-13");
+    assert.equal(useRotina.getState().passado.length, 1);
+    useRotina.getState().desfazer();
+    assert.equal(useRotina.getState().tarefas.find((t) => t.id === "a").data, "2026-10-13");
+  } finally {
+    useRotina.setState(anterior);
+  }
+});
+
+test("o app instalado liga a ponte no Windows e no Linux, e o modo de desenvolvimento não", async () => {
+  const { paginaDoAppInstalado } = await vite.ssrLoadModule("/src/desktop/desktop.ts");
+  assert.equal(paginaDoAppInstalado(new URL("http://tauri.localhost/index.html")), true);
+  assert.equal(paginaDoAppInstalado(new URL("tauri://localhost/index.html")), true);
+  assert.equal(paginaDoAppInstalado(new URL("http://localhost:5420/")), false);
+});
+
+test("backup com uma área danificada restaura as outras e lista a danificada", async () => {
+  const { lerBackup } = await vite.ssrLoadModule("/src/utilitarios/backupValido.ts");
+  const misto = { tipo: "niko-backup", versao: 1, dados: { ...backup("financas", { transacoes: "erro" }).dados, ...backup("agentes", { atividades: [], alertas: [] }, 1).dados } };
+  const { dados, ignoradas } = lerBackup(misto);
+  assert.deepEqual(Object.keys(dados), ["niko:agentes"]);
+  assert.deepEqual(ignoradas, ["financas"]);
+});
+
+test("exportação só grava nomes simples com extensões conhecidas", async () => {
+  const { nomeDeExportacaoValido } = await vite.ssrLoadModule("/servidor/arquivos.ts");
+  assert.equal(nomeDeExportacaoValido("niko-backup-2026-10-14.json"), "niko-backup-2026-10-14.json");
+  assert.equal(nomeDeExportacaoValido("visual-2026-10-14.niko-visual"), "visual-2026-10-14.niko-visual");
+  assert.equal(nomeDeExportacaoValido("..\\..\\Windows\\backup.json"), "Windowsbackup.json");
+  for (const nome of ["programa.exe", "atalho.lnk", "", ".json", "a".repeat(130) + ".json", 42]) assert.throws(() => nomeDeExportacaoValido(nome), String(nome).slice(0, 20));
+});
+
 test("todas as coleções reais atuais podem ser exportadas e validadas", async () => {
   for (const [nome, exportacao] of [["rotina", "useRotina"], ["comunicacao", "useComunicacao"], ["pomodoro", "usePomodoro"], ["conquistas", "useConquistas"], ["agentes", "useAgentes"]]) {
     const modulo = await vite.ssrLoadModule(`/src/estado/${nome}.ts`);

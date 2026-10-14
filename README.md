@@ -36,6 +36,14 @@ O Niko é um aplicativo desktop que fica junto do Windows, e não dentro de uma 
 | **Dock** | Base da tela | Iniciar do Windows, busca de aplicativos, janelas abertas, prévias e menus de contexto |
 | **Sistema** | Janela própria | Início, chat, agentes, finanças, estudos, metas, calendário e configurações |
 
+<p align="center">
+  <img src="docs/imagens/area-de-trabalho.png" alt="A ilha aberta na aba Hoje, no topo da área de trabalho, com o dock na base da tela" width="900" />
+</p>
+
+<p align="center">
+  <img src="docs/imagens/sistema-inicio.png" alt="Início do sistema com o time, as tarefas do dia, o pomodoro e as finanças do mês" width="900" />
+</p>
+
 Três princípios guiam o projeto:
 
 - **Funciona sem IA.** Toda função principal tem um caminho próprio. A IA é uma camada opcional que melhora o que já funciona.
@@ -56,6 +64,23 @@ Uma barra discreta no topo da tela, com três estados: escondida, compacta e exp
 - **Avisos:** os alertas do time.
 - **Time:** seleção de agente, identidade e guarda-roupa, com prévias dos acessórios e escolha de cor.
 - **Código:** acompanhamento das sessões de ferramentas de programação, com atividade, alterações e pedidos de aprovação nas ferramentas compatíveis.
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/imagens/ilha-hoje.png" alt="Aba Hoje da ilha com relógio, compromissos e calendário do mês" /></td>
+    <td width="50%"><img src="docs/imagens/ilha-time.png" alt="Aba Time da ilha com o guarda-roupa de acessórios do agente" /></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>Hoje: agenda, tarefas e hábitos</sub></td>
+    <td align="center"><sub>Time: identidade e guarda-roupa</sub></td>
+  </tr>
+  <tr>
+    <td colspan="2"><img src="docs/imagens/ilha-foco.png" alt="Aba Foco da ilha com o pomodoro" /></td>
+  </tr>
+  <tr>
+    <td colspan="2" align="center"><sub>Foco: pomodoro com etapas de foco e pausa</sub></td>
+  </tr>
+</table>
 
 A captura rápida permite registrar tarefa, gasto, link, nota ou lembrete sem abrir uma área completa.
 
@@ -111,6 +136,25 @@ Um botão flutuante opcional, desativado por padrão, para abrir os aplicativos 
 
 A janela principal recebeu uma atualização visual e paginação nas listas longas. Áreas e funções opcionais podem ser desativadas nas configurações.
 
+<table>
+  <tr>
+    <td width="50%"><img src="docs/imagens/sistema-journal.png" alt="Journal com tarefas do dia por período, humor e sono" /></td>
+    <td width="50%"><img src="docs/imagens/sistema-financas.png" alt="Finanças com saldo total, gastos por categoria e últimos seis meses" /></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>Journal</sub></td>
+    <td align="center"><sub>Finanças</sub></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="docs/imagens/sistema-estudos.png" alt="Estudos com áreas, matérias, revisões e próximas provas" /></td>
+    <td width="50%"><img src="docs/imagens/sistema-calendario.png" alt="Calendário do mês com eventos, tarefas, provas e lembretes" /></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>Estudos</sub></td>
+    <td align="center"><sub>Calendário</sub></td>
+  </tr>
+</table>
+
 ### Calendário e arquivos
 
 Eventos recorrentes podem ser editados ou excluídos somente em uma ocorrência ou em toda a série. Hábitos com horário aparecem no calendário e podem gerar lembretes enquanto não forem cumpridos.
@@ -141,12 +185,20 @@ As capacidades variam entre ferramentas e versões. Uma integração que acompan
 
 ### O time
 
-| Agente | Cuida de |
-| ------ | -------- |
-| **Organizador** | Rotina, tarefas, hábitos e agenda |
-| **Tutor** | Estudos, revisões e provas |
-| **Operador** | Finanças e serviços conectados |
-| **Java** | Código, repositórios e pull requests |
+| Agente | Cargo | Cuida de |
+| ------ | ----- | -------- |
+| **Rubi** | Gerente de projetos | Rotina, tarefas, hábitos, agenda e metas |
+| **Nanquim** | Professor | Estudos, revisões e provas |
+| **Sol** | Analista de operações | Finanças, orçamento e consumo de IA |
+| **Java** | Engenheiro de software | Código, repositórios, pull requests e conexões |
+
+<p align="center">
+  <img src="docs/imagens/sistema-escritorio.png" alt="Escritório Niko em 3D com os quatro agentes trabalhando e balões de pensamento" width="900" />
+</p>
+
+<p align="center">
+  <img src="docs/imagens/sistema-agentes.png" alt="Página Agentes para personalizar nome, cargo, cor e formato de cada integrante" width="900" />
+</p>
 
 Cada agente tem oito estados visíveis (ocioso, ouvindo, pensando, escrevendo, sucesso, alerta, erro e dormindo) e reage ao que está acontecendo de verdade no app.
 

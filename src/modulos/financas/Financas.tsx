@@ -169,7 +169,7 @@ function exportarTransacoes(fin: ReturnType<typeof useFinancas.getState>) {
     .slice()
     .sort((a, b) => a.data.localeCompare(b.data))
     .map((t) => [t.data, T.financas.tipos[t.tipo], `"${t.descricao.replace(/"/g, "'")}"`, nomeCategoria(t.categoriaId, fin.categorias), fin.contas.find((c) => c.id === t.contaId)?.nome ?? "", centavosParaCampo(t.tipo === "despesa" ? -t.valor : t.valor)].join(";"));
-  void exportarArquivo(`niko-transacoes-${hojeISO()}.csv`, [cabecalho, ...linhas].join("\n"), "text/csv");
+  void exportarArquivo(`niko-transacoes-${hojeISO()}.csv`, [cabecalho, ...linhas].join("\n"), { tipo: "text/csv" });
 }
 
 function proximaOcorrencia(r: Pick<Recorrente, "dia" | "frequencia" | "mesAnual">, hoje: Date) {

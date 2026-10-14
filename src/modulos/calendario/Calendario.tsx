@@ -345,7 +345,7 @@ export default function Calendario() {
       const excecoes = e.repeticao !== "nenhuma" ? (e.excecoes ?? []).map((x) => (e.hora ? `EXDATE:${x.replace(/-/g, "")}T${e.hora.replace(":", "")}00` : `EXDATE;VALUE=DATE:${x.replace(/-/g, "")}`)) : [];
       return ["BEGIN:VEVENT", `UID:${e.id}@niko`, `DTSTAMP:${agoraIcs}`, inicio, `SUMMARY:${escaparIcs(e.titulo)}`, regra[e.repeticao], ...excecoes, "END:VEVENT"].filter(Boolean).join("\r\n");
     });
-    void exportarArquivo("niko-calendario.ics", ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Niko//PT-BR", ...corpo, "END:VCALENDAR"].join("\r\n"), "text/calendar");
+    void exportarArquivo("niko-calendario.ics", ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Niko//PT-BR", ...corpo, "END:VCALENDAR"].join("\r\n"), { tipo: "text/calendar" });
   };
 
   const importarIcs = async (arquivo: File) => {

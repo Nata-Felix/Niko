@@ -113,8 +113,17 @@ function IconeDoMarcador({ status }: { status: StatusTarefa }) {
 }
 
 function trazerParaHoje(ids: string[]) {
+  const alvo = new Set(ids);
+  const datasOriginais = new Map<string, string[]>();
+  for (const t of useRotina.getState().tarefas) {
+    if (!alvo.has(t.id) || !t.data) continue;
+    datasOriginais.set(t.data, [...(datasOriginais.get(t.data) ?? []), t.id]);
+  }
   const movidas = useRotina.getState().moverTarefas(ids, hojeISO());
-  if (movidas > 0) useInterface.getState().avisar(T.journal.trazidas(movidas), () => useRotina.getState().desfazer());
+  if (movidas === 0) return;
+  useInterface.getState().avisar(T.journal.trazidas(movidas), () => {
+    for (const [data, deVolta] of datasOriginais) useRotina.getState().moverTarefas(deVolta, data);
+  });
 }
 
 function PendentesAnteriores({ hoje }: { hoje: string }) {

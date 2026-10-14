@@ -208,7 +208,26 @@ export async function baixarArquivo(banco: string, materia: string, id: string) 
 }
 
 const EXPORTAVEIS = new Set([".json", ".csv", ".ics", ".md", ".niko-visual"]);
-const LIMITE_EXPORTACAO = 20 * 1024 * 1024;
+const LIMITE_EXPORTACAO = 200 * 1024 * 1024;
+
+function lerConteudoDaExportacao(req: IncomingMessage): Promise<Buffer> {
+  if (Number(req.headers["content-length"] ?? 0) > LIMITE_EXPORTACAO) return Promise.reject(new Error("arquivo_grande"));
+  return new Promise((resolver, rejeitar) => {
+    const partes: Buffer[] = [];
+    let tamanho = 0;
+    req.on("data", (parte: Buffer) => {
+      tamanho += parte.length;
+      if (tamanho > LIMITE_EXPORTACAO) {
+        req.destroy();
+        rejeitar(new Error("arquivo_grande"));
+        return;
+      }
+      partes.push(parte);
+    });
+    req.on("end", () => (tamanho === 0 ? rejeitar(new Error("arquivo_vazio")) : resolver(Buffer.concat(partes))));
+    req.on("error", rejeitar);
+  });
+}
 
 export function nomeDeExportacaoValido(nome: unknown): string {
   if (typeof nome !== "string") throw new Error("nome_invalido");
@@ -217,12 +236,12 @@ export function nomeDeExportacaoValido(nome: unknown): string {
   return limpo;
 }
 
-async function gravarSemSubstituir(pasta: string, nome: string, conteudo: string): Promise<string> {
+async function gravarSemSubstituir(pasta: string, nome: string, conteudo: Buffer): Promise<string> {
   const { name, ext } = parse(nome);
   for (let i = 1; i < 1000; i++) {
     const destino = join(pasta, i === 1 ? nome : `${name} (${i})${ext}`);
     try {
-      await writeFile(destino, conteudo, { encoding: "utf8", flag: "wx" });
+      await writeFile(destino, conteudo, { flag: "wx" });
       return destino;
     } catch (erro) {
       if ((erro as NodeJS.ErrnoException).code !== "EEXIST") throw erro;
@@ -231,13 +250,13 @@ async function gravarSemSubstituir(pasta: string, nome: string, conteudo: string
   throw new Error("sem_nome_disponivel");
 }
 
-export async function exportarParaDownloads(corpo: Record<string, unknown>) {
-  const nome = nomeDeExportacaoValido(corpo.nome);
-  if (typeof corpo.conteudo !== "string" || Buffer.byteLength(corpo.conteudo) > LIMITE_EXPORTACAO) throw new Error("conteudo_invalido");
+export async function exportarParaDownloads(req: IncomingMessage, nomePedido: string, mostrar: boolean) {
+  const nome = nomeDeExportacaoValido(nomePedido);
+  const conteudo = await lerConteudoDaExportacao(req);
   const pasta = await plataforma.pastaDeDownloads();
   await mkdir(pasta, { recursive: true });
-  const destino = await gravarSemSubstituir(pasta, nome, corpo.conteudo);
-  plataforma.mostrarArquivoNaPasta(destino);
+  const destino = await gravarSemSubstituir(pasta, nome, conteudo);
+  if (mostrar) plataforma.mostrarArquivoNaPasta(destino);
   return { caminho: destino };
 }
 

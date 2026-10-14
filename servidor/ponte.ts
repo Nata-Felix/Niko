@@ -119,7 +119,7 @@ export const rotas: Connect.NextHandleFunction = async (req, res, proximo) => {
     const agente = /^\/agentes\/([a-z]{2,20})\/(instalar|remover)$/.exec(caminho);
     if (agente && req.method === "POST") return responder(res, 200, agente[2] === "instalar" ? instalarAgente(agente[1], await lerCorpo(req)) : removerAgente(agente[1], await lerCorpo(req)));
     if (caminho === "/ocr" && req.method === "POST") return responder(res, 200, await ocrDaRequisicao(req));
-    if (caminho === "/exportar" && req.method === "POST") return responder(res, 200, await exportarParaDownloads(await lerCorpo(req)));
+    if (caminho === "/exportar" && req.method === "POST") return responder(res, 200, await exportarParaDownloads(req, url.searchParams.get("nome") ?? "", url.searchParams.get("mostrar") !== "0"));
     const arquivo = /^\/arquivos\/([A-Za-z0-9-]{1,64})(?:\/([A-Za-z0-9-]{1,64})(?:\/(baixar|abrir))?)?$/.exec(caminho);
     if (arquivo) {
       const banco = String(req.headers["x-niko-banco"] ?? "");

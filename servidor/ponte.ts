@@ -6,7 +6,7 @@ import { lerConsumo, usoOficial } from "./consumo.ts";
 import { lerUltimaVersao } from "./atualizacoes.ts";
 import { lerTudo, gravar, backupManual, zerarBanco, reservarConfirmacao } from "./banco.ts";
 import { pedirMidia } from "./midia.ts";
-import { pedirJanelas } from "./janelasWindows.ts";
+import { pedirJanelas } from "./janelas.ts";
 import { estadoConexoes, lerConexao, salvarChaveConexao, removerChaveConexao, servicoValido, chaveDe, SERVICOS as SERVICOS_CONEXAO } from "./conexoes.ts";
 import { buscarGmail, criarRascunhoGmail, enviarGmail } from "./gmail.ts";
 import { lerAgendaGoogle } from "./agendaGoogle.ts";
@@ -16,7 +16,7 @@ import { ocrDaRequisicao } from "./ocr.ts";
 import { receberEventoDoGancho, ehRotaDoGancho, ouvirEventos, decidirPedido, estadoDaInstalacao, previaDaInstalacao, instalarGanchos, removerGanchos, abrirProjeto, trazerTerminal, ehRotaDaStatus, receberStatusDoClaude } from "./claude.ts";
 import { ehRotaDeAgente, receberEventoDeAgente, estadoDosAgentes, instalarAgente, removerAgente } from "./agentesDeCodigo.ts";
 import { listarArquivos, receberArquivo, enviarConteudo, excluirArquivo, excluirArquivosDaMateria, baixarArquivo, abrirArquivoNoPrograma } from "./arquivos.ts";
-import { tipoDoComputador, estadoDoSistema, listarRedes, listarBluetooth, lerComputador, conectarRede, esquecerRede, desconectarRede, definirBrilho, definirRadio, abrirConfiguracoesWindows } from "./sistema.ts";
+import { tipoDoComputador, estadoDoSistema, listarRedes, listarBluetooth, lerComputador, conectarRede, esquecerRede, desconectarRede, definirBrilho, definirRadio, abrirConfiguracoesDoSistema } from "./sistema.ts";
 
 const LIMITE_CORPO = 24 * 1024 * 1024;
 
@@ -218,7 +218,7 @@ export const rotas: Connect.NextHandleFunction = async (req, res, proximo) => {
         desconectar: () => desconectarRede(),
         brilho: definirBrilho,
         radio: definirRadio,
-        configuracoes: abrirConfiguracoesWindows,
+        configuracoes: abrirConfiguracoesDoSistema,
       };
       if (req.method === "GET" && leitura[acao]) return responder(res, 200, await leitura[acao]());
       if (req.method === "POST" && escrita[acao]) return responder(res, 200, await escrita[acao](await lerCorpo(req)));

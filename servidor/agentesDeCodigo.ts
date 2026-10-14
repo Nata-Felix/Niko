@@ -5,6 +5,7 @@ import { dirname, join } from "node:path";
 import {
   CABECALHO_SEGREDO, estadoDaInstalacao, instalarGanchos, lembrarProcesso, lerCorpoJson, porta, processarEvento, removerGanchos, segredo, segredoConfere, type FerramentaDeCodigo,
 } from "./claude.ts";
+import { plataforma } from "./plataforma/index.ts";
 
 const PREFIXO_DA_ROTA = "/ponte/agentes/evento/";
 const TEMPO_DO_PEDIDO_S = 115;
@@ -40,7 +41,7 @@ function urlDoEvento(ferramenta: FerramentaDeCodigo, evento: string) {
 
 export function comandoDoGancho(ferramenta: FerramentaDeCodigo, evento: string, chave: string, decide = false) {
   const tempo = decide ? TEMPO_DO_PEDIDO_S : TEMPO_DO_CURL_RAPIDO_S;
-  return `curl.exe -s --connect-timeout ${TEMPO_PARA_CONECTAR_S} -m ${tempo} -X POST -H "content-type: application/json" -H "${CABECALHO_SEGREDO}: ${chave}" --data-binary "@-" "${urlDoEvento(ferramenta, evento)}"`;
+  return `${plataforma.programaCurl} -s --connect-timeout ${TEMPO_PARA_CONECTAR_S} -m ${tempo} -X POST -H "content-type: application/json" -H "${CABECALHO_SEGREDO}: ${chave}" --data-binary "@-" "${urlDoEvento(ferramenta, evento)}"`;
 }
 
 const EVENTOS_DO_COPILOT: Record<string, string> = {

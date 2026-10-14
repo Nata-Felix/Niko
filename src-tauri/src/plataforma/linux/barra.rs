@@ -1,5 +1,6 @@
 use tauri::{AppHandle, Monitor, WebviewWindow};
 
+#[allow(clippy::upper_case_acronyms)]
 #[derive(Clone, Copy, Default)]
 pub struct RECT {
     pub left: i32,

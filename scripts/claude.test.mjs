@@ -398,7 +398,7 @@ test("abrir arquivo do diff só aceita arquivo que existe dentro do projeto", ()
     mkdirSync(join(pasta, "src"));
     writeFileSync(join(pasta, "src", "a.ts"), "x");
     assert.equal(claude.arquivoDoProjeto(pasta, join(pasta, "src", "a.ts")), join(pasta, "src", "a.ts"));
-    assert.equal(claude.arquivoDoProjeto(pasta, "src\\a.ts"), join(pasta, "src", "a.ts"));
+    if (process.platform === "win32") assert.equal(claude.arquivoDoProjeto(pasta, "src\\a.ts"), join(pasta, "src", "a.ts"));
     for (const ruim of [join(pasta, "src", "nao.ts"), join(pasta, "src"), join(pasta, "..", "fora.ts"), "C:\\Windows\\win.ini", "", 5, "a\nb"]) {
       assert.throws(() => claude.arquivoDoProjeto(pasta, ruim), /arquivo_invalido/, String(ruim));
     }

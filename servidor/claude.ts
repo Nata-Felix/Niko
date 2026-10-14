@@ -6,6 +6,7 @@ import { isAbsolute, join, relative, resolve } from "node:path";
 import { randomBytes, randomUUID, timingSafeEqual } from "node:crypto";
 import { pastaDados } from "./ia.ts";
 import { donoDaConexao, focarJanelaDoProcesso } from "./controleRapido.ts";
+import { plataforma } from "./plataforma/index.ts";
 import { CAMINHO_DA_STATUS, anteriorDaStatus, caminhoDoScript, ehStatusDoNiko, garantirScript, receberStatus, statusDoNiko } from "./statusClaude.ts";
 import { metricasDaStatus, type MetricasDaSessao } from "../src/modulos/escritorio/metricasDaSessao.ts";
 import { estadoDoEvento } from "../src/utilitarios/estadoDoEvento.ts";
@@ -588,18 +589,6 @@ export function decidirPedido(corpo: Record<string, unknown>) {
   return { ok: true };
 }
 
-function caminhoDoVsCode(): string | null {
-  const candidatos = [
-    join(process.env.LOCALAPPDATA ?? "", "Programs", "Microsoft VS Code", "Code.exe"),
-    join(process.env.ProgramFiles ?? "C:\\Program Files", "Microsoft VS Code", "Code.exe"),
-    join(process.env["ProgramFiles(x86)"] ?? "C:\\Program Files (x86)", "Microsoft VS Code", "Code.exe"),
-  ];
-  for (const pasta of (process.env.PATH ?? "").split(";")) {
-    if (/microsoft vs code[\\/]bin$/i.test(pasta.trim())) candidatos.push(join(pasta.trim(), "..", "Code.exe"));
-  }
-  return candidatos.find((c) => c && existsSync(c)) ?? null;
-}
-
 function abrirDesacoplado(programa: string, argumentos: string[]) {
   const ambiente = { ...process.env };
   delete ambiente.ELECTRON_RUN_AS_NODE;
@@ -620,11 +609,11 @@ export function abrirProjeto(corpo: Record<string, unknown>) {
   const cwd = typeof corpo.cwd === "string" ? corpo.cwd : "";
   if (!projetosConhecidos.has(cwd) || !isAbsolute(cwd) || !existsSync(cwd) || !statSync(cwd).isDirectory()) throw new Error("projeto_desconhecido");
   if (corpo.como === "vscode" || corpo.como === "arquivo") {
-    const code = caminhoDoVsCode();
+    const code = plataforma.caminhoDoVsCode();
     if (!code) throw new Error("vscode_nao_encontrado");
     abrirDesacoplado(code, corpo.como === "arquivo" ? [cwd, arquivoDoProjeto(cwd, corpo.arquivo)] : [cwd]);
   } else if (corpo.como === "pasta") {
-    abrirDesacoplado("explorer.exe", [cwd]);
+    plataforma.abrirPasta(cwd);
   } else throw new Error("acao_invalida");
   return { ok: true };
 }

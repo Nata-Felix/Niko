@@ -1,8 +1,8 @@
 import { readFileSync, writeFileSync, mkdirSync, renameSync, existsSync } from "node:fs";
 import { join } from "node:path";
-import { homedir } from "node:os";
 import { randomUUID } from "node:crypto";
 import { lerSegredo, gravarSegredo, apagarSegredo } from "./segredos.ts";
+import { plataforma } from "./plataforma/index.ts";
 import { criarFiltroDePensamento } from "./pensamento.ts";
 
 export type TipoProvedor = "anthropic" | "openai_compativel";
@@ -72,7 +72,7 @@ export function validarMensagens(valor: unknown): MensagemIa[] {
     }));
 }
 
-const PASTA = join(process.env.APPDATA ?? join(homedir(), "AppData", "Roaming"), "com.niko.desktop");
+const PASTA = join(plataforma.pastaBaseDeDados(), "com.niko.desktop");
 const ARQUIVO = join(PASTA, "provedores.json");
 
 export function pastaDados() {

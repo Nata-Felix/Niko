@@ -10,6 +10,7 @@ const raizTemporaria = mkdtempSync(join(tmpdir(), "niko-claude-teste-"));
 process.env.USERPROFILE = raizTemporaria;
 process.env.HOME = raizTemporaria;
 process.env.APPDATA = join(raizTemporaria, "AppData");
+process.env.XDG_DATA_HOME = join(raizTemporaria, ".local", "share");
 process.env.NIKO_PORTA = "47999";
 const memoriaLocal = new Map();
 globalThis.localStorage ??= { getItem: (k) => memoriaLocal.get(k) ?? null, setItem: (k, v) => memoriaLocal.set(k, String(v)), removeItem: (k) => memoriaLocal.delete(k) };
@@ -66,7 +67,8 @@ test("modo desconhecido ou data inválida não inventa confirmação", () => {
 const pastaClaude = join(raizTemporaria, ".claude");
 const settings = join(pastaClaude, "settings.json");
 const lerSettings = () => JSON.parse(readFileSync(settings, "utf8"));
-const segredo = () => JSON.parse(readFileSync(join(process.env.APPDATA, "com.niko.desktop", "gancho-claude.json"), "utf8")).segredo;
+const pastaDeDados = join(process.platform === "win32" ? process.env.APPDATA : process.env.XDG_DATA_HOME, "com.niko.desktop");
+const segredo = () => JSON.parse(readFileSync(join(pastaDeDados, "gancho-claude.json"), "utf8")).segredo;
 
 let servidor;
 let base;
@@ -396,7 +398,7 @@ test("abrir arquivo do diff só aceita arquivo que existe dentro do projeto", ()
     mkdirSync(join(pasta, "src"));
     writeFileSync(join(pasta, "src", "a.ts"), "x");
     assert.equal(claude.arquivoDoProjeto(pasta, join(pasta, "src", "a.ts")), join(pasta, "src", "a.ts"));
-    assert.equal(claude.arquivoDoProjeto(pasta, "src\\a.ts"), join(pasta, "src", "a.ts"));
+    if (process.platform === "win32") assert.equal(claude.arquivoDoProjeto(pasta, "src\\a.ts"), join(pasta, "src", "a.ts"));
     for (const ruim of [join(pasta, "src", "nao.ts"), join(pasta, "src"), join(pasta, "..", "fora.ts"), "C:\\Windows\\win.ini", "", 5, "a\nb"]) {
       assert.throws(() => claude.arquivoDoProjeto(pasta, ruim), /arquivo_invalido/, String(ruim));
     }

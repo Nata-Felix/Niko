@@ -27,7 +27,11 @@ await build({
   ssr: { noExternal: true },
 });
 
-const node = process.execPath;
-const copia = join(destino, "node.exe");
-if (!existsSync(copia) || statSync(copia).size !== statSync(node).size) copyFileSync(node, copia);
+if (process.platform === "win32") {
+  const node = process.execPath;
+  const copia = join(destino, "node.exe");
+  if (!existsSync(copia) || statSync(copia).size !== statSync(node).size) copyFileSync(node, copia);
+} else {
+  console.log("Linux: o Niko usa o Node instalado no sistema (pacote nodejs), sem embutir um binário.");
+}
 console.log("ponte pronta em", destino);

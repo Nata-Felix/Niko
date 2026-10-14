@@ -1,0 +1,22 @@
+{
+  "bundle": {
+    "targets": ["deb", "rpm", "appimage"],
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png"
+    ],
+    "resources": {
+      "recursos/node.exe": null,
+      "recursos/ponte.mjs": "recursos/ponte.mjs"
+    },
+    "shortDescription": "Niko, seu sistema de vida",
+    "category": "Productivity",
+    "createUpdaterArtifacts": false,
+    "linux": {
+      "rpm": {
+        "depends": ["nodejs"]
+      }
+    }
+  }
+}

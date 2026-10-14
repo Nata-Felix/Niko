@@ -191,7 +191,7 @@ test("backup diário e manual respeitam o banco selecionado", () => {
 
 test("script temporário é revalidado e reparado depois de adulteração", () => {
   const pasta = fs.mkdtempSync(join(tmpdir(), "niko-script-teste-"));
-  const a = moduloIsolado("servidor/scriptsTemporarios.ts", { ...fs, createHash, randomBytes, join, tmpdir: () => pasta, process }, ["garantirScript"]);
+  const a = moduloIsolado("servidor/plataforma/windows/scriptsTemporarios.ts", { ...fs, createHash, randomBytes, join, tmpdir: () => pasta, process }, ["garantirScript"]);
   try {
     const caminho = a.garantirScript("niko-teste", "conteudo esperado");
     fs.writeFileSync(caminho, "adulterado");

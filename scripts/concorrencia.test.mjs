@@ -50,7 +50,7 @@ function processoSimulado() {
       return p;
     },
   });
-  const codigo = lerCodigo("servidor/processoPowerShell.ts").replace(/^import .*;\r?\n/gm, "").replace("export function", "function");
+  const codigo = lerCodigo("servidor/plataforma/windows/processoPowerShell.ts").replace(/^import .*;\r?\n/gm, "").replace("export function", "function");
   vm.runInContext(`${codigo}\nglobalThis.criar = criarProcessoPowerShell;`, contexto);
   return { filhos, relogio, ponte: contexto.criar("teste", "", "processo_encerrado") };
 }
@@ -175,11 +175,28 @@ test("consulta expirada não atualiza a interface nem acumula uma invocação na
 function carregarCopia() {
   const codigo = lerCodigo("servidor/arquivos.ts");
   const inicio = codigo.indexOf("export async function copiarSemSubstituir(");
-  const fim = codigo.indexOf("\nfunction abrirNoWindows", inicio);
+  const fim = codigo.indexOf("\nexport async function baixarArquivo", inicio);
   const contexto = vm.createContext({ copyFile, constants, join, parse });
   vm.runInContext(`${codigo.slice(inicio, fim).replace("export async function", "async function")}\nglobalThis.copiar = copiarSemSubstituir;`, contexto);
   return contexto.copiar;
 }
+
+test("imports relativos da ponte terminam em .ts para o Node conseguir carregar", async () => {
+  const semExtensao = [];
+  const visitar = async (pasta) => {
+    for (const item of await readdir(pasta, { withFileTypes: true })) {
+      const caminho = join(pasta, item.name);
+      if (item.isDirectory()) await visitar(caminho);
+      else if (item.name.endsWith(".ts")) {
+        for (const [, alvo] of readFileSync(caminho, "utf8").matchAll(/(?:from|import)\s*\(?\s*"(\.\.?\/[^"]+)"/g)) {
+          if (!alvo.endsWith(".ts") && !alvo.endsWith(".json")) semExtensao.push(`${caminho}: ${alvo}`);
+        }
+      }
+    }
+  };
+  await visitar("servidor");
+  assert.deepEqual(semExtensao, []);
+});
 
 test("downloads simultâneos usam nomes diferentes sem substituir arquivos", async () => {
   const pasta = await mkdtemp(join(tmpdir(), "niko-copias-"));

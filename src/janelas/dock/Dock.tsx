@@ -427,8 +427,8 @@ export function Dock() {
   }, [cfg.ativo, escolhaDeMonitor, principal]);
 
   useEffect(() => {
-    if (NATIVO) void reservarEspacoDoDock(ativoAqui && cfg.modo === "fixo", altura);
-  }, [ativoAqui, cfg.modo, altura]);
+    if (NATIVO) void reservarEspacoDoDock(ativoAqui && cfg.modo === "fixo" && cfg.reservarEspaco, altura);
+  }, [ativoAqui, cfg.modo, cfg.reservarEspaco, altura]);
 
   useEffect(() => {
     if (cfg.modo === "fixo") return;

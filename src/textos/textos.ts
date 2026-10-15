@@ -388,6 +388,8 @@ export const T = {
       abrirApp: "Abrir",
       novaJanela: "Abrir nova janela",
       tamanho: "Tamanho do dock",
+      reservarEspaco: "Reservar espaço na tela",
+      reservarEspacoDica: "Janelas maximizadas param acima do dock, como na barra de tarefas. Desligado, elas vão até a base da tela e o dock fica por cima.",
       appsDeTodosOsMonitores: "Mostrar as janelas de todos os monitores",
       appsDeTodosOsMonitoresDica: "Com o dock em vários monitores, cada dock mostra só as janelas do próprio monitor. Ligado, todos os docks mostram todas as janelas.",
       tamanhoOpcao: (escala: number) => `${Math.round(escala * 100)}%`,

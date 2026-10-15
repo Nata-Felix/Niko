@@ -139,6 +139,7 @@ function validarVisual(dados: unknown): Partial<ReturnType<typeof useConfig.getS
       fundo: fundoValido(k.fundo) ? k.fundo : CONFIG_PADRAO.dock.fundo,
       opacidade: opacidadeValida(k.opacidade) ? k.opacidade : 1,
       appsDeTodosOsMonitores: k.appsDeTodosOsMonitores === true,
+      reservarEspaco: k.reservarEspaco !== false,
       escala: ESCALAS_DO_DOCK.includes(k.escala as (typeof ESCALAS_DO_DOCK)[number]) ? (k.escala as number) : CONFIG_PADRAO.dock.escala,
     };
   }
@@ -582,6 +583,7 @@ export default function Configuracoes() {
         <LinhaAjuste rotulo={T.configuracoes.modo} dica={T.configuracoes.modosDica[cfg.dock.modo]}>
           {segModo(cfg.dock.modo, (modo) => cfg.definir({ dock: { ...cfg.dock, modo } }))}
         </LinhaAjuste>
+        {!NO_LINUX && cfg.dock.modo === "fixo" && <AlternadorAjuste rotulo={T.dock.menu.reservarEspaco} dica={T.dock.menu.reservarEspacoDica} ligado={cfg.dock.reservarEspaco} aoMudar={(v) => cfg.definir({ dock: { ...cfg.dock, reservarEspaco: v } })} />}
         <AlternadorAjuste rotulo={T.configuracoes.ampliarDock} ligado={cfg.dock.ampliar} aoMudar={(v) => cfg.definir({ dock: { ...cfg.dock, ampliar: v } })} />
         {!NO_LINUX && <AlternadorAjuste rotulo={T.dock.menu.appsDeTodosOsMonitores} dica={T.dock.menu.appsDeTodosOsMonitoresDica} ligado={cfg.dock.appsDeTodosOsMonitores} aoMudar={(v) => cfg.definir({ dock: { ...cfg.dock, appsDeTodosOsMonitores: v } })} />}
         <LinhaAjuste rotulo={T.dock.menu.tamanho} para="dk-tamanho">

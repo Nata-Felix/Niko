@@ -1,11 +1,11 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
-import { Search, X, Activity, FolderOpen, SquareTerminal, Settings, AppWindow, Minus, MousePointer, SlidersHorizontal, Pin, PinOff, Plus, Maximize2 } from "lucide-react";
+import { Search, X, Activity, FolderOpen, SquareTerminal, Settings, AppWindow, Minus, MousePointer, SlidersHorizontal, Pin, PinOff, Plus, Maximize2, LayoutGrid } from "lucide-react";
 import { MenuDock, type AlvoMenuDock, type ItemMenuDock } from "./MenuDock";
 import { executarNasJanelas } from "./acoesDoMenu";
 import { NO_LINUX } from "../../desktop/plataforma";
-import { NATIVO, ROTULO, usarAreaInterativa, usarCursorFora, usarAppsAbertos, agirNaJanela, alternarSistemaNativo, mostrarMiniaturas, ocultarBarraDoWindows, reservarEspacoDoDock, usarEstadoDaFrente, definirDocks, usarMonitores, ouvirEvento, devolverFoco, type AppAberto } from "../../desktop/desktop";
+import { NATIVO, ROTULO, usarAreaInterativa, usarCursorFora, usarAppsAbertos, agirNaJanela, alternarSistemaNativo, mostrarMiniaturas, ocultarBarraDoWindows, reservarEspacoDoDock, usarEstadoDaFrente, definirDocks, usarMonitores, ouvirEvento, devolverFoco, type AppAberto, type MonitorDoNiko } from "../../desktop/desktop";
 import { BuscaApps } from "./BuscaApps";
-import { cadaDockMostraSeusApps, dockAtivoNoMonitor, meuMonitor, TODOS_OS_MONITORES } from "./monitores";
+import { appsDoMonitor, cadaDockMostraSeusApps, dockAtivoNoMonitor, meuMonitor, TODOS_OS_MONITORES } from "./monitores";
 import { agruparApps, chaveDoApp, nomeDoGrupo, ordenarComFixados } from "./grupos";
 import { AnimatePresence, motion, useMotionValue, useSpring, useTransform, type MotionValue } from "motion/react";
 import { ESCALAS_DO_DOCK, LIMITE_DE_FIXADOS, useConfig, type AppFixado, type Configuracoes } from "../../estado/configuracoes";
@@ -131,7 +131,7 @@ function IniciarDoDock({ mouseX, ampliar, visivel, aoAcionar }: { mouseX: Motion
       if (ocupado) return;
       aoAcionar(); setOcupado(true); void tocarSom("blip");
       void iniciar.current.alternar().catch(() => useIlha.getState().avisarFalha(T.ilha.barra.indisponivel)).finally(() => setOcupado(false));
-    }}><span className="dock-icone"><span className="dock-windows" aria-hidden="true" /></span></ItemDock>;
+    }}><span className="dock-icone">{NO_LINUX ? <LayoutGrid aria-hidden="true" /> : <span className="dock-windows" aria-hidden="true" />}</span></ItemDock>;
 }
 
 const LARGURA_CARTAO_PREVIA = 196;
@@ -190,9 +190,9 @@ function PreviaJanelas({ lista, esquerda, aoEntrar, aoSair, aoFocar, aoFechar }:
   );
 }
 
-function AppsDoWindows({ mouseX, ampliar, ativo, monitor, menuAberto, fixados, abrirMenu }: { mouseX: MotionValue<number>; ampliar: boolean; ativo: boolean; monitor?: string; menuAberto: boolean; fixados: AppFixado[]; abrirMenu: (e: React.MouseEvent<HTMLElement>, titulo: string, itens: ItemMenuDock[]) => void }) {
+function AppsDoWindows({ mouseX, ampliar, ativo, monitor, menuAberto, fixados, abrirMenu }: { mouseX: MotionValue<number>; ampliar: boolean; ativo: boolean; monitor?: MonitorDoNiko; menuAberto: boolean; fixados: AppFixado[]; abrirMenu: (e: React.MouseEvent<HTMLElement>, titulo: string, itens: ItemMenuDock[]) => void }) {
   const [todosOsApps, atualizar] = usarAppsAbertos(ativo);
-  const apps = monitor && todosOsApps.some((a) => a.monitor !== undefined) ? todosOsApps.filter((a) => a.monitor === monitor) : todosOsApps;
+  const apps = appsDoMonitor(todosOsApps, monitor);
   const [previa, setPrevia] = useState<{ chave: string; centro: number; esquerdaDock: number } | null>(null);
   const relogioAbrir = useRef<number | undefined>(undefined);
   const relogioFechar = useRef<number | undefined>(undefined);
@@ -413,7 +413,7 @@ export function Dock() {
   const monitores = usarMonitores();
   const meu = meuMonitor(monitores, ROTULO);
   const ativoAqui = cfg.ativo && dockAtivoNoMonitor(escolhaDeMonitor, meu, monitores, ROTULO);
-  const monitorDosApps = cadaDockMostraSeusApps(escolhaDeMonitor, monitores, cfg.appsDeTodosOsMonitores) ? meu?.nome : undefined;
+  const monitorDosApps = cadaDockMostraSeusApps(escolhaDeMonitor, monitores, cfg.appsDeTodosOsMonitores) ? meu : undefined;
   const esconderTelaCheia = useConfig((s) => s.esconderTelaCheia);
   const frente = usarEstadoDaFrente(ativoAqui, { esconderTelaCheia, apps: "" });
   const principal = !NATIVO || ROTULO === "dock";
@@ -518,7 +518,7 @@ export function Dock() {
     })) },
     { id: "ampliar", texto: T.dock.menu.ampliar, icone: MousePointer, marcado: cfg.ampliar,
       acao: () => { const s = useConfig.getState(); s.definir({ dock: { ...s.dock, ampliar: !s.dock.ampliar } }); } },
-    ...(!NO_LINUX && monitores.length >= 2 && escolhaDeMonitor === TODOS_OS_MONITORES ? [{ id: "appsDeTodosOsMonitores", texto: T.dock.menu.appsDeTodosOsMonitores, icone: AppWindow, marcado: cfg.appsDeTodosOsMonitores,
+    ...(monitores.length >= 2 && escolhaDeMonitor === TODOS_OS_MONITORES ? [{ id: "appsDeTodosOsMonitores", texto: T.dock.menu.appsDeTodosOsMonitores, icone: AppWindow, marcado: cfg.appsDeTodosOsMonitores,
       acao: () => alterarDock((dock) => ({ appsDeTodosOsMonitores: !dock.appsDeTodosOsMonitores })) }] : []),
     { id: "tamanho", texto: T.dock.menu.tamanho, icone: Maximize2, itens: ESCALAS_DO_DOCK.map((escala) => ({
       id: String(escala), texto: T.dock.menu.tamanhoOpcao(escala), marcado: cfg.escala === escala,

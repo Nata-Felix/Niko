@@ -381,7 +381,7 @@ export const T = {
       indisponivel: "Disponível no app desktop do Niko.",
       comportamento: "Comportamento do dock",
       ampliar: "Ampliar ícones ao passar o mouse",
-      mostrarIniciar: "Mostrar botão Iniciar",
+      mostrarIniciar: NO_LINUX ? "Mostrar botão de apps" : "Mostrar botão Iniciar",
       mostrarBusca: "Mostrar lupa",
       fixar: "Fixar no dock",
       desafixar: "Desafixar do dock",
@@ -2856,7 +2856,7 @@ export const T = {
     atalhosDock: "Links fixados no dock",
     nomeAtalho: "Nome",
     appsWindowsDock: NO_LINUX
-      ? "O dock fica na parte de baixo da tela. O N abre o Niko, e ao lado aparece o que está aberto. No navegador só dá para mostrar as janelas do próprio Niko. No Linux o dock não esconde a barra do sistema. Para o dock ver também os apps nativos do Wayland, instale a extensão Window Calls do GNOME."
+      ? "O dock fica na parte de baixo da tela. O N abre o Niko, e ao lado aparece o que está aberto. No navegador só dá para mostrar as janelas do próprio Niko. Enquanto o dock está ligado, o Niko esconde o dock do Ubuntu (ou o Dash to Dock) e coloca o painel do Cinnamon em ocultação automática, e devolve tudo como estava ao desligar o dock ou fechar o Niko. A barra do topo do GNOME continua, porque o GNOME não deixa outro app escondê-la. Para o dock ver também os apps nativos do Wayland, instale a extensão Window Calls do GNOME."
       : "O dock fica no lugar da barra de tarefas. O N abre o Niko, e ao lado aparece o que está aberto. No navegador só dá para mostrar as janelas do próprio Niko. Os apps do Windows (navegador, Spotify e outros) só aparecem no app desktop, que consegue ler as janelas e os ícones do sistema. Enquanto o dock está ligado, o app desktop esconde a barra de tarefas do Windows e devolve como estava ao desligar o dock ou fechar o Niko. O menu Iniciar continua na tecla Windows.",
     duracoes: "Durações (minutos)",
     ciclos: "Ciclos até a pausa longa",

@@ -25,6 +25,8 @@ pub struct MonitorDoNiko {
     rotulo: String,
     numero: usize,
     principal: bool,
+    x: i32,
+    y: i32,
     largura: u32,
     altura: u32,
 }
@@ -55,7 +57,7 @@ fn monitores_ordenados(app: &AppHandle) -> Vec<(Monitor, MonitorDoNiko)> {
         .map(|(i, monitor)| {
             let nome = nome_do_monitor(&monitor);
             let principal = i == 0;
-            let info = MonitorDoNiko { rotulo: rotulo_do_monitor(&nome, principal), numero: i + 1, principal, largura: monitor.size().width, altura: monitor.size().height, nome };
+            let info = MonitorDoNiko { rotulo: rotulo_do_monitor(&nome, principal), numero: i + 1, principal, x: monitor.position().x, y: monitor.position().y, largura: monitor.size().width, altura: monitor.size().height, nome };
             (monitor, info)
         })
         .collect()

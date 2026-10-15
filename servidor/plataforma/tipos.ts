@@ -118,6 +118,7 @@ export interface JanelaAberta {
   caminho: string | null;
   icone: string | null;
   monitor?: string;
+  centro?: { x: number; y: number };
   grupo?: string | null;
   nomeDoGrupo?: string | null;
 }

@@ -17,6 +17,7 @@ interface JanelaBruta {
   titulo: string;
   ativa: boolean;
   minimizada: boolean;
+  centro?: { x: number; y: number };
 }
 
 interface ItemDaExtensao {
@@ -28,6 +29,16 @@ interface ItemDaExtensao {
   window_type?: number;
   focus?: boolean;
   minimized?: boolean;
+  x?: number;
+  y?: number;
+  width?: number;
+  height?: number;
+}
+
+function centroDe(x: unknown, y: unknown, largura: unknown, altura: unknown): { x: number; y: number } | undefined {
+  const [a, b, l, h] = [x, y, largura, altura].map(Number);
+  if (![a, b, l, h].every(Number.isFinite) || l <= 0 || h <= 0) return undefined;
+  return { x: Math.round(a + l / 2), y: Math.round(b + h / 2) };
 }
 
 type Fonte = "extensao" | "x11";
@@ -72,21 +83,22 @@ async function janelasDaExtensao(): Promise<JanelaBruta[]> {
       titulo: (typeof i.title === "string" && i.title) || (await tituloDaJanela(i.id as number)) || i.wm_class || "",
       ativa: i.focus === true,
       minimizada: i.minimized === true,
+      centro: centroDe(i.x, i.y, i.width, i.height),
     })),
   );
 }
 
 async function janelasDoX11(): Promise<JanelaBruta[]> {
-  const [saida, raiz] = await Promise.all([rodar("wmctrl", ["-lpx"], LIMITE_MS), rodar("xprop", ["-root", "_NET_ACTIVE_WINDOW"], LIMITE_MS).catch(() => "")]);
+  const [saida, raiz] = await Promise.all([rodar("wmctrl", ["-lpxG"], LIMITE_MS), rodar("xprop", ["-root", "_NET_ACTIVE_WINDOW"], LIMITE_MS).catch(() => "")]);
   const ativa = /0x([0-9a-f]+)/i.exec(raiz);
   const idAtiva = ativa ? parseInt(ativa[1] ?? "0", 16) : 0;
   const brutas: Omit<JanelaBruta, "ativa" | "minimizada">[] = [];
   for (const linha of saida.split("\n")) {
-    const m = /^(0x[0-9a-f]+)\s+(-?\d+)\s+(\d+)\s+(\S+)\s+(\S+)\s*(.*)$/i.exec(linha);
+    const m = /^(0x[0-9a-f]+)\s+(-?\d+)\s+(\d+)\s+(-?\d+)\s+(-?\d+)\s+(\d+)\s+(\d+)\s+(\S+)\s+(\S+)\s*(.*)$/i.exec(linha);
     if (!m || m[2] === "-1") continue;
-    const titulo = (m[6] ?? "").trim();
+    const titulo = (m[10] ?? "").trim();
     if (!titulo) continue;
-    brutas.push({ id: parseInt(m[1] ?? "0", 16), pid: Number(m[3]), classe: m[4] ?? "", titulo });
+    brutas.push({ id: parseInt(m[1] ?? "0", 16), pid: Number(m[3]), classe: m[8] ?? "", titulo, centro: centroDe(m[4], m[5], m[6], m[7]) });
   }
   const minimizadas = await Promise.all(brutas.map((j) => rodar("xprop", ["-id", `0x${j.id.toString(16)}`, "_NET_WM_STATE"], LIMITE_MS).then((s) => s.includes("_NET_WM_STATE_HIDDEN"), () => false)));
   return brutas.map((j, i) => ({ ...j, ativa: j.id === idAtiva, minimizada: minimizadas[i] ?? false }));
@@ -126,7 +138,7 @@ async function montarLista(): Promise<{ janelas: JanelaAberta[] }> {
     const programa = programas.get(j.id) ?? "";
     if (programa === "niko") return [];
     const app = acharAppDaJanela(j.classe, programa);
-    return [{ id: String(j.id), pid: j.pid, titulo: j.titulo, minimizada: j.minimizada, ativa: j.id === idFrente && !j.minimizada, app: programa || j.classe, nome: app?.nome ?? (programa || j.classe), caminho: executavel(j.pid), icone: app ? iconeDoApp(app.icone) : null }];
+    return [{ id: String(j.id), pid: j.pid, titulo: j.titulo, minimizada: j.minimizada, ativa: j.id === idFrente && !j.minimizada, app: programa || j.classe, nome: app?.nome ?? (programa || j.classe), caminho: executavel(j.pid), icone: app ? iconeDoApp(app.icone) : null, ...(j.centro ? { centro: j.centro } : {}) }];
   });
   return { janelas };
 }

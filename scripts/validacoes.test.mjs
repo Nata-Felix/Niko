@@ -445,6 +445,19 @@ test("dock em vários monitores escolhe entre as janelas do próprio monitor e a
   assert.equal(configuracoesValidas({ dock: {} }, CONFIG_PADRAO).dock.appsDeTodosOsMonitores, false);
 });
 
+test("dock separa as janelas pelo nome do monitor no Windows e pela posição no Linux", async () => {
+  const { appsDoMonitor } = await vite.ssrLoadModule("/src/janelas/dock/monitores.ts");
+  const esquerda = { nome: "A", rotulo: "dock", numero: 1, principal: true, x: 0, y: 0, largura: 1920, altura: 1080 };
+  const direita = { nome: "B", rotulo: "dock-B", numero: 2, principal: false, x: 1920, y: 0, largura: 2560, altura: 1440 };
+  const doWindows = [{ id: "1", monitor: "A" }, { id: "2", monitor: "B" }];
+  assert.deepEqual(appsDoMonitor(doWindows, direita).map((a) => a.id), ["2"]);
+  const doLinux = [{ id: "1", centro: { x: 900, y: 500 } }, { id: "2", centro: { x: 3000, y: 700 } }, { id: "3" }];
+  assert.deepEqual(appsDoMonitor(doLinux, esquerda).map((a) => a.id), ["1", "3"]);
+  assert.deepEqual(appsDoMonitor(doLinux, direita).map((a) => a.id), ["2", "3"]);
+  assert.deepEqual(appsDoMonitor(doLinux, { ...direita, x: undefined }).map((a) => a.id), ["1", "2", "3"]);
+  assert.deepEqual(appsDoMonitor(doLinux).map((a) => a.id), ["1", "2", "3"]);
+});
+
 test("mídia na ilha fechada vem ligada em configurações antigas e respeita a escolha salva", () => {
   assert.equal(configuracoesValidas({ ilha: { ativa: true } }, CONFIG_PADRAO).ilha.midiaNaCompacta, true);
   assert.equal(configuracoesValidas({ ilha: { midiaNaCompacta: false } }, CONFIG_PADRAO).ilha.midiaNaCompacta, false);

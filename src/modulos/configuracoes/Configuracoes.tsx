@@ -585,7 +585,7 @@ export default function Configuracoes() {
         </LinhaAjuste>
         {!NO_LINUX && cfg.dock.modo === "fixo" && <AlternadorAjuste rotulo={T.dock.menu.reservarEspaco} dica={T.dock.menu.reservarEspacoDica} ligado={cfg.dock.reservarEspaco} aoMudar={(v) => cfg.definir({ dock: { ...cfg.dock, reservarEspaco: v } })} />}
         <AlternadorAjuste rotulo={T.configuracoes.ampliarDock} ligado={cfg.dock.ampliar} aoMudar={(v) => cfg.definir({ dock: { ...cfg.dock, ampliar: v } })} />
-        {!NO_LINUX && <AlternadorAjuste rotulo={T.dock.menu.appsDeTodosOsMonitores} dica={T.dock.menu.appsDeTodosOsMonitoresDica} ligado={cfg.dock.appsDeTodosOsMonitores} aoMudar={(v) => cfg.definir({ dock: { ...cfg.dock, appsDeTodosOsMonitores: v } })} />}
+        <AlternadorAjuste rotulo={T.dock.menu.appsDeTodosOsMonitores} dica={T.dock.menu.appsDeTodosOsMonitoresDica} ligado={cfg.dock.appsDeTodosOsMonitores} aoMudar={(v) => cfg.definir({ dock: { ...cfg.dock, appsDeTodosOsMonitores: v } })} />
         <LinhaAjuste rotulo={T.dock.menu.tamanho} para="dk-tamanho">
           <select id="dk-tamanho" className="seletor ajuste-valor" value={cfg.dock.escala} onChange={(e) => cfg.definir({ dock: { ...cfg.dock, escala: Number(e.target.value) } })}>
             {ESCALAS_DO_DOCK.map((escala) => <option key={escala} value={escala}>{T.dock.menu.tamanhoOpcao(escala)}</option>)}

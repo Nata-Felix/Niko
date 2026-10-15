@@ -288,6 +288,7 @@ export interface AppAberto {
   caminho: string | null;
   icone: string | null;
   monitor?: string;
+  centro?: { x: number; y: number };
   grupo?: string | null;
   nomeDoGrupo?: string | null;
 }
@@ -297,6 +298,8 @@ export interface MonitorDoNiko {
   rotulo: string;
   numero: number;
   principal: boolean;
+  x?: number;
+  y?: number;
   largura: number;
   altura: number;
 }

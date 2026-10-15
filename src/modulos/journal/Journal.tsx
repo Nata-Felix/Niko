@@ -21,6 +21,7 @@ import type { Habito, Humor, StatusTarefa, Tarefa, TipoHabito } from "../../tipo
 import { somar } from "../../utilitarios/basicos";
 import { CopoAgua, litros } from "./CopoAgua";
 import { imprimirMes } from "./impressao";
+import { SONO_MAXIMO, sonoAoMudarHorario } from "./sono";
 
 type Periodo = "manha" | "tarde" | "noite";
 type Vista = "dia" | "semana";
@@ -668,17 +669,17 @@ export default function Journal() {
                 <div className="jn-sono">
                   <label className="jn-sono-campo">
                     <span>{T.journal.dormiu}</span>
-                    <input type="time" className="campo" value={dia.dormiu ?? ""} onChange={(e) => mudarDia({ dormiu: e.target.value || undefined })} />
+                    <input type="time" className="campo" value={dia.dormiu ?? ""} onChange={(e) => mudarDia(sonoAoMudarHorario(dia, { dormiu: e.target.value || undefined }))} />
                   </label>
                   <label className="jn-sono-campo">
                     <span>{T.journal.acordou}</span>
-                    <input type="time" className="campo" value={dia.acordou ?? ""} onChange={(e) => mudarDia({ acordou: e.target.value || undefined })} />
+                    <input type="time" className="campo" value={dia.acordou ?? ""} onChange={(e) => mudarDia(sonoAoMudarHorario(dia, { acordou: e.target.value || undefined }))} />
                   </label>
                   <div className="jn-sono-total">
                     <span className="jn-sono-numero">{decimal(dia.sono ?? 0)}</span>
                     <span className="jn-sono-unidade">{T.journal.horasSono}</span>
                     <span className="jn-sono-ajuste">
-                      <button type="button" aria-label={T.journal.sonoMais} title={T.journal.sonoMais} onClick={() => mudarDia({ sono: Math.min(16, (dia.sono ?? 0) + 0.5) })}><Plus size={11} /></button>
+                      <button type="button" aria-label={T.journal.sonoMais} title={T.journal.sonoMais} onClick={() => mudarDia({ sono: Math.min(SONO_MAXIMO, (dia.sono ?? 0) + 0.5) })}><Plus size={11} /></button>
                       <button type="button" aria-label={T.journal.sonoMenos} title={T.journal.sonoMenos} disabled={!dia.sono} onClick={() => mudarDia({ sono: Math.max(0, (dia.sono ?? 0) - 0.5) })}><Minus size={11} /></button>
                     </span>
                   </div>

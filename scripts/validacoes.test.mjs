@@ -678,6 +678,19 @@ test("ponte recusa JSON nulo, lista e valor simples com erro 400", async () => {
   }
 });
 
+test("sono é calculado pelos horários, atravessando a meia-noite", async () => {
+  const { horasDeSono, sonoAoMudarHorario } = await vite.ssrLoadModule("/src/modulos/journal/sono.ts");
+  assert.equal(horasDeSono("23:00", "07:00"), 8);
+  assert.equal(horasDeSono("01:30", "08:00"), 6.5);
+  assert.equal(horasDeSono("22:40", "06:00"), 7.3);
+  assert.equal(horasDeSono("13:00", "15:00"), 2);
+  assert.equal(horasDeSono("07:00", "07:00"), null);
+  assert.equal(horasDeSono("23:00", undefined), null);
+  assert.equal(horasDeSono("25:00", "07:00"), null);
+  assert.deepEqual(sonoAoMudarHorario({ dormiu: "23:00", sono: 5 }, { acordou: "06:30" }), { acordou: "06:30", sono: 7.5 });
+  assert.deepEqual(sonoAoMudarHorario({ dormiu: "23:00", acordou: "07:00", sono: 8.5 }, { acordou: undefined }), { acordou: undefined });
+});
+
 test("sincronização rejeita formatos inválidos e eventos de outro banco", async () => {
   globalThis.fetch = async () => ({ ok: true, json: async () => ({ dados: {} }) });
   await armazenamento.iniciarArmazenamento();

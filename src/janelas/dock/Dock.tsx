@@ -107,6 +107,14 @@ function ItemDock({ mouseX, ampliar, rotulo, estado, aoClicar, children, alerta,
   );
 }
 
+const COMANDOS_DO_MENU = [
+  { comando: "tarefas", icone: Activity },
+  { comando: "arquivos", icone: FolderOpen },
+  { comando: "terminal", icone: SquareTerminal },
+  { comando: "configuracoes", icone: Settings },
+  { comando: "painel", icone: SlidersHorizontal },
+] as const;
+
 function IniciarDoDock({ mouseX, ampliar, visivel, aoAcionar }: { mouseX: MotionValue<number>; ampliar: boolean; visivel: boolean; aoAcionar: () => void }) {
   const iniciar = useRef(criarAlternadorDoIniciar(controle.iniciar, controle.alternarIniciar));
   const relogio = useRef<number | undefined>(undefined);
@@ -503,8 +511,8 @@ export function Dock() {
   };
 
   const itensDoDock: ItemMenuDock[] = [
-    ...(["tarefas", "arquivos", "terminal", "configuracoes", "painel"] as const).map((comando, indice) => ({
-      id: comando, texto: T.dock.busca.comandos[comando], icone: [Activity, FolderOpen, SquareTerminal, Settings, SlidersHorizontal][indice],
+    ...COMANDOS_DO_MENU.filter(({ comando }) => !(NO_LINUX && comando === "painel")).map(({ comando, icone }) => ({
+      id: comando, texto: T.dock.busca.comandos[comando], icone,
       acao: async () => { await controle.comandoDoSistema(comando); },
     })),
     { id: "busca", texto: T.dock.busca.botao, icone: Search, acao: () => setBuscaAberta(true) },

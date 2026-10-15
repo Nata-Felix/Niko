@@ -19,7 +19,7 @@ const LIMITE_COMANDOS = 4;
 const LIMITE_RECENTES = 6;
 const LOTE_DE_ICONES = 12;
 const COMANDOS_INICIAIS: ComandoDoSistema[] = ["wifi", "bluetooth", "som", "configuracoes"];
-const COMANDOS = Object.keys(B.comandos) as ComandoDoSistema[];
+const COMANDOS = (Object.keys(B.comandos) as ComandoDoSistema[]).filter((c) => !(NO_LINUX && c === "painel"));
 const ICONE_DO_COMANDO: Record<ComandoDoSistema, LucideIcon> = {
   rede: Network,
   wifi: Wifi,

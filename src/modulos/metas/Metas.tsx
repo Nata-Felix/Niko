@@ -1,19 +1,19 @@
 import { useEffect, useState, type CSSProperties } from "react";
-import { Plus, Trash2, Target, ImagePlus, Pencil, Image as IconeImagem } from "lucide-react";
+import { Plus, Trash2, Target, ImagePlus, Pencil, Image as IconeImagem, Check, Link2 } from "lucide-react";
 import { CabecalhoAba } from "../../componentes/CabecalhoAba";
 import { Botao, Campo, Modal, Vazio, ConfirmarModal } from "../../componentes/basicos";
 import { useOrganizacao } from "../../estado/organizacao";
-import { useRotina, habitoCumprido } from "../../estado/rotina";
+import { useRotina } from "../../estado/rotina";
 import { usePomodoro } from "../../estado/pomodoro";
 import { useFinancas } from "../../estado/financas";
 import { useEstudos } from "../../estado/estudos";
 import { useInterface } from "../../estado/interface";
 import { T } from "../../textos/textos";
-import { dataValida, diasAte, formatar, paraISO } from "../../utilitarios/datas";
-import { lerImagemComoDataUrl, somar } from "../../utilitarios/basicos";
+import { dataValida, diasAte, formatar } from "../../utilitarios/datas";
+import { lerImagemComoDataUrl } from "../../utilitarios/basicos";
 import { tocarSom } from "../../ponte/sons";
 import { EVENTO_NOVO } from "../../janelas/area-de-trabalho/usarAtalhos";
-import { addDays } from "date-fns";
+import { progressoDaMeta } from "../../utilitarios/progressoDaMeta";
 import type { CartaoVisao, Meta, TipoMeta } from "../../tipos";
 
 const COR_PILAR = ["var(--sucesso)", "var(--roxo)", "var(--alerta)", "var(--info)", "var(--destaque-claro)"];
@@ -24,34 +24,7 @@ function useProgresso() {
   const registros = useRotina((s) => s.registros);
   const sessoes = usePomodoro((s) => s.sessoes);
   const economias = useFinancas((s) => s.metasEconomia);
-  return (m: Meta): { atual: number; alvo: number; rotulo: string } => {
-    switch (m.tipo) {
-      case "habito": {
-        const h = habitos.find((x) => x.id === m.vinculoId);
-        if (!h) return { atual: 0, alvo: 100, rotulo: "0%" };
-        const dias = Array.from({ length: m.periodo === "ano" ? 365 : 90 }, (_, i) => paraISO(addDays(new Date(), -i)));
-        const pct = Math.round((dias.filter((d) => habitoCumprido(h, registros[d]?.[h.id])).length / dias.length) * 100);
-        return { atual: pct, alvo: m.alvo, rotulo: `${pct}%` };
-      }
-      case "estudo": {
-        const horas = somar(sessoes.filter((s) => s.etapa === "foco" && s.situacao === "concluida" && s.materiaId === m.vinculoId), (s) => s.minutos) / 60;
-        return { atual: horas, alvo: m.alvo, rotulo: `${horas.toFixed(1).replace(".", ",")} / ${m.alvo} h` };
-      }
-      case "financeira": {
-        const e = economias.find((x) => x.id === m.vinculoId) ?? economias[0];
-        if (!e) return { atual: 0, alvo: 100, rotulo: "0%" };
-        const pct = e.alvo ? Math.round((e.guardado / e.alvo) * 100) : 0;
-        return { atual: pct, alvo: 100, rotulo: `${pct}%` };
-      }
-      case "tarefas": {
-        const ligadas = tarefas.filter((t) => t.metaId === m.id);
-        const feitas = ligadas.filter((t) => t.status === "concluida").length;
-        return { atual: feitas, alvo: Math.max(1, ligadas.length), rotulo: `${feitas} / ${ligadas.length}` };
-      }
-      default:
-        return { atual: m.atual, alvo: m.alvo, rotulo: `${m.atual} / ${m.alvo}` };
-    }
-  };
+  return (m: Meta) => progressoDaMeta(m, { tarefas, habitos, registros, sessoes, economias });
 }
 
 function FormMeta({ aberto, aoFechar }: { aberto: boolean; aoFechar: () => void }) {
@@ -141,6 +114,53 @@ function FormMeta({ aberto, aoFechar }: { aberto: boolean; aoFechar: () => void 
           <Botao type="submit" variante="primario">{T.geral.criar}</Botao>
         </div>
       </form>
+    </Modal>
+  );
+}
+
+function LigarTarefas({ meta, aoFechar }: { meta: Meta | null; aoFechar: () => void }) {
+  const tarefas = useRotina((s) => s.tarefas);
+  const atualizar = useRotina((s) => s.atualizarTarefa);
+  const [busca, setBusca] = useState("");
+  useEffect(() => {
+    if (meta) setBusca("");
+  }, [meta]);
+  if (!meta) return null;
+  const termo = busca.trim().toLowerCase();
+  const visiveis = tarefas
+    .filter((t) => t.metaId === meta.id || !t.metaId)
+    .filter((t) => !termo || t.titulo.toLowerCase().includes(termo))
+    .sort((a, b) => Number(b.metaId === meta.id) - Number(a.metaId === meta.id) || Number(a.status === "concluida") - Number(b.status === "concluida") || a.titulo.localeCompare(b.titulo));
+  const ligadas = tarefas.filter((t) => t.metaId === meta.id).length;
+
+  return (
+    <Modal aberto titulo={T.metas.ligarTarefasDe(meta.nome)} aoFechar={aoFechar}>
+      <div className="formulario">
+        <Campo id="mt-busca-tarefa" rotulo={T.metas.buscarTarefa} dica={T.metas.tarefasLigadas(ligadas)}>
+          <input id="mt-busca-tarefa" className="campo" value={busca} maxLength={80} onChange={(e) => setBusca(e.target.value)} />
+        </Campo>
+        {visiveis.length === 0 ? (
+          <p className="campo-dica">{T.metas.semTarefasParaLigar}</p>
+        ) : (
+          <ul className="mt-ligar-lista">
+            {visiveis.map((t) => {
+              const ligada = t.metaId === meta.id;
+              return (
+                <li key={t.id}>
+                  <button type="button" className="mt-ligar-item" aria-pressed={ligada} onClick={() => atualizar(t.id, { metaId: ligada ? undefined : meta.id })}>
+                    <span className="mt-ligar-marca">{ligada && <Check size={12} />}</span>
+                    <span className="mt-ligar-titulo cortar" data-feita={t.status === "concluida" ? "sim" : "nao"}>{t.titulo}</span>
+                    {t.data && <span className="mt-ligar-data">{formatar(t.data, "d/MM")}</span>}
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+        <div className="formulario-acoes">
+          <Botao variante="primario" onClick={aoFechar}>{T.geral.fechar}</Botao>
+        </div>
+      </div>
     </Modal>
   );
 }
@@ -238,6 +258,12 @@ export default function Metas() {
   const [atualizando, setAtualizando] = useState<Meta | null>(null);
   const [valor, setValor] = useState("");
   const [excluir, setExcluir] = useState<Meta | null>(null);
+  const [ligando, setLigando] = useState<Meta | null>(null);
+  const atualizarTarefa = useRotina((s) => s.atualizarTarefa);
+  const excluirMeta = (meta: Meta) => {
+    tarefas.filter((t) => t.metaId === meta.id).forEach((t) => atualizarTarefa(t.id, { metaId: undefined }));
+    org.excluirMeta(meta.id);
+  };
 
   useEffect(() => {
     const aoNovo = (e: Event) => {
@@ -336,6 +362,7 @@ export default function Metas() {
                 <span className="mt-meta-periodo">{m.periodo === "ano" ? T.metas.ano : T.metas.trimestre}</span>
                 <span className={`etiqueta ${pct >= 1 ? "etiqueta-sucesso" : "etiqueta-info"}`}>{pct >= 1 ? T.metas.estados.concluida : T.metas.estados.em_andamento}</span>
                 <span className="mt-meta-acoes">
+                  {m.tipo === "tarefas" && <Botao pequeno soIcone variante="fantasma" icone={<Link2 size={13} />} aria-label={T.metas.ligarTarefas} title={T.metas.ligarTarefas} onClick={() => setLigando(m)} />}
                   {m.tipo === "manual" && <Botao pequeno soIcone variante="fantasma" icone={<Pencil size={13} />} aria-label={T.metas.atualizarValor} title={T.metas.atualizarValor} onClick={() => { setAtualizando(m); setValor(String(m.atual)); }} />}
                   <Botao pequeno soIcone variante="fantasma" icone={<Trash2 size={13} />} aria-label={T.geral.excluir} title={T.geral.excluir} onClick={() => setExcluir(m)} />
                 </span>
@@ -433,7 +460,8 @@ export default function Metas() {
           </form>
         )}
       </Modal>
-      <ConfirmarModal aberto={!!excluir} titulo={T.geral.confirmarExclusao} texto={excluir?.nome ?? ""} aoFechar={() => setExcluir(null)} aoConfirmar={() => excluir && org.excluirMeta(excluir.id)} />
+      <ConfirmarModal aberto={!!excluir} titulo={T.geral.confirmarExclusao} texto={excluir?.nome ?? ""} aoFechar={() => setExcluir(null)} aoConfirmar={() => excluir && excluirMeta(excluir)} />
+      <LigarTarefas meta={ligando} aoFechar={() => setLigando(null)} />
     </>
   );
 }

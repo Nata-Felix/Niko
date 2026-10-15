@@ -15,6 +15,7 @@ import { useAgentes } from "../estado/agentes";
 import { sistema } from "../ponte/ponteLocal";
 import { hojeISO, diaDoMomento, paraISO } from "./datas";
 import { somar, normalizarTexto } from "./basicos";
+import { dadosAtuaisDoProgresso, progressoDaMeta } from "./progressoDaMeta";
 import { acharPorNome, dadosDeCategoria } from "./comandos";
 import { T } from "../textos/textos";
 import { lerPomodoro, controlarPomodoro, gerarRelatorioSemanal, textoPomodoro, textoRelatorioSemanal } from "./recursosChat";
@@ -102,7 +103,7 @@ const AREAS_BANCO: Record<string, AreaBanco> = {
     ler: () => Object.entries(useRotina.getState().dias).map(([data, d]) => ({ data, humor: d.humor ?? null, sono_horas: d.sono ?? null, agua_ml: d.agua ?? null, diario: semHtml(d.diario ?? ""), manha: semHtml(d.manha ?? "", 400), tarde: semHtml(d.tarde ?? "", 400), noite: semHtml(d.noite ?? "", 400) })),
   },
   eventos: { data: "data", ler: () => useOrganizacao.getState().eventos.map((e) => ({ titulo: e.titulo, data: e.data, hora: e.hora ?? null, tipo: e.tipo, repete: e.repeticao, feito_em: e.feitos ?? [] })) },
-  metas: { data: "prazo", ler: () => { const o = useOrganizacao.getState(); return o.metas.map((m) => ({ nome: m.nome, pilar: nomeDe(o.pilares, m.pilarId), tipo: m.tipo, atual: m.atual, alvo: m.alvo, prazo: m.prazo ?? null, periodo: m.periodo })); } },
+  metas: { data: "prazo", ler: () => { const o = useOrganizacao.getState(); const dados = dadosAtuaisDoProgresso(); return o.metas.map((m) => { const p = progressoDaMeta(m, dados); return { nome: m.nome, pilar: nomeDe(o.pilares, m.pilarId), tipo: m.tipo, atual: p.atual, alvo: p.alvo, progresso: p.rotulo, prazo: m.prazo ?? null, periodo: m.periodo }; }); } },
   pilares: { ler: () => useOrganizacao.getState().pilares.map((p) => ({ nome: p.nome, nota: p.nota })) },
   visao: { data: "prazo", ler: () => useOrganizacao.getState().visao.map((v) => ({ titulo: v.titulo, descricao: v.descricao, estado: v.estado, prazo: v.prazo ?? null })) },
   areas_estudo: { ler: () => useEstudos.getState().areas.map((a) => ({ nome: a.nome, tipo: a.tipo })) },
@@ -380,7 +381,11 @@ const FERRAMENTAS: FerramentaNiko[] = [
     },
     executar: () => {
       const o = useOrganizacao.getState();
-      return { tipo: "dados", conteudo: o.metas.map((m) => ({ nome: m.nome, pilar: o.pilares.find((p) => p.id === m.pilarId)?.nome ?? "", atual: m.atual, alvo: m.alvo, prazo: m.prazo ?? null, periodo: m.periodo })) };
+      const dados = dadosAtuaisDoProgresso();
+      return { tipo: "dados", conteudo: o.metas.map((m) => {
+        const p = progressoDaMeta(m, dados);
+        return { nome: m.nome, pilar: o.pilares.find((x) => x.id === m.pilarId)?.nome ?? "", tipo: m.tipo, atual: p.atual, alvo: p.alvo, progresso: p.rotulo, prazo: m.prazo ?? null, periodo: m.periodo };
+      }) };
     },
   },
   {

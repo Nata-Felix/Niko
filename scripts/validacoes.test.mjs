@@ -691,6 +691,20 @@ test("sono é calculado pelos horários, atravessando a meia-noite", async () =>
   assert.deepEqual(sonoAoMudarHorario({ dormiu: "23:00", acordou: "07:00", sono: 8.5 }, { acordou: undefined }), { acordou: undefined });
 });
 
+test("meta de tarefas conta só as tarefas ligadas a ela", async () => {
+  const { progressoDaMeta } = await vite.ssrLoadModule("/src/utilitarios/progressoDaMeta.ts");
+  const meta = { id: "m1", nome: "Projeto", pilarId: "p", tipo: "tarefas", alvo: 10, atual: 0, periodo: "trimestre", historico: [] };
+  const tarefas = [
+    { id: "a", metaId: "m1", status: "concluida" },
+    { id: "b", metaId: "m1", status: "a_fazer" },
+    { id: "c", metaId: "outra", status: "concluida" },
+    { id: "d", status: "concluida" },
+  ];
+  const dados = { tarefas, habitos: [], registros: {}, sessoes: [], economias: [] };
+  assert.deepEqual(progressoDaMeta(meta, dados), { atual: 1, alvo: 2, rotulo: "1 / 2" });
+  assert.deepEqual(progressoDaMeta(meta, { ...dados, tarefas: [] }), { atual: 0, alvo: 1, rotulo: "0 / 0" });
+});
+
 test("sincronização rejeita formatos inválidos e eventos de outro banco", async () => {
   globalThis.fetch = async () => ({ ok: true, json: async () => ({ dados: {} }) });
   await armazenamento.iniciarArmazenamento();

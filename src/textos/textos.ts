@@ -175,6 +175,26 @@ export const T = {
     tiposDeMudanca: { novo: "Novo", melhoria: "Melhoria", correcao: "Correção" },
     historico: [
       {
+        versao: "0.2.5",
+        data: "2026-10-15",
+        mudancas: [
+          ["novo", "No Linux, o dock do Niko esconde o dock do Ubuntu (ou o Dash to Dock) e põe o painel do Cinnamon em ocultação automática, e devolve tudo como estava ao desligar o dock ou fechar o Niko."],
+          ["novo", "No Linux, o modo Inteligente e a opção de esconder em tela cheia passam a funcionar. No GNOME com Wayland, os apps nativos do Wayland precisam da extensão Window Calls."],
+          ["novo", "No Linux, a bandeja da ilha mostra os ícones de bandeja dos apps, com abrir, mostrar na pasta e encerrar."],
+          ["novo", "No Journal, as horas de sono são calculadas pelos horários de dormir e acordar, inclusive virando a meia-noite. O ajuste de meia hora continua valendo depois."],
+          ["novo", "Metas do tipo Tarefas ligadas ganham um botão para escolher as tarefas que contam para a meta. A IA passa a ler o progresso calculado de todas as metas."],
+          ["novo", "No modo Fixo do dock, a opção Reservar espaço na tela escolhe se as janelas maximizadas param acima do dock ou vão até a base da tela, com o dock por cima."],
+          ["correcao", "A ilha no modo Inteligente não sumia em tela cheia quando a janela já estava maximizada antes, como no F11 do navegador, nem quando a própria ilha estava em foco."],
+          ["correcao", "No Linux, a ilha aberta recolhe ao clicar fora dela, o volume funciona em sistemas com PulseAudio, como o Ubuntu 22.04, e o botão Iniciar abre o menu também no Cinnamon."],
+          ["correcao", "No Linux, as configurações, o papel de parede e as atualizações abrem os apps do Cinnamon no Linux Mint."],
+          ["correcao", "Com o dock em vários monitores no Linux, cada dock mostra as janelas do próprio monitor."],
+          ["correcao", "A janela do sistema cabe em telas pequenas com escala, como 1280x720 a 125%."],
+          ["correcao", "Com a barra lateral recolhida, o aviso de pendências volta a ser um ponto no canto do ícone, em vez de cobrir o ícone."],
+          ["melhoria", "No Linux, o botão de apps do dock usa um ícone de grade no lugar do logo do Windows, e o item repetido de configurações saiu do menu do dock e da busca."],
+          ["melhoria", "Agradecimento a @b-boldrin pelo relato do modo Fixo do dock e a @ariellaureanorosas pelas issues #15 e #16."],
+        ],
+      },
+      {
         versao: "0.2.4",
         data: "2026-10-14",
         mudancas: [

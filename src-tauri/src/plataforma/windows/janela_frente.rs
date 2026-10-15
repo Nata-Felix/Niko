@@ -2,8 +2,8 @@ use serde::Serialize;
 use tauri::{AppHandle, Manager, WebviewWindow};
 use windows::Win32::Foundation::{HWND, POINT, RECT};
 use windows::Win32::Graphics::Gdi::{GetMonitorInfoW, MonitorFromPoint, MonitorFromWindow, HMONITOR, MONITORINFO, MONITOR_DEFAULTTONEAREST, MONITOR_DEFAULTTOPRIMARY};
-use windows::Win32::UI::Shell::{SHQueryUserNotificationState, QUNS_PRESENTATION_MODE, QUNS_RUNNING_D3D_FULL_SCREEN};
-use windows::Win32::UI::WindowsAndMessaging::{GetClassNameW, GetForegroundWindow, GetWindowRect, GetWindowThreadProcessId, IsZoomed};
+use windows::Win32::UI::Shell::{SHQueryUserNotificationState, QUNS_BUSY, QUNS_PRESENTATION_MODE, QUNS_RUNNING_D3D_FULL_SCREEN};
+use windows::Win32::UI::WindowsAndMessaging::{GetClassNameW, GetForegroundWindow, GetWindowLongW, GetWindowRect, GetWindowThreadProcessId, IsIconic, IsWindow, IsWindowVisible, IsZoomed, GWL_STYLE, WS_CAPTION};
 
 const CLASSES_DO_SHELL: [&str; 4] = ["Progman", "WorkerW", "Shell_TrayWnd", "Shell_SecondaryTrayWnd"];
 
@@ -49,6 +49,10 @@ fn windows_em_tela_cheia() -> bool {
     }
 }
 
+fn windows_ocupado_em_tela_cheia() -> bool {
+    matches!(unsafe { SHQueryUserNotificationState() }, Ok(estado) if estado == QUNS_BUSY)
+}
+
 unsafe fn retangulo_cobre_monitor(janela: HWND, monitor: HMONITOR) -> bool {
     let mut retangulo = RECT::default();
     if GetWindowRect(janela, &mut retangulo).is_err() {
@@ -66,11 +70,37 @@ fn e_janela_do_sistema(app: &AppHandle, janela: HWND) -> bool {
     app.get_webview_window("sistema").and_then(|j| j.hwnd().ok()).map(|h| h.0 == janela.0).unwrap_or(false)
 }
 
+unsafe fn tem_barra_de_titulo(janela: HWND) -> bool {
+    let estilo = GetWindowLongW(janela, GWL_STYLE) as u32;
+    estilo & WS_CAPTION.0 == WS_CAPTION.0
+}
+
+unsafe fn janela_aberta(janela: HWND) -> bool {
+    !janela.is_invalid() && IsWindow(Some(janela)).as_bool() && IsWindowVisible(janela).as_bool() && !IsIconic(janela).as_bool()
+}
+
+unsafe fn janela_atras_da_sobreposta() -> Option<HWND> {
+    let anterior = HWND(super::ultima_frente() as *mut core::ffi::c_void);
+    janela_aberta(anterior).then_some(anterior)
+}
+
 unsafe fn ler_janela_da_frente(app: &AppHandle, monitor_alvo: HMONITOR) -> EstadoDaFrente {
     let frente = GetForegroundWindow();
     if frente.is_invalid() {
         return EstadoDaFrente::default();
     }
+    let mut pid = 0u32;
+    GetWindowThreadProcessId(frente, Some(&mut pid));
+    if pid == std::process::id() && !e_janela_do_sistema(app, frente) {
+        let Some(atras) = janela_atras_da_sobreposta() else {
+            return EstadoDaFrente { frente: TipoDaFrente::Sobreposta, ..Default::default() };
+        };
+        return EstadoDaFrente { frente: TipoDaFrente::Sobreposta, ..ler_janela(app, atras, monitor_alvo) };
+    }
+    ler_janela(app, frente, monitor_alvo)
+}
+
+unsafe fn ler_janela(app: &AppHandle, frente: HWND, monitor_alvo: HMONITOR) -> EstadoDaFrente {
     let mut pid = 0u32;
     GetWindowThreadProcessId(frente, Some(&mut pid));
     if pid == std::process::id() {
@@ -91,7 +121,8 @@ unsafe fn ler_janela_da_frente(app: &AppHandle, monitor_alvo: HMONITOR) -> Estad
     }
     let maximizada = IsZoomed(frente).as_bool();
     let cobre_monitor = retangulo_cobre_monitor(frente, monitor);
-    EstadoDaFrente { cobre: maximizada || cobre_monitor, tela_cheia: !maximizada && cobre_monitor, maximizada, frente: TipoDaFrente::App, programa: programa_do_processo(pid), outro_monitor: false }
+    let tela_cheia = cobre_monitor && (!maximizada || !tem_barra_de_titulo(frente) || windows_ocupado_em_tela_cheia());
+    EstadoDaFrente { cobre: maximizada || cobre_monitor, tela_cheia, maximizada, frente: TipoDaFrente::App, programa: programa_do_processo(pid), outro_monitor: false }
 }
 
 #[tauri::command]

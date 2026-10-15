@@ -39,6 +39,10 @@ pub fn registrar_frente(app: &AppHandle) {
     }
 }
 
+pub fn ultima_frente() -> isize {
+    ULTIMA_FRENTE.load(Ordering::Relaxed)
+}
+
 pub fn devolver_foco() {
     let anterior = ULTIMA_FRENTE.load(Ordering::Relaxed);
     if anterior != 0 {

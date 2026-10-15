@@ -286,14 +286,16 @@ async function conectar(ssid: string, senha: string) {
   if (ssid.startsWith("-")) throw new Error("valor_invalido");
   const jaSalva = (await perfisSalvos()).has(ssid);
   const entrada = senha ? `${senha}\n` : "";
+  let ok = true;
   try {
     if (jaSalva) await rodar("nmcli", ["--ask", "--wait", "20", "connection", "up", "id", ssid], 30000, entrada);
     else await rodar("nmcli", ["--ask", "--wait", "20", "device", "wifi", "connect", ssid], 30000, entrada);
   } catch {
+    ok = false;
     if (!jaSalva) await tentar(rodar("nmcli", ["connection", "delete", "id", ssid]), "");
   }
   estadoEmCache = null;
-  return { ok: true, wifi: await wifiAtual() };
+  return { ok, wifi: await wifiAtual() };
 }
 
 async function radio(tipo: Radio, ligado: boolean) {
@@ -354,7 +356,10 @@ export const sistema: Plataforma["sistema"] = {
   async configuracoes(pagina) {
     const gnome = { bluetooth: "bluetooth", wifi: "wifi", rede: "network", bateria: "power" }[pagina];
     const kde = { bluetooth: "kcm_bluetooth", wifi: "kcm_networkmanagement", rede: "kcm_networkmanagement", bateria: "kcm_powerdevilprofilesconfig" }[pagina];
-    if (!(await primeiraQueAbre([["gnome-control-center", [gnome]], ["systemsettings", [kde]]]))) throw new Error("configuracoes_indisponiveis");
+    const cinnamon = { bluetooth: "bluetooth", wifi: "network", rede: "network", bateria: "power" }[pagina];
+    const alternativas: [string, string[]][] = [["gnome-control-center", [gnome]], ["cinnamon-settings", [cinnamon]], ["systemsettings", [kde]]];
+    if (pagina === "bluetooth") alternativas.push(["blueman-manager", []]);
+    if (!(await primeiraQueAbre(alternativas))) throw new Error("configuracoes_indisponiveis");
     return { ok: true };
   },
   encerrar: () => {

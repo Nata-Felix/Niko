@@ -1,9 +1,11 @@
 pub mod barra;
 pub mod janela_frente;
 pub mod miniaturas;
+mod x11;
 
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
+use std::sync::atomic::{AtomicU32, Ordering};
 
 use tauri::{AppHandle, WebviewWindow};
 use tauri_plugin_global_shortcut::Shortcut;
@@ -30,9 +32,21 @@ pub fn tempo_ocioso_ms() -> u64 {
     digitos.parse::<u64>().unwrap_or(0)
 }
 
-pub fn registrar_frente(_app: &AppHandle) {}
+static ULTIMA_FRENTE: AtomicU32 = AtomicU32::new(0);
 
-pub fn devolver_foco() {}
+pub fn registrar_frente(_app: &AppHandle) {
+    let Some(frente) = x11::janela_ativa() else { return };
+    if frente != ULTIMA_FRENTE.load(Ordering::Relaxed) && x11::pid_da_janela(frente) != Some(std::process::id()) {
+        ULTIMA_FRENTE.store(frente, Ordering::Relaxed);
+    }
+}
+
+pub fn devolver_foco() {
+    let anterior = ULTIMA_FRENTE.load(Ordering::Relaxed);
+    if anterior != 0 {
+        x11::ativar(anterior);
+    }
+}
 
 pub fn janela_em_foco(janela: &WebviewWindow) -> bool {
     janela.is_focused().unwrap_or(false)
@@ -51,7 +65,7 @@ pub fn abrir_no_sistema(endereco: &str) -> Result<(), String> {
 }
 
 pub fn botao_do_mouse_pressionado() -> bool {
-    false
+    x11::botao_pressionado()
 }
 
 pub fn ignorar_cursor(janela: &WebviewWindow, ignorar: bool) -> bool {

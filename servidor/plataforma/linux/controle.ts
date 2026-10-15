@@ -3,6 +3,7 @@ import type { ComandoDoSistema, EstadoDoAudio, Fluxo, Plataforma, PontaDeAudio }
 import { abrirApp, appDaJanela, iconesDeApps, listarApps } from "./apps.ts";
 import { esperar, funcionou, iconeDoApp, lerArquivo, primeiraQueAbre, rodar, tentar } from "./comum.ts";
 import { janelas } from "./janelas.ts";
+import { bandejaDoLinux } from "./bandeja.ts";
 
 const PONTAS: Record<Fluxo, string> = { 0: "@DEFAULT_AUDIO_SINK@", 1: "@DEFAULT_AUDIO_SOURCE@" };
 const ID_SEM_PROCESSO = 4_000_000_000;
@@ -10,18 +11,18 @@ const INTERFACE_GNOME = "org.gnome.desktop.interface";
 const SHELL_DO_GNOME = ["call", "--session", "--dest", "org.gnome.Shell", "--object-path", "/org/gnome/Shell"];
 
 const COMANDOS: Record<ComandoDoSistema, [string, string[]][]> = {
-  rede: [["gnome-control-center", ["network"]], ["systemsettings", ["kcm_networkmanagement"]]],
-  wifi: [["gnome-control-center", ["wifi"]], ["systemsettings", ["kcm_networkmanagement"]]],
-  bluetooth: [["gnome-control-center", ["bluetooth"]], ["systemsettings", ["kcm_bluetooth"]]],
-  som: [["gnome-control-center", ["sound"]], ["systemsettings", ["kcm_pulseaudio"]]],
-  tela: [["gnome-control-center", ["display"]], ["systemsettings", ["kcm_kscreen"]]],
-  configuracoes: [["gnome-control-center", []], ["systemsettings", []]],
-  atualizacoes: [["gnome-software", ["--mode=updates"]], ["plasma-discover", ["--mode", "update"]], ["gnome-control-center", []]],
+  rede: [["gnome-control-center", ["network"]], ["cinnamon-settings", ["network"]], ["systemsettings", ["kcm_networkmanagement"]]],
+  wifi: [["gnome-control-center", ["wifi"]], ["cinnamon-settings", ["network"]], ["systemsettings", ["kcm_networkmanagement"]]],
+  bluetooth: [["gnome-control-center", ["bluetooth"]], ["cinnamon-settings", ["bluetooth"]], ["blueman-manager", []], ["systemsettings", ["kcm_bluetooth"]]],
+  som: [["gnome-control-center", ["sound"]], ["cinnamon-settings", ["sound"]], ["systemsettings", ["kcm_pulseaudio"]]],
+  tela: [["gnome-control-center", ["display"]], ["cinnamon-settings", ["display"]], ["systemsettings", ["kcm_kscreen"]]],
+  configuracoes: [["gnome-control-center", []], ["cinnamon-settings", []], ["systemsettings", []]],
+  atualizacoes: [["gnome-software", ["--mode=updates"]], ["mintupdate", []], ["plasma-discover", ["--mode", "update"]], ["gnome-control-center", []]],
   tarefas: [["gnome-system-monitor", []], ["plasma-systemmonitor", []], ["ksysguard", []]],
   adaptadores: [["gnome-control-center", ["network"]], ["nm-connection-editor", []]],
   terminal: [["kgx", []], ["ptyxis", []], ["gnome-terminal", []], ["konsole", []], ["x-terminal-emulator", []]],
-  arquivos: [["nautilus", []], ["dolphin", []], ["xdg-open", [process.env.HOME ?? "/"]]],
-  painel: [["gnome-control-center", []], ["systemsettings", []]],
+  arquivos: [["nautilus", []], ["nemo", []], ["dolphin", []], ["xdg-open", [process.env.HOME ?? "/"]]],
+  painel: [["gnome-control-center", []], ["cinnamon-settings", []], ["systemsettings", []]],
 };
 
 interface EntradaDeAudio {
@@ -32,11 +33,43 @@ interface EntradaDeAudio {
   properties?: Record<string, string>;
 }
 
-async function pontaDeAudio(fluxo: Fluxo): Promise<PontaDeAudio | null> {
-  const saida = await tentar(rodar("wpctl", ["get-volume", PONTAS[fluxo]]), "");
-  const m = /Volume:\s*([\d.]+)/.exec(saida);
+const PONTAS_DO_PULSE: Record<Fluxo, { tipo: "sink" | "source"; nome: string }> = { 0: { tipo: "sink", nome: "@DEFAULT_SINK@" }, 1: { tipo: "source", nome: "@DEFAULT_SOURCE@" } };
+let semWpctl = false;
+
+const limitarVolume = (valor: number) => Math.max(0, Math.min(100, Math.round(valor)));
+
+async function pontaDoPulse(fluxo: Fluxo): Promise<PontaDeAudio | null> {
+  const { tipo, nome } = PONTAS_DO_PULSE[fluxo];
+  const [volume, mudo] = await Promise.all([tentar(rodar("pactl", [`get-${tipo}-volume`, nome]), ""), tentar(rodar("pactl", [`get-${tipo}-mute`, nome]), "")]);
+  const m = /(\d+)%/.exec(volume);
   if (!m) return null;
-  return { volume: Math.max(0, Math.min(100, Math.round(Number(m[1]) * 100))), mudo: /\[MUTED\]/.test(saida) };
+  return { volume: limitarVolume(Number(m[1])), mudo: /:\s*(yes|sim)/i.test(mudo) };
+}
+
+async function pontaDeAudio(fluxo: Fluxo): Promise<PontaDeAudio | null> {
+  if (!semWpctl) {
+    try {
+      const saida = await rodar("wpctl", ["get-volume", PONTAS[fluxo]]);
+      const m = /Volume:\s*([\d.]+)/.exec(saida);
+      return m ? { volume: limitarVolume(Number(m[1]) * 100), mudo: /\[MUTED\]/.test(saida) } : null;
+    } catch (erro) {
+      if ((erro as NodeJS.ErrnoException).code !== "ENOENT") return null;
+      semWpctl = true;
+    }
+  }
+  return pontaDoPulse(fluxo);
+}
+
+function definirVolumeDaPonta(fluxo: Fluxo, valor: number) {
+  if (!semWpctl) return rodar("wpctl", ["set-volume", PONTAS[fluxo], `${valor}%`]);
+  const { tipo, nome } = PONTAS_DO_PULSE[fluxo];
+  return rodar("pactl", [`set-${tipo}-volume`, nome, `${valor}%`]);
+}
+
+function definirMudoDaPonta(fluxo: Fluxo, mudo: boolean) {
+  if (!semWpctl) return rodar("wpctl", ["set-mute", PONTAS[fluxo], mudo ? "1" : "0"]);
+  const { tipo, nome } = PONTAS_DO_PULSE[fluxo];
+  return rodar("pactl", [`set-${tipo}-mute`, nome, mudo ? "1" : "0"]);
 }
 
 async function entradasDeAudio(): Promise<EntradaDeAudio[]> {
@@ -96,6 +129,7 @@ async function definirTema(escuro: boolean) {
   await rodar("gsettings", ["set", INTERFACE_GNOME, "color-scheme", escuro ? "'prefer-dark'" : "'default'"]).catch(() => {
     throw new Error("tema_indisponivel");
   });
+  await tentar(rodar("gsettings", ["set", "org.x.apps.portal", "color-scheme", escuro ? "'prefer-dark'" : "'default'"]), "");
   const atual = (await tentar(rodar("gsettings", ["get", INTERFACE_GNOME, "gtk-theme"]), "")).trim().replace(/'/g, "");
   if (atual === "Adwaita" || atual === "Adwaita-dark") await tentar(rodar("gsettings", ["set", INTERFACE_GNOME, "gtk-theme", escuro ? "'Adwaita-dark'" : "'Adwaita'"]), "");
   return tema();
@@ -112,7 +146,11 @@ function definirVisaoGeral(aberta: boolean): Promise<boolean> {
 
 async function alternarIniciar(abertoAntes?: boolean) {
   const aberta = abertoAntes === true || (await visaoGeralAberta());
-  const ok = aberta ? await definirVisaoGeral(false) : (await definirVisaoGeral(true)) || (await funcionou(rodar("gdbus", ["call", "--session", "--dest", "org.kde.plasmashell", "--object-path", "/PlasmaShell", "--method", "org.kde.PlasmaShell.activateLauncherMenu"])));
+  const ok = aberta
+    ? await definirVisaoGeral(false)
+    : (await definirVisaoGeral(true)) ||
+      (await funcionou(rodar("gdbus", ["call", "--session", "--dest", "org.kde.plasmashell", "--object-path", "/PlasmaShell", "--method", "org.kde.PlasmaShell.activateLauncherMenu"]))) ||
+      (await funcionou(rodar("xdotool", ["key", "super"])));
   if (!ok) throw new Error("ferramenta_indisponivel");
   await esperar(150);
   return { ok: true, aberto: await visaoGeralAberta() };
@@ -141,7 +179,7 @@ const ferramenta: Plataforma["controle"]["ferramenta"] = async (nome, abertoAnte
     }
     return { ok: true };
   }
-  if (!(await primeiraQueAbre([["gnome-control-center", ["background"]], ["systemsettings", ["kcm_wallpaper"]]]))) throw new Error("ferramenta_indisponivel");
+  if (!(await primeiraQueAbre([["gnome-control-center", ["background"]], ["cinnamon-settings", ["backgrounds"]], ["systemsettings", ["kcm_wallpaper"]]]))) throw new Error("ferramenta_indisponivel");
   return { ok: true };
 };
 
@@ -187,12 +225,10 @@ const focarProcesso: Plataforma["controle"]["focarProcesso"] = async (pid) => {
   throw new Error("sem_janela");
 };
 
-const semBandeja = () => Promise.reject(new Error("app_desconhecido"));
-
 export const controle: Plataforma["controle"] = {
   audio,
-  volume: async (fluxo, valor) => ({ ok: await funcionou(rodar("wpctl", ["set-volume", PONTAS[fluxo], `${valor}%`])) }),
-  mudo: async (fluxo, mudo) => ({ ok: await funcionou(rodar("wpctl", ["set-mute", PONTAS[fluxo], mudo ? "1" : "0"])) }),
+  volume: async (fluxo, valor) => ({ ok: await funcionou(definirVolumeDaPonta(fluxo, valor)) }),
+  mudo: async (fluxo, mudo) => ({ ok: await funcionou(definirMudoDaPonta(fluxo, mudo)) }),
   async sessao(pids, volume, mudo) {
     const alvos = new Set(pids);
     let ajustadas = 0;
@@ -209,10 +245,7 @@ export const controle: Plataforma["controle"] = {
   iniciarAberto: async () => ({ aberto: await visaoGeralAberta() }),
   ferramenta,
   energia,
-  bandeja: async () => ({ itens: [] }),
-  abrirDaBandeja: semBandeja,
-  pastaDaBandeja: semBandeja,
-  encerrarDaBandeja: semBandeja,
+  ...bandejaDoLinux,
   apps: listarApps,
   iconesDeApps,
   abrirApp,

@@ -689,18 +689,15 @@ export default function Configuracoes() {
         <NotaAjuste>
           <AvisoFaixa>{T.configuracoes.telaNavegador}</AvisoFaixa>
         </NotaAjuste>
-        {NO_LINUX ? (
+        {NO_LINUX && (
           <NotaAjuste>
-            <AvisoFaixa tipo="alerta">{T.configuracoes.telaLinux}</AvisoFaixa>
+            <AvisoFaixa>{T.configuracoes.telaLinux}</AvisoFaixa>
           </NotaAjuste>
-        ) : (
-          <>
-            <AlternadorAjuste rotulo={T.configuracoes.esconderTelaCheia} ligado={cfg.esconderTelaCheia} aoMudar={(v) => cfg.definir({ esconderTelaCheia: v })} />
-            <LinhaAjuste rotulo={T.configuracoes.appsEsconder} dica={T.configuracoes.appsDica} para="tc-apps" bloco>
-              <textarea id="tc-apps" className="area-texto ajuste-area" value={cfg.appsEsconder} maxLength={1000} onChange={(e) => cfg.definir({ appsEsconder: e.target.value })} />
-            </LinhaAjuste>
-          </>
         )}
+        <AlternadorAjuste rotulo={T.configuracoes.esconderTelaCheia} ligado={cfg.esconderTelaCheia} aoMudar={(v) => cfg.definir({ esconderTelaCheia: v })} />
+        <LinhaAjuste rotulo={T.configuracoes.appsEsconder} dica={T.configuracoes.appsDica} para="tc-apps" bloco>
+          <textarea id="tc-apps" className="area-texto ajuste-area" value={cfg.appsEsconder} maxLength={1000} onChange={(e) => cfg.definir({ appsEsconder: e.target.value })} />
+        </LinhaAjuste>
       </>
     ),
     atalhos: (

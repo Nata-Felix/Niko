@@ -2959,7 +2959,7 @@ export const T = {
     limiteMensal: "Limite mensal (US$)",
     esconderTelaCheia: "Esconder ilha e dock em tela cheia",
     appsEsconder: "Apps que sempre escondem a ilha",
-    telaLinux: "No Linux o Niko ainda não detecta tela cheia nem qual app está na frente, então a ilha e o dock não somem sozinhos. Use o modo Esconder da ilha e do dock.",
+    telaLinux: "Em sessões X11, como no Linux Mint, o Niko vê qualquer janela. No GNOME com Wayland, ele só vê os apps nativos do Wayland se a extensão Window Calls estiver instalada. Sem ela, só os apps X11 fazem a ilha e o dock sumirem.",
     telaNavegador: "No navegador não há como detectar tela cheia de outros apps.",
     atalhosDica: "No navegador, os atalhos globais funcionam só com esta aba em foco.",
     atalhosGlobais: {
@@ -3026,7 +3026,7 @@ export const T = {
     refazerPrimeira: "Refazer a primeira execução",
     blocosDica: "Arraste para mudar a ordem das abas da ilha. Pelo menos uma precisa ficar ligada.",
     agenteFavorito: "Agente que aparece na ilha em repouso",
-    appsDica: "Um programa por linha, por exemplo obs64.exe. Quando ele está na frente, no monitor da ilha, a ilha some.",
+    appsDica: `Um programa por linha, por exemplo ${NO_LINUX ? "obs" : "obs64.exe"}. Quando ele está na frente, no monitor da ilha, a ilha some.`,
     estadoReal: "Estado real",
     alertaTeste: "Alerta de teste. Clique em Ver ou Dispensar.",
     tarefaTeste: "Tarefa de teste",

@@ -1459,7 +1459,15 @@
 }
 
 .estilo-sistema .barra-recolhida .barra-contador {
+  min-width: 7px;
+  width: 7px;
+  height: 7px;
+  padding: 0;
   background: var(--destaque);
+}
+
+.estilo-sistema .barra-recolhida .barra-contador-alerta {
+  background: var(--erro);
 }
 
 .estilo-sistema .barra-recolhida .barra-item[aria-current="page"] .barra-contador {

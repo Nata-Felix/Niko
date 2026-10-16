@@ -475,7 +475,7 @@ export function Dock() {
 
   const largura = (70 + (Number(cfg.mostrarIniciar) + Number(cfg.mostrarBusca) + janelas.length + (aberto ? 1 : 0)) * 50) * cfg.escala;
   const area = { x: (window.innerWidth - largura) / 2, y: window.innerHeight - altura, w: largura, h: altura };
-  const coberto = cfg.modo === "inteligente" && (NATIVO ? frente.cobre : alguemCobre(area));
+  const coberto = cfg.modo === "inteligente" && (NATIVO ? frente.cobre || Boolean(frente.naBase) : alguemCobre(area));
   const escondido = (cfg.modo === "esconder" || coberto) && !perto && !buscaAberta && !menu;
   const sistemaNaFrente = aberto && !minimizado && zSistema === proximoZ - 1;
   const fundo = aparencia.fundo;

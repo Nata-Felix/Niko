@@ -22,6 +22,7 @@ pub struct EstadoDaFrente {
     cobre: bool,
     tela_cheia: bool,
     maximizada: bool,
+    na_base: bool,
     frente: TipoDaFrente,
     programa: String,
     #[serde(skip)]
@@ -53,17 +54,15 @@ fn windows_ocupado_em_tela_cheia() -> bool {
     matches!(unsafe { SHQueryUserNotificationState() }, Ok(estado) if estado == QUNS_BUSY)
 }
 
-unsafe fn retangulo_cobre_monitor(janela: HWND, monitor: HMONITOR) -> bool {
+unsafe fn retangulos(janela: HWND, monitor: HMONITOR) -> Option<(RECT, RECT)> {
     let mut retangulo = RECT::default();
-    if GetWindowRect(janela, &mut retangulo).is_err() {
-        return false;
-    }
+    GetWindowRect(janela, &mut retangulo).ok()?;
     let mut info = MONITORINFO { cbSize: std::mem::size_of::<MONITORINFO>() as u32, ..Default::default() };
-    if !GetMonitorInfoW(monitor, &mut info).as_bool() {
-        return false;
-    }
-    let tela = info.rcMonitor;
-    retangulo.left <= tela.left && retangulo.top <= tela.top && retangulo.right >= tela.right && retangulo.bottom >= tela.bottom
+    GetMonitorInfoW(monitor, &mut info).as_bool().then_some((retangulo, info.rcMonitor))
+}
+
+fn cobre_a_tela(janela: RECT, tela: RECT) -> bool {
+    janela.left <= tela.left && janela.top <= tela.top && janela.right >= tela.right && janela.bottom >= tela.bottom
 }
 
 fn e_janela_do_sistema(app: &AppHandle, janela: HWND) -> bool {
@@ -120,9 +119,11 @@ unsafe fn ler_janela(app: &AppHandle, frente: HWND, monitor_alvo: HMONITOR) -> E
         return EstadoDaFrente { frente: TipoDaFrente::App, outro_monitor: true, ..Default::default() };
     }
     let maximizada = IsZoomed(frente).as_bool();
-    let cobre_monitor = retangulo_cobre_monitor(frente, monitor);
+    let medidas = retangulos(frente, monitor);
+    let cobre_monitor = medidas.is_some_and(|(janela, tela)| cobre_a_tela(janela, tela));
+    let na_base = !IsIconic(frente).as_bool() && medidas.is_some_and(|(janela, tela)| super::super::encosta_na_base(janela, tela));
     let tela_cheia = cobre_monitor && (!maximizada || !tem_barra_de_titulo(frente) || windows_ocupado_em_tela_cheia());
-    EstadoDaFrente { cobre: maximizada || cobre_monitor, tela_cheia, maximizada, frente: TipoDaFrente::App, programa: programa_do_processo(pid), outro_monitor: false }
+    EstadoDaFrente { cobre: maximizada || cobre_monitor, tela_cheia, maximizada, na_base, frente: TipoDaFrente::App, programa: programa_do_processo(pid), outro_monitor: false }
 }
 
 #[tauri::command]
@@ -133,5 +134,5 @@ pub fn frente_cobre_tela(app: AppHandle, window: WebviewWindow) -> EstadoDaFrent
     };
     let janela = unsafe { ler_janela_da_frente(&app, monitor_alvo) };
     let tela_cheia = janela.tela_cheia || (janela.cobre && windows_em_tela_cheia());
-    EstadoDaFrente { cobre: janela.cobre || tela_cheia, tela_cheia, maximizada: janela.maximizada, frente: if tela_cheia { TipoDaFrente::App } else { janela.frente }, programa: janela.programa, outro_monitor: janela.outro_monitor }
+    EstadoDaFrente { cobre: janela.cobre || tela_cheia, tela_cheia, maximizada: janela.maximizada, na_base: janela.na_base, frente: if tela_cheia { TipoDaFrente::App } else { janela.frente }, programa: janela.programa, outro_monitor: janela.outro_monitor }
 }

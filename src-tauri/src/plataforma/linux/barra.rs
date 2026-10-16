@@ -18,6 +18,7 @@ pub struct RECT {
 const DOCKS_DO_GNOME: [&str; 2] = ["ubuntu-dock@ubuntu.com", "dash-to-dock@micxgx.gmail.com"];
 const PREFIXO_GNOME: &str = "gnome:";
 const PREFIXO_CINNAMON: &str = "cinnamon:";
+const ATRASO_DO_PAINEL_MS: &str = "1500";
 
 static OCULTA: AtomicBool = AtomicBool::new(false);
 static ALTERANDO_BARRA: Mutex<()> = Mutex::new(());
@@ -46,7 +47,7 @@ fn docks_do_gnome_ligados() -> Vec<&'static str> {
     DOCKS_DO_GNOME.into_iter().filter(|uuid| ligadas.lines().any(|l| l.trim() == *uuid)).collect()
 }
 
-fn paineis_escondidos(original: &str) -> String {
+fn valor_em_todos_os_paineis(original: &str, valor: &str) -> String {
     let itens: Vec<String> = original
         .trim()
         .trim_start_matches('[')
@@ -55,10 +56,22 @@ fn paineis_escondidos(original: &str) -> String {
         .filter_map(|item| {
             let limpo = item.trim().trim_matches('\'');
             let (painel, _) = limpo.split_once(':')?;
-            Some(format!("'{painel}:true'"))
+            Some(format!("'{painel}:{valor}'"))
         })
         .collect();
     format!("[{}]", itens.join(", "))
+}
+
+fn paineis_escondidos(original: &str) -> String {
+    valor_em_todos_os_paineis(original, "true")
+}
+
+fn mudar_chave_do_cinnamon(chave: &str, novo: impl Fn(&str) -> String, desfazer: &mut Vec<String>) {
+    let Some(original) = saida_de("gsettings", &["get", "org.cinnamon", chave]) else { return };
+    let alvo = novo(&original);
+    if alvo != "[]" && alvo != original.trim() && rodar("gsettings", &["set", "org.cinnamon", chave, &alvo]) {
+        desfazer.push(format!("{PREFIXO_CINNAMON}{chave}={}", original.trim()));
+    }
 }
 
 fn esconder_barras_do_sistema() -> Vec<String> {
@@ -68,11 +81,9 @@ fn esconder_barras_do_sistema() -> Vec<String> {
             desfazer.push(format!("{PREFIXO_GNOME}{uuid}"));
         }
     }
-    if let Some(original) = saida_de("gsettings", &["get", "org.cinnamon", "panels-autohide"]) {
-        let escondidos = paineis_escondidos(&original);
-        if escondidos != "[]" && escondidos != original.trim() && rodar("gsettings", &["set", "org.cinnamon", "panels-autohide", &escondidos]) {
-            desfazer.push(format!("{PREFIXO_CINNAMON}{}", original.trim()));
-        }
+    mudar_chave_do_cinnamon("panels-autohide", paineis_escondidos, &mut desfazer);
+    if desfazer.iter().any(|d| d.starts_with(PREFIXO_CINNAMON)) {
+        mudar_chave_do_cinnamon("panels-show-delay", |o| valor_em_todos_os_paineis(o, ATRASO_DO_PAINEL_MS), &mut desfazer);
     }
     desfazer
 }
@@ -81,8 +92,9 @@ fn mostrar_barras_do_sistema(desfazer: &str) {
     for linha in desfazer.lines() {
         if let Some(uuid) = linha.strip_prefix(PREFIXO_GNOME) {
             rodar("gnome-extensions", &["enable", uuid]);
-        } else if let Some(original) = linha.strip_prefix(PREFIXO_CINNAMON) {
-            rodar("gsettings", &["set", "org.cinnamon", "panels-autohide", original]);
+        } else if let Some(resto) = linha.strip_prefix(PREFIXO_CINNAMON) {
+            let (chave, original) = resto.split_once('=').unwrap_or(("panels-autohide", resto));
+            rodar("gsettings", &["set", "org.cinnamon", chave, original]);
         }
     }
 }
@@ -157,12 +169,17 @@ pub async fn barra_windows(app: AppHandle, ocultar_barra: bool) {
 
 #[cfg(test)]
 mod testes_da_barra {
-    use super::paineis_escondidos;
+    use super::{paineis_escondidos, valor_em_todos_os_paineis};
 
     #[test]
     fn esconde_todos_os_paineis_do_cinnamon() {
         assert_eq!(paineis_escondidos("['1:false']"), "['1:true']");
         assert_eq!(paineis_escondidos("['1:intel', '2:false']\n"), "['1:true', '2:true']");
         assert_eq!(paineis_escondidos("@as []"), "[]");
+    }
+
+    #[test]
+    fn atrasa_o_painel_do_cinnamon_em_todos_os_paineis() {
+        assert_eq!(valor_em_todos_os_paineis("['1:0', '2:250']", "1500"), "['1:1500', '2:1500']");
     }
 }

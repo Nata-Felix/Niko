@@ -5,7 +5,9 @@ use std::time::{Duration, Instant};
 use serde::Serialize;
 use tauri::{AppHandle, Manager, WebviewWindow};
 
+use super::super::encosta_na_base;
 use super::x11;
+use super::RECT;
 
 const VALIDADE_DA_LEITURA: Duration = Duration::from_millis(300);
 const DESTINO_DA_EXTENSAO: &str = "org.gnome.Shell";
@@ -28,6 +30,7 @@ pub struct EstadoDaFrente {
     cobre: bool,
     tela_cheia: bool,
     maximizada: bool,
+    na_base: bool,
     frente: TipoDaFrente,
     programa: String,
 }
@@ -46,6 +49,10 @@ impl Monitor {
         let cx = g.x + g.largura as i32 / 2;
         let cy = g.y + g.altura as i32 / 2;
         cx >= self.x && cx < self.x + self.largura && cy >= self.y && cy < self.y + self.altura
+    }
+
+    fn retangulo(&self) -> RECT {
+        RECT { left: self.x, top: self.y, right: self.x + self.largura, bottom: self.y + self.altura }
     }
 
     fn coberto_por(&self, g: x11::Geometria) -> bool {
@@ -137,7 +144,8 @@ fn ler(app: &AppHandle, monitor: Monitor) -> EstadoDaFrente {
     }
     let cobre_monitor = janela.geometria.is_some_and(|g| monitor.coberto_por(g));
     let tela_cheia = janela.tela_cheia || (cobre_monitor && !janela.maximizada);
-    let estado = EstadoDaFrente { cobre: janela.maximizada || tela_cheia, tela_cheia, maximizada: janela.maximizada, frente: TipoDaFrente::App, programa: programa_do_processo(janela.pid) };
+    let na_base = janela.geometria.is_some_and(|g| encosta_na_base(RECT { left: g.x, top: g.y, right: g.x + g.largura as i32, bottom: g.y + g.altura as i32 }, monitor.retangulo()));
+    let estado = EstadoDaFrente { cobre: janela.maximizada || tela_cheia, tela_cheia, maximizada: janela.maximizada, na_base, frente: TipoDaFrente::App, programa: programa_do_processo(janela.pid) };
     if let Ok(mut ultimo) = ULTIMO_APP.lock() {
         *ultimo = Some((monitor, estado.clone()));
     }

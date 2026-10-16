@@ -383,10 +383,11 @@ export interface EstadoDaFrente {
   cobre: boolean;
   telaCheia: boolean;
   maximizada: boolean;
+  naBase?: boolean;
   frente: TipoDaFrente;
 }
 
-const FRENTE_LIVRE: EstadoDaFrente = { cobre: false, telaCheia: false, maximizada: false, frente: "area_de_trabalho" };
+const FRENTE_LIVRE: EstadoDaFrente = { cobre: false, telaCheia: false, maximizada: false, naBase: false, frente: "area_de_trabalho" };
 
 export interface RegrasDeSumir {
   esconderTelaCheia: boolean;
@@ -464,8 +465,9 @@ export function usarEstadoDaFrente(ativo: boolean, regras: RegrasDeSumir, geraca
       const cobre = Boolean(r?.cobre);
       const telaCheia = deveSumirPelaFrente(Boolean(r?.telaCheia), typeof r.programa === "string" ? r.programa : "", regrasAtuais.current);
       const maximizada = Boolean(r?.maximizada);
+      const naBase = Boolean(r?.naBase);
       const frente: TipoDaFrente = r?.frente === "app" || r?.frente === "sobreposta" ? r.frente : "area_de_trabalho";
-      setEstado((anterior) => (anterior.cobre === cobre && anterior.telaCheia === telaCheia && anterior.maximizada === maximizada && anterior.frente === frente ? anterior : { cobre, telaCheia, maximizada, frente }));
+      setEstado((anterior) => (anterior.cobre === cobre && anterior.telaCheia === telaCheia && anterior.maximizada === maximizada && Boolean(anterior.naBase) === naBase && anterior.frente === frente ? anterior : { cobre, telaCheia, maximizada, naBase, frente }));
     }, 800);
   }, [ativo, geracao]);
   return estado;

@@ -184,6 +184,7 @@ export const T = {
           ["novo", "No Journal, as horas de sono são calculadas pelos horários de dormir e acordar, inclusive virando a meia-noite. O ajuste de meia hora continua valendo depois."],
           ["novo", "Metas do tipo Tarefas ligadas ganham um botão para escolher as tarefas que contam para a meta. A IA passa a ler o progresso calculado de todas as metas."],
           ["novo", "No modo Fixo do dock, a opção Reservar espaço na tela escolhe se as janelas maximizadas param acima do dock ou vão até a base da tela, com o dock por cima."],
+          ["correcao", "A ilha e o dock podiam sumir de vez, por exemplo depois de bloquear ou suspender o computador, e abrir o Niko de novo trazia só a janela do sistema. Agora a verificação de tela cheia se recupera sozinha, e reabrir o Niko traz a ilha e o dock de volta."],
           ["correcao", "A ilha no modo Inteligente não sumia em tela cheia quando a janela já estava maximizada antes, como no F11 do navegador, nem quando a própria ilha estava em foco."],
           ["correcao", "No Linux, a ilha aberta recolhe ao clicar fora dela, o volume funciona em sistemas com PulseAudio, como o Ubuntu 22.04, e o botão Iniciar abre o menu também no Cinnamon."],
           ["correcao", "No Linux, as configurações, o papel de parede e as atualizações abrem os apps do Cinnamon no Linux Mint."],

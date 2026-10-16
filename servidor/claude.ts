@@ -67,6 +67,28 @@ interface Pendente {
   sessao: string;
   sugestoes: RegraSugerida[];
   pergunta: ReturnType<typeof perguntasDoPedido>;
+  assinatura: string;
+}
+
+const EVENTOS_QUE_ENCERRAM_PEDIDOS = new Set(["UserPromptSubmit", "Stop", "StopFailure", "SessionEnd"]);
+const EVENTOS_DE_FERRAMENTA_CONCLUIDA = new Set(["PostToolUse", "PostToolUseFailure"]);
+
+function assinaturaDaFerramenta(corpo: Record<string, unknown>): string {
+  const nome = typeof corpo.tool_name === "string" ? corpo.tool_name : "";
+  if (!nome) return "";
+  try {
+    return `${nome}:${JSON.stringify(corpo.tool_input ?? null)}`;
+  } catch {
+    return nome;
+  }
+}
+
+export function pedidosRespondidosForaDoNiko(evento: string, sessao: string, assinatura: string, abertos: ReadonlyMap<string, Pick<Pendente, "sessao" | "assinatura">>): string[] {
+  if (!sessao) return [];
+  const todos = EVENTOS_QUE_ENCERRAM_PEDIDOS.has(evento);
+  const daFerramenta = EVENTOS_DE_FERRAMENTA_CONCLUIDA.has(evento) && assinatura !== "";
+  if (!todos && !daFerramenta) return [];
+  return [...abertos].filter(([, p]) => p.sessao === sessao && (todos || p.assinatura === assinatura)).map(([id]) => id);
 }
 
 const projetosConhecidos = new Set<string>();
@@ -502,6 +524,9 @@ export async function trazerTerminal(corpo: Record<string, unknown>) {
 
 export function processarEvento(corpo: Record<string, unknown>, ferramenta: FerramentaDeCodigo, res: ServerResponse, aoResponderVazio: (res: ServerResponse) => void = responderVazio) {
   const nome = typeof corpo.hook_event_name === "string" ? corpo.hook_event_name : "";
+  const assinatura = assinaturaDaFerramenta(corpo);
+  const sessaoDoEvento = typeof corpo.session_id === "string" ? corpo.session_id : "";
+  for (const pedidoId of pedidosRespondidosForaDoNiko(nome, sessaoDoEvento, assinatura, pendentes)) encerrarPedido(pedidoId, null, "cancelado");
   const modeloAtual = EVENTOS_COM_MODELO.has(nome) && typeof corpo.transcript_path === "string" ? modeloDoTranscript(corpo.transcript_path) : undefined;
   for (const campo of CAMPOS_DESCARTADOS) delete corpo[campo];
   if (modeloAtual) corpo.model = modeloAtual;
@@ -532,7 +557,7 @@ export function processarEvento(corpo: Record<string, unknown>, ferramenta: Ferr
   const pedidoId = randomUUID();
   evento.pedidoId = pedidoId;
   const temporizador = setTimeout(() => encerrarPedido(pedidoId, null, "expirou"), ESPERA_DECISAO_MS);
-  pendentes.set(pedidoId, { res, ferramenta, temporizador, sessao: evento.sessao, sugestoes: ferramenta === "claude" ? regrasSugeridas(corpo) : [], pergunta: ferramenta === "claude" ? perguntasDoPedido(corpo) : null });
+  pendentes.set(pedidoId, { res, ferramenta, temporizador, sessao: evento.sessao, sugestoes: ferramenta === "claude" ? regrasSugeridas(corpo) : [], pergunta: ferramenta === "claude" ? perguntasDoPedido(corpo) : null, assinatura });
   res.on("close", () => {
     if (pendentes.has(pedidoId)) encerrarPedido(pedidoId, null, "cancelado");
   });

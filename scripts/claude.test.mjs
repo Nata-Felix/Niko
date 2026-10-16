@@ -30,6 +30,19 @@ claude.buscaDeProcesso.focar = async (pid) => {
 const { useClaudeCode } = await vite.ssrLoadModule("/src/estado/claudeCode.ts");
 const { indicadorDePermissoes } = await vite.ssrLoadModule("/src/janelas/ilha/claude/indicadorDePermissoes.ts");
 
+test("pedido respondido no terminal sai da ilha quando a sessão anda", () => {
+  const abertos = new Map([
+    ["p1", { sessao: "s1", assinatura: 'Bash:{"command":"ls"}' }],
+    ["p2", { sessao: "s1", assinatura: 'Edit:{"file_path":"a.ts"}' }],
+    ["p3", { sessao: "s2", assinatura: 'Bash:{"command":"ls"}' }],
+  ]);
+  assert.deepEqual(claude.pedidosRespondidosForaDoNiko("PostToolUse", "s1", 'Bash:{"command":"ls"}', abertos), ["p1"]);
+  assert.deepEqual(claude.pedidosRespondidosForaDoNiko("PreToolUse", "s1", 'Read:{"file_path":"b.ts"}', abertos), []);
+  assert.deepEqual(claude.pedidosRespondidosForaDoNiko("UserPromptSubmit", "s1", "", abertos), ["p1", "p2"]);
+  assert.deepEqual(claude.pedidosRespondidosForaDoNiko("Stop", "s2", "", abertos), ["p3"]);
+  assert.deepEqual(claude.pedidosRespondidosForaDoNiko("PostToolUse", "", 'Bash:{"command":"ls"}', abertos), []);
+});
+
 test("modo sem confirmação recente fica identificado como último modo conhecido", () => {
   const agora = Date.now();
   const data = new Date(agora).toISOString();

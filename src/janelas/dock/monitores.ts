@@ -1,6 +1,21 @@
 import type { MonitorDoNiko } from "../../desktop/desktop";
+import { T } from "../../textos/textos";
 
 export const TODOS_OS_MONITORES = "todos";
+
+export function escolhaDoDock(salva: string | undefined, lista: MonitorDoNiko[]): string {
+  const escolha = salva ?? TODOS_OS_MONITORES;
+  if (escolha === TODOS_OS_MONITORES || lista.some((m) => m.nome === escolha)) return escolha;
+  return lista.find((m) => m.principal)?.nome ?? TODOS_OS_MONITORES;
+}
+
+export function opcoesDeMonitorDoDock(lista: MonitorDoNiko[]): { valor: string; rotulo: string }[] {
+  const M = T.ilha.barra.personalizacao.monitores;
+  return [
+    { valor: TODOS_OS_MONITORES, rotulo: lista.length === 2 ? M.osDois : M.todos },
+    ...lista.map((m) => ({ valor: m.nome, rotulo: lista.length === 2 ? (m.principal ? M.principal : M.secundario) : M.numero(m.numero, m.principal) })),
+  ];
+}
 
 export function meuMonitor(lista: MonitorDoNiko[], rotulo: string | null): MonitorDoNiko | undefined {
   return lista.find((m) => m.rotulo === rotulo);

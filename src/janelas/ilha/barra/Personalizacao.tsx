@@ -11,7 +11,7 @@ import { FUNDOS_PRONTOS } from "../../../modulos/configuracoes/SeletorDeFundo";
 import { FUNDO_DESTAQUE, hexValido, misturar, textoSobre } from "../../../utilitarios/cores";
 import { T } from "../../../textos/textos";
 import { usarMonitores } from "../../../desktop/desktop";
-import { TODOS_OS_MONITORES } from "../../dock/monitores";
+import { TODOS_OS_MONITORES, escolhaDoDock, opcoesDeMonitorDoDock } from "../../dock/monitores";
 import { BUSCADORES, type Buscador } from "../../../utilitarios/buscaApps";
 
 const MONITOR_PRINCIPAL = "principal";
@@ -77,13 +77,9 @@ export function Personalizacao({ topo, aoFechar }: { topo: number; aoFechar: () 
   const percentual = Math.round(fonte.opacidade * 100);
   const monitores = usarMonitores();
   const variosMonitores = monitores.length >= 2;
-  const escolhaSalva = cfg.dock.monitores ?? TODOS_OS_MONITORES;
-  const escolhaDoDock = !variosMonitores ? MONITOR_PRINCIPAL : escolhaSalva === TODOS_OS_MONITORES || monitores.some((m) => m.nome === escolhaSalva) ? escolhaSalva : monitores.find((m) => m.principal)?.nome ?? TODOS_OS_MONITORES;
+  const escolhaDoDockAtual = !variosMonitores ? MONITOR_PRINCIPAL : escolhaDoDock(cfg.dock.monitores, monitores);
   const opcoesDeMonitor = variosMonitores
-    ? [
-        { valor: TODOS_OS_MONITORES, rotulo: monitores.length === 2 ? P.monitores.osDois : P.monitores.todos },
-        ...monitores.map((m) => ({ valor: m.nome, rotulo: monitores.length === 2 ? (m.principal ? P.monitores.principal : P.monitores.secundario) : P.monitores.numero(m.numero, m.principal) })),
-      ]
+    ? opcoesDeMonitorDoDock(monitores)
     : [
         { valor: TODOS_OS_MONITORES, rotulo: P.monitores.osDois },
         { valor: MONITOR_PRINCIPAL, rotulo: P.monitores.principal },
@@ -187,7 +183,7 @@ export function Personalizacao({ topo, aoFechar }: { topo: number; aoFechar: () 
 
       <Grupo icone={PanelBottom} titulo={P.grupos.dock}>
         <Linha rotulo={P.monitores.titulo}>
-          <Escolha desativada={!variosMonitores} rotulo={P.monitores.titulo} valor={escolhaDoDock} aoMudar={(escolha) => cfg.definir({ dock: { ...useConfig.getState().dock, monitores: escolha } })} opcoes={opcoesDeMonitor} />
+          <Escolha desativada={!variosMonitores} rotulo={P.monitores.titulo} valor={escolhaDoDockAtual} aoMudar={(escolha) => cfg.definir({ dock: { ...useConfig.getState().dock, monitores: escolha } })} opcoes={opcoesDeMonitor} />
           {!variosMonitores && (
             <span className="ilha-personalizar-aviso">
               <MonitorX size={13} />

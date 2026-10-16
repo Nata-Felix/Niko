@@ -32,7 +32,8 @@ import { SecaoClaudeCode } from "./SecaoClaudeCode";
 import { SecaoAssistive } from "./SecaoAssistive";
 import { EditorDeAtalhos } from "./EditorDeAtalhos";
 import { AlternadorAjuste, FaixaAjuste, GrupoAjuste, LinhaAjuste, NotaAjuste, Teclas } from "./LinhaAjuste";
-import { NATIVO } from "../../desktop/desktop";
+import { NATIVO, usarMonitores } from "../../desktop/desktop";
+import { escolhaDoDock, opcoesDeMonitorDoDock } from "../../janelas/dock/monitores";
 import { pedirSaudacao } from "../../janelas/ilha/animacoes/pedirSaudacao";
 import type { EstadoAgente, Rota } from "../../tipos";
 
@@ -303,6 +304,7 @@ function numeroLimitado(texto: string, min: number, max: number, padrao: number)
 
 export default function Configuracoes() {
   const cfg = useConfig();
+  const monitores = usarMonitores();
   const avisar = useInterface((s) => s.avisar);
   const irPara = useInterface((s) => s.irPara);
   const agentes = useAgentes();
@@ -585,6 +587,13 @@ export default function Configuracoes() {
         </LinhaAjuste>
         {!NO_LINUX && cfg.dock.modo === "fixo" && <AlternadorAjuste rotulo={T.dock.menu.reservarEspaco} dica={T.dock.menu.reservarEspacoDica} ligado={cfg.dock.reservarEspaco} aoMudar={(v) => cfg.definir({ dock: { ...cfg.dock, reservarEspaco: v } })} />}
         <AlternadorAjuste rotulo={T.configuracoes.ampliarDock} ligado={cfg.dock.ampliar} aoMudar={(v) => cfg.definir({ dock: { ...cfg.dock, ampliar: v } })} />
+        {monitores.length >= 2 && (
+          <LinhaAjuste rotulo={T.ilha.barra.personalizacao.monitores.titulo} para="dk-monitores">
+            <select id="dk-monitores" className="seletor ajuste-valor" value={escolhaDoDock(cfg.dock.monitores, monitores)} onChange={(e) => cfg.definir({ dock: { ...cfg.dock, monitores: e.target.value } })}>
+              {opcoesDeMonitorDoDock(monitores).map((o) => <option key={o.valor} value={o.valor}>{o.rotulo}</option>)}
+            </select>
+          </LinhaAjuste>
+        )}
         <AlternadorAjuste rotulo={T.dock.menu.appsDeTodosOsMonitores} dica={T.dock.menu.appsDeTodosOsMonitoresDica} ligado={cfg.dock.appsDeTodosOsMonitores} aoMudar={(v) => cfg.definir({ dock: { ...cfg.dock, appsDeTodosOsMonitores: v } })} />
         <LinhaAjuste rotulo={T.dock.menu.tamanho} para="dk-tamanho">
           <select id="dk-tamanho" className="seletor ajuste-valor" value={cfg.dock.escala} onChange={(e) => cfg.definir({ dock: { ...cfg.dock, escala: Number(e.target.value) } })}>

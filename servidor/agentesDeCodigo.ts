@@ -1,7 +1,7 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { copyFileSync, existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
-import { dirname, join } from "node:path";
+import { delimiter, dirname, join } from "node:path";
 import {
   CABECALHO_SEGREDO, estadoDaInstalacao, instalarGanchos, lembrarProcesso, lerCorpoJson, porta, processarEvento, removerGanchos, segredo, segredoConfere, type FerramentaDeCodigo,
 } from "./claude.ts";
@@ -502,8 +502,15 @@ export function estadoDosAgentes() {
   return { ferramentas: FERRAMENTAS_DE_CODIGO.map(estadoDe) };
 }
 
+const FERRAMENTAS_COM_PLUGIN = new Set<FerramentaDeCodigo>(["opencode", "amp"]);
+
+function curlNoLinux(): boolean {
+  return (process.env.PATH ?? "/usr/bin:/bin").split(delimiter).filter(Boolean).some((pasta) => existsSync(join(pasta, plataforma.programaCurl)));
+}
+
 export function instalarAgente(id: string, corpo: Corpo) {
   if (!FERRAMENTAS_DE_CODIGO.includes(id as FerramentaDeCodigo)) throw new Error("ferramenta_desconhecida");
+  if (plataforma.nome === "linux" && !FERRAMENTAS_COM_PLUGIN.has(id as FerramentaDeCodigo) && !curlNoLinux()) throw new Error("sem_curl");
   if (id === "claude") return instalarGanchos(corpo);
   if (corpo.confirmacao !== "INSTALAR") throw new Error("confirmacao_invalida");
   const instalador = INSTALADORES[id as Exclude<FerramentaDeCodigo, "claude">];

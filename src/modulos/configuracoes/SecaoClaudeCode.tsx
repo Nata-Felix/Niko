@@ -65,7 +65,7 @@ export function SecaoClaudeCode() {
         setPrevia(null);
         atualizar();
       })
-      .catch((e: Error) => setErro(e.message === "settings_invalido" ? C.invalidoDica : C.falhou))
+      .catch((e: Error) => setErro(e.message === "settings_invalido" ? C.invalidoDica : e.message === "sem_curl" ? T.ilha.claude.config.falhou.sem_curl : C.falhou))
       .finally(() => setTrabalhando(false));
   };
 

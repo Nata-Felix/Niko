@@ -771,7 +771,7 @@ export const T = {
         cancelar: "Cancelar",
         feito: (nome: string) => `Pronto. Feche e abra o ${nome} de novo para valer.`,
         removido: (nome: string) => `Desconectado. Feche e abra o ${nome} de novo para valer.`,
-        falhou: { settings_invalido: "O arquivo de configuração está com erro. Corrija ele antes.", configuracao_invalida: "O arquivo de configuração está com erro. Corrija ele antes.", hooks_em_linha: "O config.toml já tem hooks escritos numa linha só. Troque por blocos [[hooks]] antes de conectar.", outro: "Não deu para alterar o arquivo." } as Record<string, string>,
+        falhou: { settings_invalido: "O arquivo de configuração está com erro. Corrija ele antes.", configuracao_invalida: "O arquivo de configuração está com erro. Corrija ele antes.", hooks_em_linha: "O config.toml já tem hooks escritos numa linha só. Troque por blocos [[hooks]] antes de conectar.", sem_curl: "Os ganchos usam o curl, que não está instalado. Instale com sudo apt install curl (ou sudo dnf install curl no Fedora) e tente de novo.", outro: "Não deu para alterar o arquivo." } as Record<string, string>,
         semPonte: "A ponte do Niko não respondeu. Tente de novo em alguns segundos.",
       },
       modos: { default: "Manual", plan: "Plano", acceptEdits: "Aceitar edições", auto: "Automático", dontAsk: "Não perguntar", bypassPermissions: "Sem permissões" } as Record<string, string>,

@@ -956,6 +956,7 @@ export const T = {
       pareadoAtivo: "Disponível",
       btDica: `Para parear um aparelho novo ou trocar a conexão, use o botão de abrir no ${SISTEMA}.`,
       semPonte: "A ponte local não respondeu. O painel funciona com o Niko rodando neste computador.",
+      semConfiguracoesBluetooth: `Não consegui abrir as configurações de Bluetooth do ${SISTEMA}. Abra pelo painel do próprio sistema.`,
       semBrilho: "Este monitor não deixa mudar o brilho por aqui.",
       falhou: (e: string) => `Não deu certo (${e}).`,
     },

@@ -48,7 +48,7 @@ export function ListaDeBluetooth() {
     try {
       await sistema.configuracoes("bluetooth");
     } catch {
-      setErro(S.semPonte);
+      setErro(S.semConfiguracoesBluetooth);
     }
   };
 

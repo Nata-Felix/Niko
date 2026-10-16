@@ -278,7 +278,7 @@ export function Ilha() {
   useEffect(() => {
     if (estadoEfetivo !== "expandida" || abaAtual !== "conexoes") setConexaoSelecionada(null);
   }, [estadoEfetivo, abaAtual]);
-  const oculta = coberta && estadoEfetivo === "escondida";
+  const oculta = estadoEfetivo === "escondida";
   const movimentoDeVisibilidade = movimentoDaVisibilidade(oculta, Boolean(reduzirAnimacoes));
 
   useEffect(() => {

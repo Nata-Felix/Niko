@@ -190,6 +190,7 @@ export const T = {
           ["novo", "No modo Inteligente, o dock sai da frente também quando uma janela encosta na base da tela, como os pedidos de aprovação do sistema."],
           ["novo", "No modo Fixo do dock, a opção Reservar espaço na tela escolhe se as janelas maximizadas param acima do dock ou vão até a base da tela, com o dock por cima."],
           ["correcao", "A ilha e o dock podiam sumir de vez, por exemplo depois de bloquear ou suspender o computador, e abrir o Niko de novo trazia só a janela do sistema. Agora a verificação de tela cheia se recupera sozinha, e reabrir o Niko traz a ilha e o dock de volta."],
+          ["correcao", "No Windows, clicar num app no dock às vezes não trazia a janela para a frente. Agora o próprio Niko traz a janela, sem depender do serviço em segundo plano."],
           ["correcao", "No modo Esconder, a ilha recolhida deixava uma silhueta no topo da tela. Agora ela some por completo e volta ao passar o mouse no topo."],
           ["correcao", "Um pedido respondido direto no terminal saía da ilha só depois de expirar. Agora sai assim que a sessão continua."],
           ["correcao", "Com a janela do sistema fechada na bandeja, ela continuava desenhando a tela por trás e gastando processador e placa de vídeo. Agora ela para de verdade até ser aberta de novo."],

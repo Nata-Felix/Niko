@@ -156,6 +156,10 @@ fn mostrar(app: &AppHandle) {
         let _ = janela.show();
         let _ = janela.set_focus();
     }
+}
+
+fn reabrir(app: &AppHandle) {
+    mostrar(app);
     reavivar_sobrepostas(app);
 }
 
@@ -421,7 +425,7 @@ pub fn run() {
     let escondido = std::env::args().any(|a| a == "--escondido");
 
     let app = tauri::Builder::default()
-        .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| mostrar(app)))
+        .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| reabrir(app)))
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_notification::init())
@@ -549,13 +553,13 @@ pub fn run() {
             }
             bandeja
                 .on_menu_event(|app, evento| match evento.id.as_ref() {
-                    "abrir" => mostrar(app),
+                    "abrir" => reabrir(app),
                     "sair" => sair_salvando(app),
                     _ => {}
                 })
                 .on_tray_icon_event(|bandeja, evento| {
                     if let TrayIconEvent::Click { button: MouseButton::Left, button_state: MouseButtonState::Up, .. } = evento {
-                        mostrar(bandeja.app_handle());
+                        reabrir(bandeja.app_handle());
                     }
                 })
                 .build(app)?;

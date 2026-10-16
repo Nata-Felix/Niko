@@ -35,7 +35,10 @@ pub fn tempo_ocioso_ms() -> u64 {
 static ULTIMA_FRENTE: AtomicU32 = AtomicU32::new(0);
 
 pub fn registrar_frente(_app: &AppHandle) {
-    let Some(frente) = x11::janela_ativa() else { return };
+    let Some(frente) = x11::janela_ativa() else {
+        ULTIMA_FRENTE.store(0, Ordering::Relaxed);
+        return;
+    };
     if frente != ULTIMA_FRENTE.load(Ordering::Relaxed) && x11::pid_da_janela(frente) != Some(std::process::id()) {
         ULTIMA_FRENTE.store(frente, Ordering::Relaxed);
     }

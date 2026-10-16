@@ -51,11 +51,13 @@ async function pontaDeAudio(fluxo: Fluxo): Promise<PontaDeAudio | null> {
     try {
       const saida = await rodar("wpctl", ["get-volume", PONTAS[fluxo]]);
       const m = /Volume:\s*([\d.]+)/.exec(saida);
-      return m ? { volume: limitarVolume(Number(m[1]) * 100), mudo: /\[MUTED\]/.test(saida) } : null;
-    } catch (erro) {
-      if ((erro as NodeJS.ErrnoException).code !== "ENOENT") return null;
-      semWpctl = true;
+      if (m) return { volume: limitarVolume(Number(m[1]) * 100), mudo: /\[MUTED\]/.test(saida) };
+    } catch {
+      const doPulse = await pontaDoPulse(fluxo);
+      if (doPulse) semWpctl = true;
+      return doPulse;
     }
+    return null;
   }
   return pontaDoPulse(fluxo);
 }

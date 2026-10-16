@@ -10,7 +10,10 @@ export function iniciarConsultaPeriodica(consultar: (sinal: AbortSignal) => Prom
     controlador = atual;
     limite = setTimeout(() => atual.abort(), limiteMs);
     try {
-      await consultar(atual.signal);
+      await Promise.race([
+        consultar(atual.signal),
+        new Promise<never>((_, rejeitar) => atual.signal.addEventListener("abort", () => rejeitar(new Error("tempo_esgotado")), { once: true })),
+      ]);
     } catch {
       return;
     } finally {

@@ -3,7 +3,7 @@ import { Search, X, Activity, FolderOpen, SquareTerminal, Settings, AppWindow, M
 import { MenuDock, type AlvoMenuDock, type ItemMenuDock } from "./MenuDock";
 import { executarNasJanelas } from "./acoesDoMenu";
 import { NO_LINUX } from "../../desktop/plataforma";
-import { NATIVO, ROTULO, usarAreaInterativa, usarCursorFora, usarAppsAbertos, agirNaJanela, alternarSistemaNativo, mostrarMiniaturas, ocultarBarraDoWindows, reservarEspacoDoDock, usarEstadoDaFrente, definirDocks, usarMonitores, ouvirEvento, devolverFoco, type AppAberto, type MonitorDoNiko } from "../../desktop/desktop";
+import { NATIVO, ROTULO, usarAreaInterativa, usarCursorFora, usarAppsAbertos, agirNaJanela, alternarSistemaNativo, mostrarMiniaturas, ocultarBarraDoWindows, reservarEspacoDoDock, usarEstadoDaFrente, usarReavivamento, definirDocks, usarMonitores, ouvirEvento, devolverFoco, type AppAberto, type MonitorDoNiko } from "../../desktop/desktop";
 import { BuscaApps } from "./BuscaApps";
 import { appsDoMonitor, cadaDockMostraSeusApps, dockAtivoNoMonitor, meuMonitor, TODOS_OS_MONITORES } from "./monitores";
 import { agruparApps, chaveDoApp, nomeDoGrupo, ordenarComFixados } from "./grupos";
@@ -423,7 +423,8 @@ export function Dock() {
   const ativoAqui = cfg.ativo && dockAtivoNoMonitor(escolhaDeMonitor, meu, monitores, ROTULO);
   const monitorDosApps = cadaDockMostraSeusApps(escolhaDeMonitor, monitores, cfg.appsDeTodosOsMonitores) ? meu : undefined;
   const esconderTelaCheia = useConfig((s) => s.esconderTelaCheia);
-  const frente = usarEstadoDaFrente(ativoAqui, { esconderTelaCheia, apps: "" });
+  const reavivamento = usarReavivamento();
+  const frente = usarEstadoDaFrente(ativoAqui, { esconderTelaCheia, apps: "" }, reavivamento);
   const principal = !NATIVO || ROTULO === "dock";
 
   useEffect(() => {

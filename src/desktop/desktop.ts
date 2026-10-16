@@ -434,15 +434,30 @@ export async function frenteEmTelaCheia(): Promise<boolean> {
   return Boolean(r?.telaCheia);
 }
 
-export function usarEstadoDaFrente(ativo: boolean, regras: RegrasDeSumir): EstadoDaFrente {
+export function usarReavivamento(): number {
+  const [geracao, setGeracao] = useState(0);
+  useEffect(() => {
+    let vivo = true;
+    let desligar: () => void = () => undefined;
+    void ouvirEvento("niko://reavivar", () => setGeracao((g) => g + 1)).then((f) => {
+      if (vivo) desligar = f;
+      else f();
+    });
+    return () => {
+      vivo = false;
+      desligar();
+    };
+  }, []);
+  return geracao;
+}
+
+export function usarEstadoDaFrente(ativo: boolean, regras: RegrasDeSumir, geracao = 0): EstadoDaFrente {
   const [estado, setEstado] = useState<EstadoDaFrente>(FRENTE_LIVRE);
   const regrasAtuais = useRef(regras);
   regrasAtuais.current = regras;
   useEffect(() => {
-    if (!NATIVO || !ativo) {
-      setEstado(FRENTE_LIVRE);
-      return;
-    }
+    setEstado(FRENTE_LIVRE);
+    if (!NATIVO || !ativo) return;
     return iniciarConsultaPeriodica(async (sinal) => {
       const r = await invocar<EstadoDaFrente & { programa?: unknown }>("frente_cobre_tela");
       if (sinal.aborted || !r) return;
@@ -452,7 +467,7 @@ export function usarEstadoDaFrente(ativo: boolean, regras: RegrasDeSumir): Estad
       const frente: TipoDaFrente = r?.frente === "app" || r?.frente === "sobreposta" ? r.frente : "area_de_trabalho";
       setEstado((anterior) => (anterior.cobre === cobre && anterior.telaCheia === telaCheia && anterior.maximizada === maximizada && anterior.frente === frente ? anterior : { cobre, telaCheia, maximizada, frente }));
     }, 800);
-  }, [ativo]);
+  }, [ativo, geracao]);
   return estado;
 }
 

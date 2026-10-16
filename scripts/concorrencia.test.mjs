@@ -138,6 +138,22 @@ test("estado de tela cheia não acumula consultas nem aceita resultado após des
   assert.equal(c.relogio.tarefas.size, 0);
 });
 
+test("consulta da frente que nunca responde não para a verificação de tela cheia", async () => {
+  const c = consultasSimuladas("usarEstadoDaFrente");
+  c.pedidos[0].resolver({ cobre: true, telaCheia: true, frente: "app" });
+  await estabilizar();
+  c.relogio.avancar(800);
+  assert.equal(c.pedidos.length, 2);
+  c.relogio.avancar(15000);
+  await estabilizar();
+  c.relogio.avancar(800);
+  assert.equal(c.pedidos.length, 3);
+  c.pedidos[2].resolver({ cobre: false, telaCheia: false, frente: "area_de_trabalho" });
+  await estabilizar();
+  assert.equal(c.estado().telaCheia, false);
+  c.limpar();
+});
+
 test("falha na consulta da frente preserva o último estado confirmado", async () => {
   const c = consultasSimuladas("usarEstadoDaFrente");
   c.pedidos[0].resolver({ cobre: true, telaCheia: true, frente: "app" });

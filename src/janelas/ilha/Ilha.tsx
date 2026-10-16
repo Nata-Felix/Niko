@@ -28,7 +28,7 @@ import { abaLigada } from "../../utilitarios/funcoes";
 import { tiposDeCapturaLigados } from "../../utilitarios/captura";
 import { useClaudeCode, sessaoAtiva, nomeDoModelo } from "../../estado/claudeCode";
 import { useAtualizacao } from "../../estado/atualizacao";
-import { NATIVO, liberarSistemaInicial, ouvirAtalho, ouvirEvento, usarAreaInterativa, usarCliqueFora, usarCursorFora, usarEstadoDaFrente } from "../../desktop/desktop";
+import { NATIVO, liberarSistemaInicial, ouvirAtalho, ouvirEvento, usarAreaInterativa, usarCliqueFora, usarCursorFora, usarEstadoDaFrente, usarReavivamento } from "../../desktop/desktop";
 import { Saudacao } from "./animacoes/Saudacao";
 import { usarSaudacaoDiaria } from "./animacoes/usarSaudacaoDiaria";
 import { ALTURA_DA_SAUDACAO, EVENTO_DA_SAUDACAO, LARGURA_DA_SAUDACAO } from "./animacoes/pedirSaudacao";
@@ -237,7 +237,8 @@ export function Ilha() {
   }, [abrir]);
   const esconderTelaCheia = useConfig((s) => s.esconderTelaCheia);
   const appsEsconder = useConfig((s) => s.appsEsconder);
-  const frente = usarEstadoDaFrente(cfg.ativa, { esconderTelaCheia, apps: appsEsconder });
+  const reavivamento = usarReavivamento();
+  const frente = usarEstadoDaFrente(cfg.ativa, { esconderTelaCheia, apps: appsEsconder }, reavivamento);
   const [lateraisLivresNativo, setLateraisLivresNativo] = useState(true);
   useEffect(() => {
     setLateraisLivresNativo((anterior) => areaDeTrabalhoNaFrente(frente, anterior));

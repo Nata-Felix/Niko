@@ -132,6 +132,6 @@ pub fn frente_cobre_tela(app: AppHandle, window: WebviewWindow) -> EstadoDaFrent
         Err(_) => unsafe { MonitorFromPoint(POINT { x: 0, y: 0 }, MONITOR_DEFAULTTOPRIMARY) },
     };
     let janela = unsafe { ler_janela_da_frente(&app, monitor_alvo) };
-    let tela_cheia = janela.tela_cheia || (!janela.outro_monitor && windows_em_tela_cheia());
+    let tela_cheia = janela.tela_cheia || (janela.cobre && windows_em_tela_cheia());
     EstadoDaFrente { cobre: janela.cobre || tela_cheia, tela_cheia, maximizada: janela.maximizada, frente: if tela_cheia { TipoDaFrente::App } else { janela.frente }, programa: janela.programa, outro_monitor: janela.outro_monitor }
 }

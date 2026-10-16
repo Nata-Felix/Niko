@@ -154,6 +154,23 @@ fn mostrar(app: &AppHandle) {
         let _ = janela.show();
         let _ = janela.set_focus();
     }
+    reavivar_sobrepostas(app);
+}
+
+fn reavivar_sobrepostas(app: &AppHandle) {
+    for (rotulo, janela) in app.webview_windows() {
+        if rotulo == "ilha" || docks::eh_dock(&rotulo) {
+            let _ = janela.show();
+            let _ = janela.set_always_on_top(true);
+        }
+    }
+    let _ = app.emit("niko://reavivar", ());
+    let alvo = app.clone();
+    tauri::async_runtime::spawn_blocking(move || {
+        if !ENCERRANDO.load(Ordering::Relaxed) {
+            docks::sincronizar(&alvo);
+        }
+    });
 }
 
 fn dock_sob_o_cursor(app: &AppHandle) -> Option<WebviewWindow> {

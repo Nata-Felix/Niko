@@ -3,7 +3,7 @@ import { motion, useReducedMotion } from "motion/react";
 import {
   Activity, AppWindow, Bluetooth, Calculator, CircleDot, CornerDownLeft, FolderOpen, Globe, Monitor, Network, RefreshCw, Search, Settings, SlidersHorizontal, SquareTerminal, Volume2, Wifi, type LucideIcon,
 } from "lucide-react";
-import { NATIVO, abrirLink, agirNaJanela, devolverFoco, janelaAtual, usarAppsAbertos } from "../../desktop/desktop";
+import { NATIVO, abrirLink, agirNaJanela, devolverFoco, focarSobreposta, janelaAtual, usarAppsAbertos } from "../../desktop/desktop";
 import { NO_LINUX } from "../../desktop/plataforma";
 import { controle, type AppInstalado, type ComandoDoSistema } from "../../ponte/ponteLocal";
 import { useBuscaApps } from "../../estado/buscaApps";
@@ -97,7 +97,7 @@ export function BuscaApps({ aoFechar }: { aoFechar: () => void }) {
     campo.current?.focus();
     if (!NATIVO) return;
     void janelaAtual()
-      .then((j) => j.setFocus())
+      .then((j) => focarSobreposta(j))
       .then(() => campo.current?.focus())
       .catch(() => undefined);
     let vivo = true;

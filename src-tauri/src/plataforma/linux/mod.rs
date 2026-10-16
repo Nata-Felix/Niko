@@ -64,14 +64,21 @@ pub fn abrir_no_sistema(endereco: &str) -> Result<(), String> {
     Ok(())
 }
 
+pub fn abrir_sistema_sem_esperar() -> bool {
+    std::env::var("XDG_SESSION_TYPE").map_or(true, |s| !s.eq_ignore_ascii_case("wayland")) && x11::sem_compositor()
+}
+
 pub fn botao_do_mouse_pressionado() -> bool {
     x11::botao_pressionado()
 }
+
+pub const SOBREPOSTA_FOCAVEL_AO_CRIAR: bool = false;
 
 pub fn ignorar_cursor(janela: &WebviewWindow, ignorar: bool) -> bool {
     if !janela.is_visible().unwrap_or(false) {
         return false;
     }
+    let _ = janela.set_focusable(!ignorar);
     janela.set_ignore_cursor_events(ignorar).is_ok()
 }
 

@@ -151,6 +151,11 @@ export async function janelaAtual() {
   return getCurrentWindow();
 }
 
+export async function focarSobreposta(janela: Awaited<ReturnType<typeof janelaAtual>>) {
+  await janela.setFocusable(true).catch(() => undefined);
+  await janela.setFocus();
+}
+
 export async function ouvirEvento(nome: string, fn: () => void, soDestaJanela = false): Promise<() => void> {
   if (!NATIVO) return () => undefined;
   const { listen } = await import("@tauri-apps/api/event");

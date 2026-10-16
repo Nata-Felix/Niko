@@ -74,6 +74,12 @@ pub fn botao_do_mouse_pressionado() -> bool {
     })
 }
 
+pub const SOBREPOSTA_FOCAVEL_AO_CRIAR: bool = true;
+
+pub fn abrir_sistema_sem_esperar() -> bool {
+    false
+}
+
 pub fn ignorar_cursor(janela: &WebviewWindow, ignorar: bool) -> bool {
     janela.set_ignore_cursor_events(ignorar).is_ok()
 }

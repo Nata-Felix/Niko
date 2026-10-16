@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useMotionValue, useReducedMotion } from "motion/react";
 import { ArrowLeft, Check, LoaderCircle, Plus, Search, Trash2, X } from "lucide-react";
 import { useConfig } from "../../estado/configuracoes";
-import { NATIVO, informarAreaInterativa, janelaAtual, usarAreaInterativa } from "../../desktop/desktop";
+import { NATIVO, focarSobreposta, informarAreaInterativa, janelaAtual, usarAreaInterativa } from "../../desktop/desktop";
 import { controle, type AppInstalado } from "../../ponte/ponteLocal";
 import { T } from "../../textos/textos";
 import { atributosDoFundo, usarAparenciaDeBorda, variaveisDaBorda } from "../aparencia";
@@ -148,7 +148,7 @@ function AssistiveAtivo() {
     document.addEventListener("pointerdown", fora);
     document.addEventListener("keydown", tecla);
     window.addEventListener("blur", desfocar);
-    if (NATIVO) void janelaAtual().then((j) => j.setFocus()).catch(() => undefined);
+    if (NATIVO) void janelaAtual().then((j) => focarSobreposta(j)).catch(() => undefined);
     return () => { document.removeEventListener("pointerdown", fora); document.removeEventListener("keydown", tecla); window.removeEventListener("blur", desfocar); };
   }, [aberto, cfg.fixado, fechar, cancelarPressao]);
   useEffect(() => {

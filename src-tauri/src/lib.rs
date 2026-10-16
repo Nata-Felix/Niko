@@ -188,6 +188,7 @@ fn dock_sob_o_cursor(app: &AppHandle) -> Option<WebviewWindow> {
 
 fn abrir_lupa(app: &AppHandle) {
     let Some(dock) = dock_sob_o_cursor(app) else { return };
+    let _ = dock.set_focusable(true);
     let _ = dock.set_focus();
     let _ = dock.emit_to(dock.label(), "niko://lupa", ());
 }
@@ -202,6 +203,7 @@ fn criar_sobreposta(app: &AppHandle, rotulo: &str, y: f64, x: f64, largura: f64,
         .skip_taskbar(true)
         .resizable(false)
         .focused(false)
+        .focusable(plataforma::SOBREPOSTA_FOCAVEL_AO_CRIAR)
         .visible(false)
         .position(x, y)
         .inner_size(largura, altura)
@@ -491,7 +493,10 @@ pub fn run() {
                 .center()
                 .visible(false)
                 .build()?;
-            if !escondido {
+            if !escondido && plataforma::abrir_sistema_sem_esperar() {
+                let _ = sistema.show();
+                let _ = sistema.set_focus();
+            } else if !escondido {
                 ABERTURA_PENDENTE.store(true, Ordering::Relaxed);
                 let reserva = handle.clone();
                 tauri::async_runtime::spawn(async move {

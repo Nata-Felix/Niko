@@ -22,6 +22,7 @@ struct Atomos {
 struct Conexao {
     conexao: RustConnection,
     raiz: Window,
+    tela: usize,
     atomos: Atomos,
 }
 
@@ -63,7 +64,7 @@ fn conectar() -> Resultado<Conexao> {
         tipo: atomo(&conexao, "_NET_WM_WINDOW_TYPE")?,
         tipo_area_de_trabalho: atomo(&conexao, "_NET_WM_WINDOW_TYPE_DESKTOP")?,
     };
-    Ok(Conexao { conexao, raiz, atomos })
+    Ok(Conexao { conexao, raiz, tela, atomos })
 }
 
 fn com_conexao<T>(acao: impl FnOnce(&Conexao) -> Resultado<T>) -> Option<T> {
@@ -112,6 +113,14 @@ pub fn ler_janela(janela: u32) -> Option<JanelaX11> {
             geometria: geometria(c, janela).ok(),
         })
     })
+}
+
+pub fn sem_compositor() -> bool {
+    com_conexao(|c| {
+        let gerente = atomo(&c.conexao, &format!("_NET_WM_CM_S{}", c.tela))?;
+        Ok(c.conexao.get_selection_owner(gerente)?.reply()?.owner == x11rb::NONE)
+    })
+    .unwrap_or(false)
 }
 
 pub fn botao_pressionado() -> bool {

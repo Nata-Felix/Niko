@@ -121,6 +121,12 @@ export function respostasValidas(perguntas: PerguntaDoClaude[], respostas: unkno
   const saida: Record<string, string> = {};
   perguntas.forEach((p, i) => {
     const indices = respostas[i];
+    if (typeof indices === "string") {
+      const livre = indices.trim();
+      if (!livre || livre.length > LIMITE_RESPOSTA || /[\u0000-\u0008\u000b-\u001f]/.test(livre)) throw new Error("respostas_invalidas");
+      saida[p.question] = livre;
+      return;
+    }
     if (!Array.isArray(indices) || indices.length === 0 || (!p.multiSelect && indices.length !== 1)) throw new Error("respostas_invalidas");
     if (indices.some((x) => !Number.isInteger(x) || x < 0 || x >= p.rotulos.length) || new Set(indices).size !== indices.length) throw new Error("respostas_invalidas");
     const escolhidas = (indices as number[]).map((x) => p.rotulos[x]);

@@ -30,6 +30,14 @@ claude.buscaDeProcesso.focar = async (pid) => {
 const { useClaudeCode } = await vite.ssrLoadModule("/src/estado/claudeCode.ts");
 const { indicadorDePermissoes } = await vite.ssrLoadModule("/src/janelas/ilha/claude/indicadorDePermissoes.ts");
 
+test("pergunta aceita resposta escrita livre e recusa texto vazio", () => {
+  const perguntas = [{ question: "Qual banco?", multiSelect: false, rotulos: ["Postgres", "SQLite"] }];
+  assert.deepEqual(claude.respostasValidas(perguntas, ["  MongoDB  "]), { "Qual banco?": "MongoDB" });
+  assert.deepEqual(claude.respostasValidas(perguntas, [[1]]), { "Qual banco?": "SQLite" });
+  assert.throws(() => claude.respostasValidas(perguntas, ["   "]), /respostas_invalidas/);
+  assert.throws(() => claude.respostasValidas(perguntas, ["a\u0007b"]), /respostas_invalidas/);
+});
+
 test("pedido respondido no terminal sai da ilha quando a sessão anda", () => {
   const abertos = new Map([
     ["p1", { sessao: "s1", assinatura: 'Bash:{"command":"ls"}' }],

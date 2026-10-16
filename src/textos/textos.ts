@@ -728,9 +728,10 @@ export const T = {
       pergunta: {
         titulo: (nome: string) => `${nome} quer saber`,
         varias: "Pode escolher mais de uma",
-        enviar: "Responder",
-        noTerminal: "Escrever outra resposta no terminal",
-        terminalDica: "Devolve a pergunta para o terminal, onde dá para digitar uma resposta própria",
+        enviar: "Enviar resposta",
+        outra: "Ou escreva outra resposta",
+        noTerminal: "Responder no terminal",
+        terminalDica: "Devolve a pergunta para o terminal",
       },
       expiraEm: (s: number) => `O terminal assume em ${s}s`,
       maisPedidos: (n: number) => `Mais ${n} pedido${n === 1 ? "" : "s"} na fila`,

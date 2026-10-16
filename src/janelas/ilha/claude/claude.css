@@ -1196,6 +1196,27 @@
   border-color: var(--vsc-azul-claro);
 }
 
+.vsc-pergunta-livre {
+  width: 100%;
+  margin-top: 6px;
+  padding: 7px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--vsc-borda);
+  background: var(--vsc-painel);
+  color: var(--vsc-texto);
+  font: inherit;
+  font-size: 12px;
+  outline: none;
+}
+
+.vsc-pergunta-livre:focus {
+  border-color: var(--vsc-azul-claro);
+}
+
+.vsc-pergunta-livre::placeholder {
+  color: var(--vsc-dim);
+}
+
 .vsc-pergunta-opcao[data-marcada] {
   border-color: var(--vsc-azul);
   background: rgba(0, 120, 212, 0.16);

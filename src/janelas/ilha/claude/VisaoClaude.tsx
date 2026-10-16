@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import {
-  Bell, Bot, ChartNoAxesColumn, Check, Plug, ChevronRight, CircleCheck, CircleX, Code2, Copy, FilePen, FileText, FolderOpen, FolderSearch, Globe, ListChecks, LoaderCircle, MessageCircleQuestion, MessageSquare, Search, Settings, ShieldAlert, SquareTerminal, X, type LucideIcon,
+  Bell, Bot, ChartNoAxesColumn, Check, Plug, ChevronRight, CircleCheck, CircleX, Code2, Copy, FilePen, FileText, FolderOpen, FolderSearch, Globe, ListChecks, LoaderCircle, MessageCircleQuestion, MessageSquare, Search, Send, Settings, ShieldAlert, SquareTerminal, X, type LucideIcon,
 } from "lucide-react";
 import { useClaudeCode, type PassoClaude, type SessaoClaude, type PedidoDePermissao, type PerguntaDoClaude } from "../../../estado/claudeCode";
 import { agentesDeCodigo, claudeCode, FERRAMENTAS_DE_CODIGO, type RegraSugerida } from "../../../ponte/claudeCode";
@@ -81,8 +81,10 @@ function Pergunta({ pedido, perguntas, fila }: { pedido: PedidoDePermissao; perg
   const agora = usarAgora(1000);
   const [enviando, setEnviando] = useState(false);
   const [escolhas, setEscolhas] = useState<number[][]>(() => perguntas.map(() => []));
+  const [livres, setLivres] = useState<string[]>(() => perguntas.map(() => ""));
   const restante = Math.max(0, Math.ceil((Date.parse(pedido.recebidoEm) + ESPERA_MS - agora) / 1000));
-  const completo = perguntas.every((_, i) => (escolhas[i]?.length ?? 0) > 0);
+  const completo = perguntas.every((_, i) => (escolhas[i]?.length ?? 0) > 0 || (livres[i] ?? "").trim() !== "");
+  const respostasAtuais = () => perguntas.map((_, i) => ((livres[i] ?? "").trim() ? (livres[i] ?? "").trim() : escolhas[i] ?? []));
   const nome = nomeDaFerramenta(pedido.ferramentaDeCodigo);
 
   const enviar = (acao: () => Promise<unknown>, som: "approve" | "close") => {
@@ -100,14 +102,19 @@ function Pergunta({ pedido, perguntas, fila }: { pedido: PedidoDePermissao; perg
       })
       .finally(() => setEnviando(false));
   };
-  const responder = (respostas: number[][]) => enviar(() => claudeCode.responder(pedido.pedidoId, respostas), "approve");
+  const responder = () => {
+    if (completo) enviar(() => claudeCode.responder(pedido.pedidoId, respostasAtuais()), "approve");
+  };
   const escolher = (indicePergunta: number, indiceOpcao: number) => {
     const p = perguntas[indicePergunta];
     const atuais = escolhas[indicePergunta] ?? [];
     const proximas = p.varias ? (atuais.includes(indiceOpcao) ? atuais.filter((x) => x !== indiceOpcao) : [...atuais, indiceOpcao]) : [indiceOpcao];
-    const todas = escolhas.map((e, i) => (i === indicePergunta ? proximas : e));
-    setEscolhas(todas);
-    if (perguntas.length === 1 && !p.varias) responder(todas);
+    setEscolhas(escolhas.map((e, i) => (i === indicePergunta ? proximas : e)));
+    setLivres(livres.map((l, i) => (i === indicePergunta ? "" : l)));
+  };
+  const escrever = (indicePergunta: number, texto: string) => {
+    setLivres(livres.map((l, i) => (i === indicePergunta ? texto : l)));
+    if (texto.trim()) setEscolhas(escolhas.map((e, i) => (i === indicePergunta ? [] : e)));
   };
 
   return (
@@ -144,6 +151,16 @@ function Pergunta({ pedido, perguntas, fila }: { pedido: PedidoDePermissao; perg
               );
             })}
           </div>
+          <input
+            className="vsc-pergunta-livre"
+            value={livres[ip] ?? ""}
+            maxLength={2000}
+            placeholder={C.pergunta.outra}
+            aria-label={`${C.pergunta.outra}: ${p.pergunta}`}
+            disabled={enviando}
+            onChange={(e) => escrever(ip, e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); responder(); } }}
+          />
         </div>
       ))}
       </div>
@@ -156,12 +173,10 @@ function Pergunta({ pedido, perguntas, fila }: { pedido: PedidoDePermissao; perg
         <button type="button" className="vsc-botao vsc-botao-link" disabled={enviando} title={C.pergunta.terminalDica} onClick={() => enviar(() => claudeCode.decidir(pedido.pedidoId, "terminal"), "close")}>
           {C.pergunta.noTerminal}
         </button>
-        {(perguntas.length > 1 || perguntas.some((p) => p.varias)) && (
-          <button type="button" className="vsc-botao vsc-botao-primario" disabled={enviando || !completo} onClick={() => responder(escolhas)}>
-            {enviando ? <LoaderCircle size={13} className="girando" /> : <Check size={13} />}
-            {C.pergunta.enviar}
-          </button>
-        )}
+        <button type="button" className="vsc-botao vsc-botao-primario" disabled={enviando || !completo} onClick={responder}>
+          {enviando ? <LoaderCircle size={13} className="girando" /> : <Send size={13} />}
+          {C.pergunta.enviar}
+        </button>
       </div>
     </div>
   );

@@ -150,11 +150,26 @@ fn sair_salvando(app: &AppHandle) {
 fn mostrar(app: &AppHandle) {
     ABERTURA_PENDENTE.store(false, Ordering::Relaxed);
     if let Some(janela) = app.get_webview_window("sistema") {
+        let conteudo: &tauri::Webview = janela.as_ref();
+        let _ = conteudo.show();
         let _ = janela.unminimize();
         let _ = janela.show();
         let _ = janela.set_focus();
     }
     reavivar_sobrepostas(app);
+}
+
+fn esconder_sistema(janela: &WebviewWindow) {
+    let _ = janela.hide();
+    let conteudo: &tauri::Webview = janela.as_ref();
+    let _ = conteudo.hide();
+}
+
+#[tauri::command]
+fn ocultar_sistema(app: AppHandle) {
+    if let Some(janela) = app.get_webview_window("sistema") {
+        esconder_sistema(&janela);
+    }
 }
 
 fn reavivar_sobrepostas(app: &AppHandle) {
@@ -445,6 +460,7 @@ pub fn run() {
             docks::definir_docks,
             docks::definir_monitor_da_ilha,
             liberar_sistema_inicial,
+            ocultar_sistema,
             preparar_atualizacao,
             salvamento::registrar_armazenamento,
             salvamento::confirmar_salvamento,
@@ -508,7 +524,7 @@ pub fn run() {
             sistema.on_window_event(move |evento| {
                 if let WindowEvent::CloseRequested { api, .. } = evento {
                     api.prevent_close();
-                    let _ = sistema_ref.hide();
+                    esconder_sistema(&sistema_ref);
                 }
             });
 

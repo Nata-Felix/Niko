@@ -9,7 +9,7 @@ import { numeroDaRota } from "../../componentes/CabecalhoAba";
 import { T } from "../../textos/textos";
 import { AvisosRodape } from "../../componentes/basicos";
 import { tocarSom } from "../../ponte/sons";
-import { NATIVO, janelaAtual } from "../../desktop/desktop";
+import { NATIVO, ocultarSistemaNativo } from "../../desktop/desktop";
 import { rotaLigada } from "../../utilitarios/funcoes";
 import { LimiteDeErro } from "../../componentes/LimiteDeErro";
 
@@ -92,7 +92,7 @@ export function JanelaSistema() {
       aoFocar={focar}
       aoFechar={() => {
         void tocarSom("close");
-        if (NATIVO) void janelaAtual().then((j) => j.hide());
+        if (NATIVO) void ocultarSistemaNativo();
         else definirSistema({ sistemaAberto: false, sistemaMaximizado: false });
       }}
       aoMinimizar={() => definirSistema({ sistemaMinimizado: true })}

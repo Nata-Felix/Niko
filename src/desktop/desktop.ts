@@ -486,6 +486,10 @@ export async function agirNaJanela(acao: "focar" | "minimizar" | "fechar", id: s
   }
 }
 
+export function ocultarSistemaNativo() {
+  return invocar("ocultar_sistema");
+}
+
 export function alternarSistemaNativo() {
   return invocar("alternar_sistema");
 }

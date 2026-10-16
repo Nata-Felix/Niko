@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import {
-  Bell, Bot, ChartNoAxesColumn, Check, Plug, ChevronRight, CircleCheck, CircleX, Code2, Copy, FilePen, FileText, FolderOpen, FolderSearch, Globe, ListChecks, LoaderCircle, MessageCircleQuestion, MessageSquare, Search, Send, Settings, ShieldAlert, SquareTerminal, X, type LucideIcon,
+  Bell, Bot, ChartNoAxesColumn, Check, Plug, ChevronRight, CircleCheck, CircleX, Code2, Copy, FilePen, FileText, FolderOpen, FolderSearch, Globe, ListChecks, LoaderCircle, MessageCircleQuestion, List, MessageSquare, Search, Send, Settings, ShieldAlert, SquareTerminal, X, type LucideIcon,
 } from "lucide-react";
 import { useClaudeCode, type PassoClaude, type SessaoClaude, type PedidoDePermissao, type PerguntaDoClaude } from "../../../estado/claudeCode";
 import { agentesDeCodigo, claudeCode, FERRAMENTAS_DE_CODIGO, type RegraSugerida } from "../../../ponte/claudeCode";
@@ -24,6 +24,7 @@ import { indicadorDePermissoes } from "./indicadorDePermissoes";
 import { pedidoDaSessao } from "../../../utilitarios/pedidoDaSessao";
 
 const ESPERA_MS = 110_000;
+const SESSOES_PARA_MOSTRAR_LISTA = 4;
 const C = T.ilha.claude;
 
 const ICONE_FERRAMENTA: Record<string, LucideIcon> = {
@@ -393,7 +394,30 @@ export function VisaoClaude({ somenteSessaoSelecionada = false }: { somenteSessa
   const sessao = sessoes[focada ?? ""] ?? sessoes[ordem[0]];
   const pedido = pedidoDaSessao(pedidos, sessao?.id, somenteSessaoSelecionada);
   const [painel, setPainel] = useState<"resposta" | "atividade">("atividade");
+  const [listaAberta, setListaAberta] = useState(false);
+  const faixaDasAbas = useRef<HTMLDivElement>(null);
   const indicador = sessao ? indicadorDePermissoes(sessao, Math.max(agora, Date.now())) : null;
+  const muitasSessoes = ordem.length >= SESSOES_PARA_MOSTRAR_LISTA;
+
+  useEffect(() => {
+    const faixa = faixaDasAbas.current;
+    if (!faixa) return;
+    const rolar = (e: WheelEvent) => {
+      if (Math.abs(e.deltaY) <= Math.abs(e.deltaX) || faixa.scrollWidth <= faixa.clientWidth) return;
+      e.preventDefault();
+      faixa.scrollLeft += e.deltaY;
+    };
+    faixa.addEventListener("wheel", rolar, { passive: false });
+    return () => faixa.removeEventListener("wheel", rolar);
+  }, []);
+
+  useEffect(() => {
+    faixaDasAbas.current?.querySelector<HTMLElement>(".vsc-aba[data-ativa]")?.scrollIntoView({ block: "nearest", inline: "nearest" });
+  }, [sessao?.id, ordem.length]);
+
+  useEffect(() => {
+    if (!muitasSessoes) setListaAberta(false);
+  }, [muitasSessoes]);
 
   useEffect(() => {
     if (configAberta) return;
@@ -411,7 +435,13 @@ export function VisaoClaude({ somenteSessaoSelecionada = false }: { somenteSessa
     <div className="ias">
     <div className="vsc">
       <div className="vsc-topo">
-      <div className="vsc-abas" role="tablist">
+      {muitasSessoes && (
+        <button type="button" className="vsc-icone-botao vsc-lista-botao" aria-label={C.listaDeSessoes(ordem.length)} title={C.listaDeSessoes(ordem.length)} aria-expanded={listaAberta} onClick={() => setListaAberta((v) => !v)}>
+          <List size={13} />
+          <span className="vsc-lista-numero">{ordem.length}</span>
+        </button>
+      )}
+      <div ref={faixaDasAbas} className="vsc-abas" role="tablist">
         {ordem.map((id) => {
           const s = sessoes[id];
           if (!s) return null;
@@ -457,6 +487,23 @@ export function VisaoClaude({ somenteSessaoSelecionada = false }: { somenteSessa
           </button>
         </span>
       </div>
+      {listaAberta && (
+        <div className="vsc-lista-sessoes" role="listbox" aria-label={C.listaDeSessoes(ordem.length)} onKeyDown={(e) => e.key === "Escape" && setListaAberta(false)}>
+          {ordem.map((id) => {
+            const s = sessoes[id];
+            if (!s) return null;
+            const estado = pedidos.some((p) => p.sessao === id) ? "aprovacao" : s.estado;
+            return (
+              <button key={id} type="button" role="option" aria-selected={s.id === sessao?.id} className="vsc-lista-item" data-estado={estado} onClick={() => { focar(id); setListaAberta(false); }} title={s.cwd}>
+                <Marca marca={MARCA_DA_FERRAMENTA[s.ferramenta ?? "claude"]} tamanho={12} />
+                <span className="vsc-aba-nome">{s.projeto}</span>
+                <span className="vsc-lista-estado">{C.estados[estado]}</span>
+                <span className="vsc-ponto" />
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       <div className="vsc-corpo">
         {!sessao ? (

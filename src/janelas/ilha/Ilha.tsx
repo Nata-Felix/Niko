@@ -164,6 +164,8 @@ export function Ilha() {
   const claudeAtivo = useClaudeCode(sessaoAtiva);
   const sessaoLateral = useClaudeCode((s) => s.sessoes[s.focada ?? ""] ?? s.sessoes[s.ordem[0]]);
   const estadoLateral = sessaoLateral && pedidosClaude.some((p) => p.sessao === sessaoLateral.id) ? "aprovacao" : sessaoLateral?.estado ?? "terminou";
+  const ultimoPassoLateral = sessaoLateral?.passos.at(-1);
+  const ferramentaEmUso = (estadoLateral === "trabalhando" || estadoLateral === "pensando") && ultimoPassoLateral?.tipo === "ferramenta" && ultimoPassoLateral.ferramenta && !ultimoPassoLateral.resultado ? ultimoPassoLateral : null;
   const raiz = useRef<HTMLDivElement>(null);
   const corpoIlha = useRef<HTMLDivElement>(null);
   const [sobre, setSobre] = useState(false);
@@ -787,6 +789,22 @@ export function Ilha() {
                         <span className="ilha-lateral-cargo cortar" title={sessaoLateral.cwd}>{sessaoLateral.projeto}</span>
                         {sessaoLateral.modelo && <span className="ilha-lateral-modelo cortar" title={sessaoLateral.modelo}>{nomeDoModelo(sessaoLateral.modelo)}</span>}
                         <span className="ilha-lateral-estado" data-estado={estadoLateral}>{T.ilha.claude.estados[estadoLateral]}</span>
+                        <AnimatePresence mode="wait" initial={false}>
+                          {ferramentaEmUso && (
+                            <motion.span
+                              key={ferramentaEmUso.id}
+                              className="ilha-lateral-ferramenta"
+                              title={ferramentaEmUso.detalhe ?? ferramentaEmUso.rotulo}
+                              initial={reduzirAnimacoes ? false : { opacity: 0, y: 4 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={reduzirAnimacoes ? undefined : { opacity: 0, y: -4 }}
+                              transition={{ duration: 0.16 }}
+                            >
+                              <span className="ilha-lateral-ferramenta-ponto" aria-hidden="true" />
+                              <span className="cortar">{ferramentaEmUso.ferramenta}</span>
+                            </motion.span>
+                          )}
+                        </AnimatePresence>
                       </>
                     ) : (
                       <span className="ilha-lateral-cargo" title={cargos[agenteLateral]}>{cargos[agenteLateral]}</span>

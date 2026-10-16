@@ -56,7 +56,8 @@
   position: relative;
   display: flex;
   align-items: center;
-  flex: none;
+  flex: 0 1 auto;
+  min-width: 92px;
   max-width: 190px;
   background: var(--vsc-aba);
   border-right: 1px solid var(--vsc-borda);
@@ -107,23 +108,82 @@
 }
 
 .vsc-aba[data-estado="trabalhando"] .vsc-ponto,
-.vsc-aba[data-estado="pensando"] .vsc-ponto {
+.vsc-aba[data-estado="pensando"] .vsc-ponto,
+.vsc-lista-item[data-estado="trabalhando"] .vsc-ponto,
+.vsc-lista-item[data-estado="pensando"] .vsc-ponto {
   background: var(--vsc-azul-claro);
   animation: vsc-pulsar 1.1s ease-in-out infinite;
 }
 
 .vsc-aba[data-estado="aprovacao"] .vsc-ponto,
-.vsc-aba[data-estado="esperando"] .vsc-ponto {
+.vsc-aba[data-estado="esperando"] .vsc-ponto,
+.vsc-lista-item[data-estado="aprovacao"] .vsc-ponto,
+.vsc-lista-item[data-estado="esperando"] .vsc-ponto {
   background: var(--vsc-laranja);
 }
 
-.vsc-aba[data-estado="terminou"] .vsc-ponto {
+.vsc-aba[data-estado="terminou"] .vsc-ponto,
+.vsc-lista-item[data-estado="terminou"] .vsc-ponto {
   background: var(--vsc-verde);
 }
 
 .vsc-aba[data-estado="erro"] .vsc-ponto,
-.vsc-aba[data-estado="limite"] .vsc-ponto {
+.vsc-aba[data-estado="limite"] .vsc-ponto,
+.vsc-lista-item[data-estado="erro"] .vsc-ponto,
+.vsc-lista-item[data-estado="limite"] .vsc-ponto {
   background: var(--vsc-vermelho);
+}
+
+.vsc-lista-botao {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex: none;
+  padding: 0 10px;
+  border-right: 1px solid var(--vsc-borda);
+}
+
+.vsc-lista-numero {
+  font-size: 11px;
+  color: var(--vsc-dim);
+}
+
+.vsc-lista-sessoes {
+  display: flex;
+  flex-direction: column;
+  flex: none;
+  max-height: 176px;
+  overflow-y: auto;
+  padding: 4px;
+  background: var(--vsc-painel);
+  border-bottom: 1px solid var(--vsc-borda);
+}
+
+.vsc-lista-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 28px;
+  padding: 0 10px;
+  border-radius: 6px;
+  text-align: left;
+  color: var(--vsc-texto);
+}
+
+.vsc-lista-item:hover,
+.vsc-lista-item[aria-selected="true"] {
+  background: var(--vsc-aba-hover);
+}
+
+.vsc-lista-item .vsc-aba-nome {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.vsc-lista-estado {
+  flex: none;
+  font-size: 11px;
+  color: var(--vsc-dim);
 }
 
 @keyframes vsc-pulsar {

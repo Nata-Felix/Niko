@@ -983,6 +983,37 @@
   background: rgba(52, 211, 153, 0.14);
 }
 
+.ilha-lateral-ferramenta {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  max-width: 100%;
+  margin-top: 4px;
+  padding: 1px 8px 1px 6px;
+  border-radius: 999px;
+  font-family: var(--fonte-mono);
+  font-size: 10px;
+  color: var(--i-dim);
+  background: rgba(var(--i-rgb), 0.06);
+  box-shadow: inset 0 0 0 1px rgba(var(--i-rgb), 0.08);
+}
+
+.ilha-lateral-ferramenta-ponto {
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(232, 135, 95, 0.35);
+  border-top-color: #e8875f;
+  animation: girar 0.8s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ilha-lateral-ferramenta-ponto {
+    animation: none;
+  }
+}
+
 .ilha-miolo .ilha-visoes {
   flex: 1 1 auto;
   min-width: 0;

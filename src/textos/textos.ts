@@ -783,6 +783,7 @@ export const T = {
       agora: "agora",
       haMinutos: (n: number) => `há ${n} min`,
       fechar: "Fechar sessão",
+      listaDeSessoes: (n: number) => `Ver as ${n} sessões`,
       sempre: "Sempre",
       sempreDica: (regra: string) => `Permite agora e salva a regra ${regra} no .claude/settings.local.json deste projeto. Você pode apagar a regra depois nesse arquivo.`,
       abrirVsCode: "Abrir no VS Code",

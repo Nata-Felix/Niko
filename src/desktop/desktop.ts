@@ -479,8 +479,9 @@ export function usarEstadoDaFrente(ativo: boolean, regras: RegrasDeSumir, geraca
 }
 
 export async function agirNaJanela(acao: "focar" | "minimizar" | "fechar", id: string) {
+  if (NATIVO && (await invocar<boolean>("agir_na_janela", { acao, janela: id }).catch(() => null))) return;
   try {
-    await fetch(`/ponte/janelas/${acao}`, { method: "POST", headers: { "x-niko": "1", "content-type": "application/json" }, body: JSON.stringify({ janela: id }) });
+    await fetch(`/ponte/janelas/${acao}`, { method: "POST", headers: { "x-niko": "1", "content-type": "application/json" }, body: JSON.stringify({ janela: id }), signal: AbortSignal.timeout(8000) });
   } catch {
     return;
   }

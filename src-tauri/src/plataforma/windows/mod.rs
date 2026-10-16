@@ -43,6 +43,53 @@ pub fn ultima_frente() -> isize {
     ULTIMA_FRENTE.load(Ordering::Relaxed)
 }
 
+unsafe fn trazer_para_frente(janela: HWND) -> bool {
+    use windows::Win32::System::Threading::{AttachThreadInput, GetCurrentThreadId};
+    use windows::Win32::UI::Input::KeyboardAndMouse::{keybd_event, KEYBD_EVENT_FLAGS, KEYEVENTF_KEYUP, VK_MENU};
+    use windows::Win32::UI::WindowsAndMessaging::{BringWindowToTop, GetWindowThreadProcessId, IsIconic, ShowWindow, SW_RESTORE};
+    if IsIconic(janela).as_bool() {
+        let _ = ShowWindow(janela, SW_RESTORE);
+    }
+    if SetForegroundWindow(janela).as_bool() {
+        return true;
+    }
+    keybd_event(VK_MENU.0 as u8, 0, KEYBD_EVENT_FLAGS(0), 0);
+    keybd_event(VK_MENU.0 as u8, 0, KEYEVENTF_KEYUP, 0);
+    if SetForegroundWindow(janela).as_bool() {
+        return true;
+    }
+    let frente = GetForegroundWindow();
+    let alvo = GetWindowThreadProcessId(frente, None);
+    let eu = GetCurrentThreadId();
+    let ligou = alvo != 0 && alvo != eu && AttachThreadInput(eu, alvo, true).as_bool();
+    let _ = BringWindowToTop(janela);
+    let ok = SetForegroundWindow(janela).as_bool();
+    if ligou {
+        let _ = AttachThreadInput(eu, alvo, false);
+    }
+    ok
+}
+
+pub fn agir_na_janela(acao: &str, id: isize) -> bool {
+    use windows::Win32::Foundation::{LPARAM, WPARAM};
+    use windows::Win32::UI::WindowsAndMessaging::{IsWindow, PostMessageW, ShowWindow, SW_MINIMIZE, WM_CLOSE};
+    let janela = HWND(id as *mut core::ffi::c_void);
+    unsafe {
+        if id == 0 || !IsWindow(Some(janela)).as_bool() {
+            return false;
+        }
+        match acao {
+            "focar" => trazer_para_frente(janela),
+            "minimizar" => {
+                let _ = ShowWindow(janela, SW_MINIMIZE);
+                true
+            }
+            "fechar" => PostMessageW(Some(janela), WM_CLOSE, WPARAM(0), LPARAM(0)).is_ok(),
+            _ => false,
+        }
+    }
+}
+
 pub fn devolver_foco() {
     let anterior = ULTIMA_FRENTE.load(Ordering::Relaxed);
     if anterior != 0 {

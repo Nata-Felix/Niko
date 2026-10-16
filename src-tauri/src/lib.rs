@@ -101,6 +101,11 @@ async fn tempo_ocioso_ms() -> u64 {
 }
 
 #[tauri::command]
+fn agir_na_janela(acao: String, janela: String) -> bool {
+    janela.parse::<isize>().is_ok_and(|id| plataforma::agir_na_janela(&acao, id))
+}
+
+#[tauri::command]
 fn devolver_foco() {
     plataforma::devolver_foco();
 }
@@ -476,7 +481,8 @@ pub fn run() {
             janela_frente::frente_cobre_tela,
             miniaturas::miniaturas_janelas,
             atalhos::definir_atalhos,
-            devolver_foco
+            devolver_foco,
+            agir_na_janela
         ])
         .setup(move |app| {
             let handle = app.handle().clone();

@@ -44,6 +44,10 @@ pub fn registrar_frente(_app: &AppHandle) {
     }
 }
 
+pub fn agir_na_janela(_acao: &str, _id: isize) -> bool {
+    false
+}
+
 pub fn devolver_foco() {
     let anterior = ULTIMA_FRENTE.load(Ordering::Relaxed);
     if anterior != 0 {

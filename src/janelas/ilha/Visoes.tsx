@@ -5,7 +5,8 @@ import {
   Bell, ChevronLeft, ChevronRight, Music, Columns3, List,
 } from "lucide-react";
 import { useRotina, tarefasDoDia, habitoCumprido } from "../../estado/rotina";
-import { useMidia, capaDaFaixa } from "../../estado/midia";
+import { useMidia } from "../../estado/midia";
+import { usarCorDaCapa } from "./midia/corDaCapa";
 import { PlayerDaMidia, usarDadosDaMidia } from "./midia/PlayerDaMidia";
 import { usePomodoro, restanteAtual, formatarRelogio } from "../../estado/pomodoro";
 import { useEstudos } from "../../estado/estudos";
@@ -344,7 +345,7 @@ export function VisaoMidia() {
     );
   }
 
-  const [c1] = capaDaFaixa(dados.faixa);
+  const c1 = usarCorDaCapa(dados.faixa);
   return (
     <Cartao veu={layout === "cartaz" ? undefined : c1}>
       <PlayerDaMidia

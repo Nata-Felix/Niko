@@ -862,6 +862,34 @@ test("componentes do easyui: escala, curva sem ultrapassar, busca, cartão do to
   assert.equal(series["7d"][5].valor, 80000);
 });
 
+test("cor da capa: pega o tom predominante e ignora preto, branco e transparente", async () => {
+  const { corPredominante } = await vite.ssrLoadModule("/src/janelas/ilha/midia/corDaCapa.ts");
+  const pixels = (lista) => new Uint8ClampedArray(lista.flat());
+  const matiz = (hex) => {
+    const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+    return { r, g, b };
+  };
+  const vermelha = matiz(corPredominante(pixels([...Array(40).fill([0, 0, 0, 255]), ...Array(10).fill([230, 20, 30, 255]), ...Array(20).fill([255, 255, 255, 255])])));
+  assert.ok(vermelha.r > vermelha.g * 2 && vermelha.r > vermelha.b * 2);
+  const azul = matiz(corPredominante(pixels([...Array(10).fill([20, 60, 220, 255]), ...Array(50).fill([200, 30, 30, 0])])));
+  assert.ok(azul.b > azul.r * 2);
+  const cinza = matiz(corPredominante(pixels(Array(20).fill([120, 120, 120, 255]))));
+  assert.equal(cinza.r, cinza.g);
+  assert.equal(corPredominante(pixels(Array(5).fill([0, 0, 0, 0]))), null);
+});
+
+test("visão do provedor vem do catálogo e a marcação manual vence", async () => {
+  const { provedorEntendeImagens } = await vite.ssrLoadModule("/src/dados/provedoresIa.ts");
+  const claude = { id: "a", catalogo: "anthropic", urlBase: "https://api.anthropic.com" };
+  const groq = { id: "g", catalogo: "groq", urlBase: "https://api.groq.com/openai/v1" };
+  const semCatalogo = { id: "o", urlBase: "https://api.openai.com/v1" };
+  assert.equal(provedorEntendeImagens(claude, {}), true);
+  assert.equal(provedorEntendeImagens(groq, {}), false);
+  assert.equal(provedorEntendeImagens(semCatalogo, undefined), true);
+  assert.equal(provedorEntendeImagens(claude, { a: "nao" }), false);
+  assert.equal(provedorEntendeImagens(groq, { g: "sim" }), true);
+});
+
 test("endereço do provedor de IA aceita http só neste PC e na rede local, e nunca com chave fora deste PC", async () => {
   const { situacaoDoEndereco, alcanceDoEndereco } = await vite.ssrLoadModule("/src/utilitarios/enderecoDoProvedor.ts");
   assert.equal(alcanceDoEndereco("localhost"), "este_pc");

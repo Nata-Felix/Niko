@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { Music, Pause, Play, SkipBack, SkipForward } from "lucide-react";
-import { capaDaFaixa, posicaoAtual, useMidia, type Faixa } from "../../../estado/midia";
+import { posicaoAtual, useMidia, type Faixa } from "../../../estado/midia";
+import { usarCorDaCapa } from "./corDaCapa";
 import type { LayoutDaMidia } from "../../../estado/configuracoes";
 import { Marca, marcaDoApp } from "../../../marcas/Marca";
 import { Anel } from "../../../componentes/Graficos";
@@ -166,7 +167,7 @@ interface PropsDoPlayer {
 
 export function PlayerDaMidia({ layout, dados, simulado, volume, personagem }: PropsDoPlayer) {
   const { faixa } = dados;
-  const [c1] = capaDaFaixa(faixa);
+  const c1 = usarCorDaCapa(faixa);
   const cor = { ["--cor-capa" as string]: c1 } as CSSProperties;
 
   if (layout === "pulso") {
@@ -279,7 +280,7 @@ function OndaPequena({ tocando, simulado }: { tocando: boolean; simulado?: boole
 
 export function CompactaDaMidia({ layout, dados, tamanhoDaCapa, simulado }: { layout: LayoutDaMidia; dados: DadosDoPlayer; tamanhoDaCapa: number; simulado?: boolean }) {
   const { faixa, tocando } = dados;
-  const [c1] = capaDaFaixa(faixa);
+  const c1 = usarCorDaCapa(faixa);
 
   if (layout === "pulso") {
     return (

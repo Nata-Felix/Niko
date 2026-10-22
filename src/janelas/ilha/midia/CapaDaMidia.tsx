@@ -2,6 +2,7 @@ import type { CSSProperties } from "react";
 import { Music } from "lucide-react";
 import { capaDaFaixa, type Faixa } from "../../../estado/midia";
 import { Marca, marcaDoApp } from "../../../marcas/Marca";
+import { usarCorDaCapa } from "./corDaCapa";
 
 interface Props {
   faixa: Faixa | null;
@@ -18,7 +19,7 @@ export function fundoGeradoDaCapa(faixa: Faixa | null): string {
 }
 
 export function CapaDaMidia({ faixa, tamanho, raio = Math.round(tamanho * 0.18), redonda, sombra, className = "" }: Props) {
-  const [c1] = capaDaFaixa(faixa);
+  const c1 = usarCorDaCapa(faixa);
   const estilo: CSSProperties = {
     width: tamanho,
     height: tamanho,

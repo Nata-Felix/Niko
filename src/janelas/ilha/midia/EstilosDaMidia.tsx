@@ -6,6 +6,7 @@ import { LAYOUTS_DA_MIDIA, useConfig, type LayoutDaMidia } from "../../../estado
 import type { Faixa } from "../../../estado/midia";
 import { T } from "../../../textos/textos";
 import { CompactaDaMidia, PlayerDaMidia, type DadosDoPlayer } from "./PlayerDaMidia";
+import { usarCorDaCapa } from "./corDaCapa";
 import "../ilha.css";
 import "./midia.css";
 
@@ -67,9 +68,10 @@ function IlhaFechada({ layout, dados, escala = 1 }: { layout: LayoutDaMidia; dad
 }
 
 function IlhaAberta({ layout, dados }: { layout: LayoutDaMidia; dados: DadosDoPlayer }) {
+  const cor = usarCorDaCapa(dados.faixa);
   return (
     <div className="estilos-ilha estilos-aberta">
-      <div className="ilha-cartao">
+      <div className="ilha-cartao" style={{ ["--veu" as string]: layout === "cartaz" ? "transparent" : `${cor}55` }}>
         <div className="ilha-veu" />
         <div className="ilha-cartao-corpo">
           <PlayerDaMidia layout={layout} dados={dados} simulado volume={<VolumeDeExemplo />} />

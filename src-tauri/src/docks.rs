@@ -146,6 +146,10 @@ fn assinatura(lista: &[(Monitor, MonitorDoNiko)]) -> String {
 }
 
 pub fn sincronizar(app: &AppHandle) {
+    // Sem transparência os docks seriam faixas pretas por cima de tudo (ver plataforma::sobrepostas_transparentes).
+    if !crate::plataforma::sobrepostas_transparentes() {
+        return;
+    }
     let Ok(_vez) = SINCRONIZANDO.lock() else { return };
     let ligado = LIGADO.load(Ordering::SeqCst);
     let escolha = ESCOLHA.lock().map(|e| e.clone()).unwrap_or_default();

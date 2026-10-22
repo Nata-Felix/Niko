@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { addDays, addMonths, eachDayOfInterval, endOfMonth, endOfWeek, format, getDaysInMonth, isSameMonth, startOfMonth, startOfWeek } from "date-fns";
-import { ChevronLeft, ChevronRight, Plus, Undo2, Redo2, Printer, Check, Minus, Pencil, Archive, Flame, Timer, CircleCheck, Circle, CalendarClock, CalendarArrowDown, X, Pause, Trash2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Undo2, Redo2, Printer, Check, Minus, Pencil, Archive, Flame, Timer, CircleCheck, Circle, CalendarClock, CalendarArrowDown, CalendarDays, Repeat, X, Pause, Trash2 } from "lucide-react";
 import { CabecalhoAba } from "../../componentes/CabecalhoAba";
 import { Cartao, Botao, Campo, Modal, Segmentado, Vazio } from "../../componentes/basicos";
 import { ICONE_STATUS, ORDEM_STATUS } from "../../componentes/ItemTarefa";
@@ -8,6 +8,9 @@ import { Editor } from "../../componentes/Editor";
 import { BarrasVerticais } from "../../componentes/Graficos";
 import { useRotina, tarefasDoDia, habitoCumprido, pendentesAntesDe, tarefaPendente, DIA_VAZIO } from "../../estado/rotina";
 import { usePomodoro } from "../../estado/pomodoro";
+import { useOrganizacao } from "../../estado/organizacao";
+import { ocorrencias } from "../../utilitarios/itensDoCalendario";
+import { funcaoLigada } from "../../utilitarios/funcoes";
 import { useInterface } from "../../estado/interface";
 import { useConfig } from "../../estado/configuracoes";
 import { useAgentes } from "../../estado/agentes";
@@ -17,7 +20,7 @@ import { deISO, formatar, formatarData, hojeISO, paraISO, diaDoMomento, horaVali
 import { interpretarQuando } from "../../utilitarios/linguagem";
 import { sequenciaHabito } from "../../utilitarios/estatisticas";
 import { EVENTO_NOVO } from "../../janelas/area-de-trabalho/usarAtalhos";
-import type { Habito, Humor, StatusTarefa, Tarefa, TipoHabito } from "../../tipos";
+import type { Evento, Habito, Humor, StatusTarefa, Tarefa, TipoHabito } from "../../tipos";
 import { somar } from "../../utilitarios/basicos";
 import { CopoAgua, litros } from "./CopoAgua";
 import { imprimirMes } from "./impressao";
@@ -294,6 +297,40 @@ function TarefaDoDia({ tarefa }: { tarefa: Tarefa }) {
   );
 }
 
+function EventoDoDia({ evento, data }: { evento: Evento; data: string }) {
+  const marcar = useOrganizacao((s) => s.marcarEventoFeito);
+  const irPara = useInterface((s) => s.irPara);
+  const feito = (evento.feitos ?? []).includes(data);
+  const rotulo = feito ? T.calendario.desmarcarFeito(evento.titulo) : T.calendario.marcarFeito(evento.titulo);
+
+  return (
+    <div className="jn-tarefa" data-encerrada={feito ? "sim" : "nao"}>
+      <div className="jn-tarefa-status">
+        <button
+          type="button"
+          className="marcador jn-marcador"
+          role="checkbox"
+          aria-checked={feito}
+          data-status={feito ? "concluida" : "a_fazer"}
+          aria-label={rotulo}
+          title={rotulo}
+          onClick={() => {
+            marcar(evento.id, data, !feito);
+            if (!feito) void tocarSom("finish", "personagens");
+          }}
+        >
+          <Check />
+        </button>
+      </div>
+      <button type="button" className="jn-tarefa-titulo privado" title={T.journal.abrirNoCalendario} onClick={() => irPara("calendario", { data })}>
+        {evento.titulo}
+      </button>
+      {evento.repeticao !== "nenhuma" && <Repeat size={12} className="jn-tarefa-extra" role="img" aria-label={T.journal.eventoRepete} />}
+      <span className="jn-tarefa-hora">{evento.hora ?? T.calendario.diaTodo}</span>
+    </div>
+  );
+}
+
 function GradeHabitos({ data }: { data: string }) {
   const habitos = useRotina((s) => s.habitos).filter((h) => !h.arquivado);
   const registros = useRotina((s) => s.registros);
@@ -461,6 +498,8 @@ export default function Journal() {
   const podeDesfazer = useRotina((s) => s.passado.length > 0);
   const podeRefazer = useRotina((s) => s.futuro.length > 0);
   const sessoes = usePomodoro((s) => s.sessoes);
+  const eventos = useOrganizacao((s) => s.eventos);
+  const desligadas = useConfig((s) => s.funcoesDesligadas);
   const virada = useConfig((s) => s.viradaAs4h);
   const [novaTarefa, setNovaTarefa] = useState("");
   const [erroTarefa, setErroTarefa] = useState("");
@@ -474,6 +513,10 @@ export default function Journal() {
   const doDia = tarefasDoDia(tarefas, data);
   const focoDoDia = (d: string) => sessoes.filter((s) => s.etapa === "foco" && s.situacao === "concluida" && diaDoMomento(s.inicio) === d);
   const pomodoros = focoDoDia(data);
+  // Eventos entram como itens derivados do Calendário: marcar aqui grava a data em `feitos`, sem criar tarefa.
+  const eventosDoDia = (d: string) =>
+    funcaoLigada("calendario", desligadas) ? eventos.filter((e) => ocorrencias(e, d, d).length > 0).sort((a, b) => (a.hora ?? "").localeCompare(b.hora ?? "")) : [];
+  const eventosHoje = eventosDoDia(data);
 
   useEffect(() => {
     if (parametros.data && /^\d{4}-\d{2}-\d{2}$/.test(parametros.data)) setData(parametros.data);
@@ -621,7 +664,15 @@ export default function Journal() {
                   {erroTarefa && <span className="campo-erro">{erroTarefa}</span>}
                 </form>
                 {data === hoje && <PendentesAnteriores hoje={hoje} />}
-                {doDia.length === 0 && <p className="jn-sem-tarefas">{T.journal.semTarefas}</p>}
+                {doDia.length === 0 && eventosHoje.length === 0 && <p className="jn-sem-tarefas">{T.journal.semTarefas}</p>}
+                {eventosHoje.length > 0 && (
+                  <div className="jn-periodo">
+                    <span className="jn-periodo-nome">{T.journal.doCalendario}</span>
+                    <div className="jn-periodo-lista">
+                      {eventosHoje.map((e) => <EventoDoDia key={e.id} evento={e} data={data} />)}
+                    </div>
+                  </div>
+                )}
                 {semHora.length > 0 && (
                   <div className="jn-periodo">
                     <span className="jn-periodo-nome">{T.journal.semHora}</span>
@@ -727,6 +778,15 @@ export default function Journal() {
                     <span className="jn-humor-ponto jn-humor-ponto-grande" data-humor={registro?.humor ?? "nenhum"} />
                   </span>
                   <span className="jn-semana-tarefas">
+                    {eventosDoDia(d).map((e) => {
+                      const feito = (e.feitos ?? []).includes(d);
+                      return (
+                        <span key={e.id} className="jn-semana-tarefa privado" data-feita={feito ? "sim" : "nao"}>
+                          {feito ? <CircleCheck size={12} /> : <CalendarDays size={12} />}
+                          <span className="cortar">{e.titulo}</span>
+                        </span>
+                      );
+                    })}
                     {lista.map((t) => (
                       <span key={t.id} className="jn-semana-tarefa privado" data-feita={t.status === "concluida" ? "sim" : "nao"}>
                         {t.status === "concluida" ? <CircleCheck size={12} /> : <Circle size={12} />}

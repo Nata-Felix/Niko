@@ -413,6 +413,61 @@ test("datas de estudo e revisões rejeitam dados inválidos", () => {
   assert.equal(useEstudos.getState().paginas[0].conteudo, "Conteúdo válido");
 });
 
+test("desmarcar página estudada remove só as revisões pendentes e revisão removida pode voltar", () => {
+  useEstudos.setState({ revisoesConteudo: [] });
+  const e = useEstudos.getState();
+  const a = e.criarArea("Inglês", "idiomas"), m = e.criarMateria(a.id, "Vocabulário"), p = e.criarPagina(m.id), outra = e.criarPagina(m.id);
+  e.marcarEstudada(p.id);
+  e.marcarEstudada(outra.id);
+  const [primeira] = useEstudos.getState().revisoesConteudo;
+  e.concluirRevisaoConteudo(primeira.id);
+  e.desmarcarEstudada(p.id);
+  const depois = useEstudos.getState();
+  assert.equal(depois.paginas.find((x) => x.id === p.id).estudadaEm, undefined);
+  assert.deepEqual(depois.revisoesConteudo.filter((r) => r.paginaId === p.id).map((r) => r.id), [primeira.id]);
+  assert.equal(depois.revisoesConteudo.filter((r) => r.paginaId === outra.id).length, 3);
+  const alvo = depois.revisoesConteudo.find((r) => r.paginaId === outra.id);
+  const removida = e.excluirRevisaoConteudo(alvo.id);
+  assert.equal(useEstudos.getState().revisoesConteudo.length, 3);
+  e.restaurarRevisaoConteudo(removida);
+  e.restaurarRevisaoConteudo(removida);
+  assert.equal(useEstudos.getState().revisoesConteudo.length, 4);
+  assert.equal(e.excluirRevisaoConteudo("sumiu"), undefined);
+});
+
+test("eventos diários e semanais antigos ainda aparecem no período pedido", async () => {
+  const { ocorrencias } = await vite.ssrLoadModule("/src/utilitarios/itensDoCalendario.ts");
+  const diario = { id: "d", titulo: "Água", data: "2020-01-01", tipo: "evento", repeticao: "diaria", excecoes: ["2026-03-02"] };
+  assert.deepEqual(ocorrencias(diario, "2026-03-01", "2026-03-03"), ["2026-03-01", "2026-03-03"]);
+  const semanal = { id: "s", titulo: "Academia", data: "2020-01-06", tipo: "evento", repeticao: "semanal" };
+  assert.deepEqual(ocorrencias(semanal, "2026-03-01", "2026-03-31"), ["2026-03-02", "2026-03-09", "2026-03-16", "2026-03-23", "2026-03-30"]);
+  assert.deepEqual(ocorrencias({ ...semanal, data: "2026-03-10" }, "2026-03-01", "2026-03-20"), ["2026-03-10", "2026-03-17"]);
+});
+
+test("editar meta preserva histórico e eventos ligados contam ocorrências marcadas", async () => {
+  const { progressoDaMeta } = await vite.ssrLoadModule("/src/utilitarios/progressoDaMeta.ts");
+  useOrganizacao.setState({ metas: [] });
+  const o = useOrganizacao.getState();
+  o.criarMeta({ nome: "Treinar", pilarId: "p", tipo: "tarefas", alvo: 10, atual: 0, periodo: "trimestre", prazo: "2026-03-31" });
+  const meta = useOrganizacao.getState().metas[0];
+  useOrganizacao.setState({ metas: [{ ...meta, historico: [{ data: "2026-03-02", valor: 0 }] }] });
+  o.atualizarMeta(meta.id, { nome: "  Academia  ", historico: [], id: "outro" });
+  const editada = useOrganizacao.getState().metas[0];
+  assert.equal(editada.id, meta.id);
+  assert.equal(editada.nome, "Academia");
+  assert.deepEqual(editada.historico, [{ data: "2026-03-02", valor: 0 }]);
+  // Segunda semanal desde fevereiro: dentro da janela (02/03 a 31/03) caem 5 ocorrências, uma delas pulada.
+  const evento = o.criarEvento({ titulo: "Academia", data: "2026-02-02", tipo: "evento", repeticao: "semanal", metaId: meta.id });
+  o.atualizarEvento(evento.id, { excecoes: ["2026-03-16"] });
+  o.marcarEventoFeito(evento.id, "2026-02-23", true);
+  o.marcarEventoFeito(evento.id, "2026-03-02", true);
+  o.marcarEventoFeito(evento.id, "2026-03-09", true);
+  const tarefas = [{ id: "t1", metaId: meta.id, status: "concluida" }, { id: "t2", metaId: meta.id, status: "a_fazer" }];
+  const p = progressoDaMeta(editada, { eventos: useOrganizacao.getState().eventos, tarefas, habitos: [], registros: {}, sessoes: [], economias: [] });
+  assert.deepEqual([p.atual, p.alvo], [3, 6]);
+  assert.throws(() => o.atualizarEvento(evento.id, { metaId: "" }));
+});
+
 test("apps fixados no dock são limpos e a escala cai na opção válida mais próxima", () => {
   const icone = "data:image/png;base64,AAAA";
   const c = configuracoesValidas({ dock: { escala: 0.74, fixados: [
@@ -727,4 +782,19 @@ test("sincronização rejeita formatos inválidos e eventos de outro banco", asy
   receberMensagem({ data: { origem: "outra", banco: "validacoes", chave: "niko:teste", valor: "válido" } });
   assert.equal(armazenamento.lerChave("niko:teste"), "válido");
   await armazenamento.salvarAgora();
+});
+
+test("pesquisa na web bloqueia endereços internos e lê resultados de busca", async () => {
+  const w = await vite.ssrLoadModule("/servidor/web.ts");
+  for (const ip of ["127.0.0.1", "10.0.0.5", "192.168.1.1", "172.31.255.1", "169.254.169.254", "100.64.0.1", "::1", "fd00::1", "fe80::1", "::ffff:192.168.0.1"]) assert.ok(w.ipPrivado(ip), ip);
+  for (const ip of ["8.8.8.8", "1.1.1.1", "2606:4700::1111"]) assert.ok(!w.ipPrivado(ip), ip);
+  for (const url of ["file:///etc/passwd", "http://127.0.0.1:47831/ponte/estado", "http://localhost/", "http://impressora.local/", "http://user:senha@exemplo.com/", "http://[::1]/"]) assert.throws(() => w.urlPublica(url), undefined, url);
+  assert.equal(w.urlPublica("https://exemplo.com/a").hostname, "exemplo.com");
+  const { titulo, texto } = w.textoDoHtml("<html><head><title>Oi &amp; tchau</title><script>roubar()</script></head><body><p>Linha&nbsp;1</p><style>.x{}</style><p>Linha &#233; 2</p></body></html>");
+  assert.equal(titulo, "Oi & tchau");
+  assert.ok(!texto.includes("roubar") && texto.includes("Linha 1") && texto.includes("Linha é 2"));
+  const ddg = w.resultadosDoDuckDuckGo('<div class="result__body"><a class="result__a" href="//duckduckgo.com/l/?uddg=https%3A%2F%2Ftauri.app%2F&rut=x">Tauri <b>2</b></a><a class="result__snippet" href="#">Apps &amp; mais</a></div>');
+  assert.deepEqual(ddg, [{ titulo: "Tauri 2", url: "https://tauri.app/", trecho: "Apps & mais" }]);
+  const bing = w.resultadosDoBing('<li class="b_algo"><h2><a href="https://www.bing.com/ck/a?!&amp;u=a1aHR0cHM6Ly90YXVyaS5hcHAv&amp;ntb=1">Tauri</a></h2><p class="b_lineclamp2">Rápido</p></li>');
+  assert.deepEqual(bing, [{ titulo: "Tauri", url: "https://tauri.app/", trecho: "Rápido" }]);
 });

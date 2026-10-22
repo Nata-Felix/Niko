@@ -416,6 +416,13 @@ export default function Calendario() {
   };
 
   const excluir = (i: Item) => {
+    if (i.revisao) {
+      const id = i.revisao.id;
+      return () => {
+        const removida = useEstudos.getState().excluirRevisaoConteudo(id);
+        if (removida) avisar(T.geral.excluido, () => useEstudos.getState().restaurarRevisaoConteudo(removida));
+      };
+    }
     if (!i.evento) return undefined;
     const e = i.evento;
     const executar = (escolha: EscopoDaEdicao) => {
@@ -446,7 +453,7 @@ export default function Calendario() {
 
   const propsDaLinha = (i: Item) => {
     const modulo = i.evento ? { abrir: () => abrirEdicao(i), rotulo: T.geral.editar } : abrirNoModulo(i);
-    const props: Parameters<typeof LinhaDoDia>[0] = { i, aoAbrir: modulo?.abrir, rotuloAbrir: modulo?.rotulo, aoExcluir: i.evento ? excluir(i) : undefined };
+    const props: Parameters<typeof LinhaDoDia>[0] = { i, aoAbrir: modulo?.abrir, rotuloAbrir: modulo?.rotulo, aoExcluir: excluir(i) };
     if (podeMarcarFeito(i)) {
       const feito = itemFeito(i, registros);
       props.feito = feito;

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import {
   Check, Play, Pause, SkipBack, SkipForward, RotateCcw, FastForward, Plus, Minus, ArrowUpRight, CornerDownLeft,
-  Bell, ChevronLeft, ChevronRight, Music,
+  Bell, ChevronLeft, ChevronRight, Music, Columns3, List,
 } from "lucide-react";
 import { useRotina, tarefasDoDia, habitoCumprido } from "../../estado/rotina";
 import { useMidia, posicaoAtual, capaDaFaixa, fundoDaCapa } from "../../estado/midia";
@@ -24,6 +24,7 @@ import { usarAgendaGoogle } from "../../modulos/calendario/usarAgendaGoogle";
 import { ConexaoNaIlha } from "./ConexaoNaIlha";
 import { conexaoEmTestes } from "../../utilitarios/disponibilidadeConexoes";
 import { VolumeDoPlayer } from "./VolumeDoPlayer";
+import { QuadroDeTarefas } from "./QuadroDeTarefas";
 import { EspacoDoPersonagem } from "./animacoes/PersonagemContinuo";
 import { funcaoLigada, secoesDoHojeLigadas } from "../../utilitarios/funcoes";
 import { useFinancas } from "../../estado/financas";
@@ -106,6 +107,8 @@ function SecaoTarefas() {
   const tarefas = useRotina((s) => s.tarefas);
   const criar = useRotina((s) => s.criarTarefa);
   const mudarStatus = useRotina((s) => s.mudarStatus);
+  const emQuadro = useConfig((s) => s.ilha.tarefasEmQuadro);
+  const definirIlha = useConfig((s) => s.definirIlha);
   const [texto, setTexto] = useState("");
   const [erro, setErro] = useState("");
   const hoje = hojeISO();
@@ -129,6 +132,8 @@ function SecaoTarefas() {
       <div className="ilha-rolagem">
         {lista.length === 0 ? (
           <span className="ilha-sub">{T.ilha.semTarefasHoje}</span>
+        ) : emQuadro ? (
+          <QuadroDeTarefas tarefas={lista} />
         ) : (
           lista.map((t) => (
             <div key={t.id} className="ilha-linha">
@@ -164,6 +169,16 @@ function SecaoTarefas() {
         />
         <button type="button" className="ilha-botao ilha-botao-icone" aria-label={T.geral.adicionar} onClick={adicionar}>
           <CornerDownLeft size={13} />
+        </button>
+        <button
+          type="button"
+          className="ilha-botao ilha-botao-icone"
+          aria-pressed={emQuadro}
+          aria-label={emQuadro ? T.ilha.verLista : T.ilha.verQuadro}
+          title={emQuadro ? T.ilha.verLista : T.ilha.verQuadro}
+          onClick={() => definirIlha({ tarefasEmQuadro: !emQuadro })}
+        >
+          {emQuadro ? <List size={13} /> : <Columns3 size={13} />}
         </button>
       </div>
     </div>

@@ -13,7 +13,8 @@ process.env.APPDATA = join(raizTemporaria, "AppData");
 process.env.XDG_DATA_HOME = join(raizTemporaria, ".local", "share");
 process.env.NIKO_PORTA = "47999";
 const memoriaLocal = new Map();
-globalThis.localStorage ??= { getItem: (k) => memoriaLocal.get(k) ?? null, setItem: (k, v) => memoriaLocal.set(k, String(v)), removeItem: (k) => memoriaLocal.delete(k) };
+// O Node 25 traz um localStorage global que não funciona sem --localstorage-file; nesse caso usa o substituto.
+if (typeof globalThis.localStorage?.setItem !== "function") globalThis.localStorage = { getItem: (k) => memoriaLocal.get(k) ?? null, setItem: (k, v) => memoriaLocal.set(k, String(v)), removeItem: (k) => memoriaLocal.delete(k) };
 
 const vite = await createServer({ configFile: false, server: { middlewareMode: true, hmr: false, watch: null }, appType: "custom", optimizeDeps: { noDiscovery: true } });
 const claude = await vite.ssrLoadModule("/servidor/claude.ts");

@@ -88,6 +88,22 @@ pub fn janela_ativa() -> Option<u32> {
     com_conexao(|c| Ok(lista_de_u32(c, c.raiz, c.atomos.janela_ativa, AtomEnum::WINDOW)?.first().copied().unwrap_or(0))).filter(|id| *id != 0)
 }
 
+const NIVEIS_DE_DONO: usize = 8;
+
+// Diálogos e janelas soltas de um app apontam para a janela principal em WM_TRANSIENT_FOR; é ela que diz
+// se a tela está coberta (igual ao GA_ROOTOWNER no Windows).
+pub fn janela_dona(janela: u32) -> u32 {
+    let mut atual = janela;
+    for _ in 0..NIVEIS_DE_DONO {
+        let dona = com_conexao(|c| Ok(lista_de_u32(c, atual, AtomEnum::WM_TRANSIENT_FOR.into(), AtomEnum::WINDOW)?.first().copied().unwrap_or(0))).unwrap_or(0);
+        if dona == 0 || dona == atual || dona == com_conexao(|c| Ok(c.raiz)).unwrap_or(0) {
+            break;
+        }
+        atual = dona;
+    }
+    atual
+}
+
 pub fn pid_da_janela(janela: u32) -> Option<u32> {
     com_conexao(|c| Ok(lista_de_u32(c, janela, c.atomos.pid, AtomEnum::CARDINAL)?.first().copied().unwrap_or(0))).filter(|pid| *pid != 0)
 }

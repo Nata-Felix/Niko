@@ -269,6 +269,103 @@
   border-bottom: 1px solid var(--linha);
 }
 
+.estilo-sistema .mapa-ia-resumo {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--texto-2);
+}
+
+.estilo-sistema .mapa-ia-grupo {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  border: 1px solid var(--linha);
+  border-radius: 10px;
+}
+
+.estilo-sistema .mapa-ia-grupo[data-desligada="sim"] {
+  opacity: 0.6;
+}
+
+.estilo-sistema .mapa-ia-cabecalho {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+}
+
+.estilo-sistema .mapa-ia-dono {
+  font-size: 11.5px;
+  color: var(--texto-3);
+}
+
+.estilo-sistema .mapa-ia-linhas {
+  display: grid;
+  grid-template-columns: minmax(110px, max-content) minmax(0, 1fr);
+  gap: 6px 12px;
+  margin: 0;
+  align-items: baseline;
+}
+
+.estilo-sistema .mapa-ia-linhas dt {
+  font-size: 11.5px;
+  color: var(--texto-3);
+}
+
+.estilo-sistema .mapa-ia-linhas dd {
+  margin: 0;
+  min-width: 0;
+}
+
+.estilo-sistema .mapa-ia-pilulas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.estilo-sistema .mapa-ia-pilula {
+  height: 22px;
+  padding: 0 8px;
+  font-size: 11px;
+}
+
+.estilo-sistema .mapa-ia-pilula[data-apagado="sim"] {
+  color: var(--texto-4);
+  text-decoration: line-through;
+}
+
+.estilo-sistema .mapa-ia-nada {
+  font-size: 11.5px;
+  color: var(--texto-4);
+}
+
+.estilo-sistema .mapa-ia-proximos {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding-left: 18px;
+  font-size: 12.5px;
+}
+
+.estilo-sistema .mapa-ia-proximos li {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.estilo-sistema .mapa-ia-proximos span {
+  color: var(--texto-3);
+}
+
+@media (max-width: 640px) {
+  .estilo-sistema .mapa-ia-linhas {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 .estilo-sistema .ajuste-valor {
   height: 32px;
   min-width: 120px;

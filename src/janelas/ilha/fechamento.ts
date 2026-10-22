@@ -5,6 +5,8 @@ export function atrasoDeFechamento(segundos: number, aba: string): number | null
   return segundos * 1000;
 }
 
-export function editandoNaIlha(raiz: HTMLElement | null, foco: Element | null): boolean {
-  return !!(raiz && foco && raiz.contains(foco) && foco.closest("input, textarea, select, [contenteditable]:not([contenteditable='false'])"));
+// O campo continua como activeElement mesmo depois de a pessoa clicar em outro app; sem conferir o foco
+// da janela, a ilha acharia que ainda há digitação e nunca recolheria sozinha.
+export function editandoNaIlha(raiz: HTMLElement | null, foco: Element | null, janelaComFoco = true): boolean {
+  return !!(janelaComFoco && raiz && foco && raiz.contains(foco) && foco.closest("input, textarea, select, [contenteditable]:not([contenteditable='false'])"));
 }

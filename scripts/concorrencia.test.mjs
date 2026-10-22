@@ -96,10 +96,13 @@ test("falha na entrada do PowerShell encerra somente seus pedidos e permite rein
 function consultasSimuladas(nome) {
   const relogio = relogioSimulado();
   const pedidos = [];
+  const avisos = [];
   let estado;
   let limpar;
   const contexto = vm.createContext({
     ...relogio, AbortController, NATIVO: true,
+    EVENTO_FRENTE_MUDOU: "niko://frente-mudou",
+    ouvirEvento: async (nomeDoEvento, fn) => { avisos.push({ nomeDoEvento, fn }); return () => undefined; },
     FRENTE_LIVRE: { cobre: false, telaCheia: false, maximizada: false, frente: "area_de_trabalho" },
     useState(inicial) {
       if (estado === undefined) estado = inicial;
@@ -119,8 +122,22 @@ function consultasSimuladas(nome) {
   };
   vm.runInContext(`${periodica}\n${trecho("semExe")}\n${trecho("deveSumirPelaFrente")}\n${trecho(nome)}\nglobalThis.usar = ${nome};`, contexto);
   contexto.usar(true, { esconderTelaCheia: true, apps: "" });
-  return { pedidos, relogio, limpar: () => limpar(), estado: () => estado };
+  return { pedidos, avisos, relogio, limpar: () => limpar(), estado: () => estado };
 }
+
+test("aviso de janela da frente consulta na hora, sem esperar o intervalo", async () => {
+  const c = consultasSimuladas("usarEstadoDaFrente");
+  await Promise.resolve();
+  assert.equal(c.pedidos.length, 1);
+  const aviso = c.avisos.find((a) => a.nomeDoEvento === "niko://frente-mudou");
+  assert.ok(aviso);
+  aviso.fn();
+  assert.equal(c.pedidos.length, 2);
+  c.pedidos[1].resolver({ cobre: true, telaCheia: false, maximizada: true, frente: "app" });
+  await new Promise((r) => setImmediate(r));
+  assert.equal(c.estado().cobre, true);
+  c.limpar();
+});
 
 test("estado de tela cheia não acumula consultas nem aceita resultado após desmontar", async () => {
   const c = consultasSimuladas("usarEstadoDaFrente");

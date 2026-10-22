@@ -23,6 +23,7 @@ import { controle } from "../../ponte/ponteLocal";
 import { criarAlternadorDoIniciar } from "../ilha/barra/acoesDaBarra";
 import { useIlha } from "../../estado/ilha";
 import "./dock.css";
+import { escalaQueCabe, usarTamanhoDaTela } from "../usarTamanhoDaTela";
 
 const EscalaDoDock = createContext(1);
 const TAMANHO_DO_ITEM = 42;
@@ -369,9 +370,18 @@ function AppsDoWindows({ mouseX, ampliar, ativo, monitor, menuAberto, fixados, a
   );
 }
 
+// Largura de cada item com o espaço entre eles, e o que sobra para logo, bordas e separadores, na escala 1.
+const LARGURA_POR_ITEM = 50;
+const LARGURA_FIXA_DO_DOCK = 96;
+const MARGEM_DO_DOCK = 12;
+
 export function Dock() {
   const cfg = useConfig((s) => s.dock);
-  const altura = alturaDoDock(cfg.escala);
+  const tela = usarTamanhoDaTela();
+  const [itensNoDock, setItensNoDock] = useState(0);
+  // Com muitos apps abertos, tela pequena ou escala alta, os ícones das pontas sairiam da tela: o dock encolhe.
+  const escala = escalaQueCabe(cfg.escala, { largura: LARGURA_FIXA_DO_DOCK + itensNoDock * LARGURA_POR_ITEM, altura: 1 }, { largura: tela.largura - MARGEM_DO_DOCK * 2, altura: Infinity });
+  const altura = alturaDoDock(escala);
   const aparencia = usarAparenciaDeBorda(cfg.fundo, cfg.opacidade);
   const nomesBarra = useConfig((s) => s.barraLateral);
   const aberto = useInterface((s) => s.sistemaAberto);
@@ -416,6 +426,17 @@ export function Dock() {
   usarAreaInterativa([".dock", ".dock-gatilho", ".dock-previa", ".dock-busca", ".dock-menu"]);
   usarCursorFora(useCallback(() => setPerto(false), []));
   const caixa = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = caixa.current;
+    if (!el) return;
+    const contar = () => setItensNoDock(el.querySelectorAll(".dock-item").length);
+    contar();
+    const observador = new MutationObserver(contar);
+    observador.observe(el, { childList: true, subtree: true });
+    return () => observador.disconnect();
+  });
+  // A reserva na base da tela segue a escala escolhida: encolher por ter mais apps não mexe na área de trabalho.
+  const alturaReservada = alturaDoDock(cfg.escala);
 
   const escolhaDeMonitor = cfg.monitores ?? TODOS_OS_MONITORES;
   const monitores = usarMonitores();
@@ -436,8 +457,8 @@ export function Dock() {
   }, [cfg.ativo, escolhaDeMonitor, principal]);
 
   useEffect(() => {
-    if (NATIVO) void reservarEspacoDoDock(ativoAqui && cfg.modo === "fixo" && cfg.reservarEspaco, altura);
-  }, [ativoAqui, cfg.modo, cfg.reservarEspaco, altura]);
+    if (NATIVO) void reservarEspacoDoDock(ativoAqui && cfg.modo === "fixo" && cfg.reservarEspaco, alturaReservada);
+  }, [ativoAqui, cfg.modo, cfg.reservarEspaco, alturaReservada]);
 
   useEffect(() => {
     if (cfg.modo === "fixo") return;
@@ -473,7 +494,7 @@ export function Dock() {
 
   if (!ativoAqui || frente.telaCheia) return null;
 
-  const largura = (70 + (Number(cfg.mostrarIniciar) + Number(cfg.mostrarBusca) + janelas.length + (aberto ? 1 : 0)) * 50) * cfg.escala;
+  const largura = (70 + (Number(cfg.mostrarIniciar) + Number(cfg.mostrarBusca) + janelas.length + (aberto ? 1 : 0)) * 50) * escala;
   const area = { x: (window.innerWidth - largura) / 2, y: window.innerHeight - altura, w: largura, h: altura };
   const coberto = cfg.modo === "inteligente" && (NATIVO ? frente.cobre || Boolean(frente.naBase) : alguemCobre(area));
   const escondido = (cfg.modo === "esconder" || coberto) && !perto && !buscaAberta && !menu;
@@ -540,13 +561,13 @@ export function Dock() {
   ];
 
   return (
-    <EscalaDoDock.Provider value={cfg.escala}>
+    <EscalaDoDock.Provider value={escala}>
       {escondido && <div className="dock-gatilho" onPointerEnter={() => setPerto(true)} />}
       <motion.div
         ref={caixa}
         className="dock"
         {...atributosDoFundo(aparencia)}
-        style={{ ...variaveisDaBorda(aparencia), height: altura, background: fundo, ["--dock-escala" as string]: cfg.escala }}
+        style={{ ...variaveisDaBorda(aparencia), height: altura, background: fundo, ["--dock-escala" as string]: escala }}
         initial={false}
         animate={{ y: escondido ? altura + 8 : 0 }}
         transition={{ type: "spring", visualDuration: 0.35, bounce: 0.15 }}

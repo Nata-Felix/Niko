@@ -10,7 +10,18 @@ use crate::plataforma::digita_com_altgr;
 
 pub const ACOES: [&str; 10] = ["captura", "lupa", "sistema", "pomodoro", "midia", "privacidade", "naoPerturbe", "pedido", "proximaAba", "terminal"];
 
+#[cfg(not(target_os = "linux"))]
 pub const PADRAO: [(&str, &str); 2] = [("captura", "ctrl+alt+space"), ("lupa", "ctrl+alt+l")];
+// Igual ao padrão do frontend: no Cinnamon e no KDE, Ctrl+Alt+L bloqueia a tela.
+#[cfg(target_os = "linux")]
+pub const PADRAO: [(&str, &str); 2] = [("captura", "ctrl+alt+space"), ("lupa", "ctrl+alt+b")];
+
+// Ações que podem chegar por linha de comando (`niko --acao lupa`), usadas pelos atalhos do GNOME no Wayland.
+pub fn acao_dos_argumentos(args: &[String]) -> Option<String> {
+    let posicao = args.iter().position(|a| a == "--acao")?;
+    let acao = args.get(posicao + 1)?;
+    ACOES.contains(&acao.as_str()).then(|| acao.clone())
+}
 
 #[derive(Default)]
 pub struct Atalhos {
@@ -67,6 +78,8 @@ pub fn registrar(app: &AppHandle, lista: Vec<PedidoDeAtalho>) -> Vec<ResultadoDo
         };
         resultado.push(ResultadoDoAtalho { acao: pedido.acao, teclas: pedido.teclas, situacao });
     }
+    let validos = resultado.iter().filter(|r| r.situacao == "ok" || r.situacao == "em_uso").map(|r| (r.acao.clone(), r.teclas.clone())).collect();
+    crate::plataforma::atalhos_do_sistema(validos);
     resultado
 }
 

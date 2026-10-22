@@ -1,7 +1,10 @@
 pub mod barra;
+mod eventos_frente;
 pub mod janela_frente;
 pub mod miniaturas;
 mod teclado;
+
+pub use eventos_frente::vigiar_frente;
 
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -126,6 +129,17 @@ pub const SOBREPOSTA_FOCAVEL_AO_CRIAR: bool = true;
 pub fn abrir_sistema_sem_esperar() -> bool {
     false
 }
+
+// O DWM sempre compõe as janelas no Windows 10 e 11, então a transparência das sobrepostas sempre funciona.
+pub fn sobrepostas_transparentes() -> bool {
+    true
+}
+
+// No Windows o plugin de atalhos globais já funciona em qualquer janela.
+pub fn atalhos_do_sistema(_atalhos: Vec<(String, String)>) {}
+
+// No Windows a posição global do cursor é sempre confiável, então a janela inteira alterna entre ignorar e receber.
+pub fn definir_area_de_entrada(_janela: &WebviewWindow, _caixas: Vec<[f64; 4]>) {}
 
 pub fn ignorar_cursor(janela: &WebviewWindow, ignorar: bool) -> bool {
     janela.set_ignore_cursor_events(ignorar).is_ok()

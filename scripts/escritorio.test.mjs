@@ -5,7 +5,8 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { readFileSync } from "node:fs";
 const memoriaLocal = new Map();
-globalThis.localStorage ??= { getItem: (k) => memoriaLocal.get(k) ?? null, setItem: (k, v) => memoriaLocal.set(k, v), removeItem: (k) => memoriaLocal.delete(k) };
+// O Node 25 traz um localStorage global que não funciona sem --localstorage-file; nesse caso usa o substituto.
+if (typeof globalThis.localStorage?.setItem !== "function") globalThis.localStorage = { getItem: (k) => memoriaLocal.get(k) ?? null, setItem: (k, v) => memoriaLocal.set(k, v), removeItem: (k) => memoriaLocal.delete(k) };
 globalThis.BroadcastChannel = class { postMessage() {} addEventListener() {} };
 const vite = await createServer({ configFile: false, server: { middlewareMode: true, hmr: false, watch: null }, appType: "custom", optimizeDeps: { noDiscovery: true }, plugins: [{ name: "detalhe-para-teste", transform(code, id) { if (id.replaceAll('\\', '/').endsWith('/ConfigDasFerramentas.tsx')) return `${code}\nexport { Detalhe as DetalheParaTeste };`; } }] });
 after(() => vite.close());

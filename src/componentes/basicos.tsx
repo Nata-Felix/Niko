@@ -181,6 +181,10 @@ interface PropsModal {
 export function Modal({ aberto, titulo, aoFechar, children, largo }: PropsModal) {
   const caixa = useRef<HTMLDivElement>(null);
   const focoAnterior = useRef<Element | null>(null);
+  // Quem usa o modal costuma passar uma função nova a cada render; se ela entrasse nas dependências,
+  // cada tecla digitada reabriria o efeito e devolveria o foco ao primeiro campo.
+  const fecharAtual = useRef(aoFechar);
+  fecharAtual.current = aoFechar;
 
   useEffect(() => {
     if (!aberto) return;
@@ -192,7 +196,7 @@ export function Modal({ aberto, titulo, aoFechar, children, largo }: PropsModal)
     const aoTeclar = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         e.stopPropagation();
-        aoFechar();
+        fecharAtual.current();
       }
       if (e.key === "Tab" && caixa.current) {
         const focaveis = Array.from(caixa.current.querySelectorAll<HTMLElement>("button, input, textarea, select, [tabindex='0']")).filter((el) => !el.hasAttribute("disabled"));
@@ -214,7 +218,7 @@ export function Modal({ aberto, titulo, aoFechar, children, largo }: PropsModal)
       window.removeEventListener("keydown", aoTeclar, true);
       if (focoAnterior.current instanceof HTMLElement) focoAnterior.current.focus();
     };
-  }, [aberto, aoFechar]);
+  }, [aberto]);
 
   const destino = document.getElementById("camada-sistema") ?? document.body;
 

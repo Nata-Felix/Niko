@@ -159,12 +159,13 @@ As opções de pacote do Linux ficam em `src-tauri/tauri.linux.conf.json`, que o
 | Variável | Para que serve |
 | -------- | -------------- |
 | `GDK_BACKEND` | O Niko define `x11` sozinho; defina outro valor para sobrescrever |
-| `WEBKIT_DISABLE_DMABUF_RENDERER=1` | Contorna janela em branco ou preta em algumas placas de vídeo (por exemplo NVIDIA) |
+| `WEBKIT_DISABLE_DMABUF_RENDERER` | O Niko define `1` sozinho, o que evita janela em branco ou preta em algumas placas de vídeo (por exemplo NVIDIA). Defina `0` para voltar ao desenho padrão do WebKitGTK |
+| `WEBKIT_DISABLE_COMPOSITING_MODE` | O Niko define `1` sozinho quando não há compositor (X11 simples ou máquina virtual), o que evita janela em branco. Defina `0` para manter a composição acelerada |
 | `NO_STRIP=true` | Evita falha do empacotador do AppImage |
 | `XDG_DATA_HOME` | Muda a pasta de dados (padrão `~/.local/share`) |
 
 ```bash
-WEBKIT_DISABLE_DMABUF_RENDERER=1 pnpm tauri dev
+WEBKIT_DISABLE_DMABUF_RENDERER=0 pnpm tauri dev
 ```
 
 ### Outros comandos

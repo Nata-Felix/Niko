@@ -29,6 +29,7 @@ import { mudarTema } from "../../janelas/area-de-trabalho/mudarTema";
 import { EditorFoto } from "../../componentes/FotoPerfil";
 import { SeletorDeFundo } from "./SeletorDeFundo";
 import { SecaoClaudeCode } from "./SecaoClaudeCode";
+import { MapaDaIa } from "./MapaDaIa";
 import { SecaoAssistive } from "./SecaoAssistive";
 import { EditorDeAtalhos } from "./EditorDeAtalhos";
 import { AlternadorAjuste, FaixaAjuste, GrupoAjuste, LinhaAjuste, NotaAjuste, Teclas } from "./LinhaAjuste";
@@ -728,6 +729,7 @@ export default function Configuracoes() {
         <AlternadorAjuste rotulo={T.configuracoes.privacidade} dica={T.configuracoes.privacidadeDica} ligado={cfg.privacidade} aoMudar={(v) => cfg.definir({ privacidade: v })} />
         <AlternadorAjuste rotulo={T.configuracoes.pausarConexoes} ligado={cfg.pausarConexoes} aoMudar={(v) => cfg.definir({ pausarConexoes: v })} />
         <AlternadorAjuste rotulo={T.configuracoes.nuncaFinanceiro} ligado={cfg.nuncaFinanceiro} aoMudar={(v) => cfg.definir({ nuncaFinanceiro: v })} />
+        <AlternadorAjuste rotulo={T.configuracoes.pesquisaNaWeb} dica={T.configuracoes.pesquisaNaWebDica} ligado={cfg.pesquisaNaWeb} aoMudar={(v) => cfg.definir({ pesquisaNaWeb: v })} />
         <LinhaAjuste rotulo={T.configuracoes.limparChat}>
           <Botao variante="perigo" icone={<Trash2 size={13} />} onClick={() => setLimparChat(true)}>{T.geral.limpar}</Botao>
         </LinhaAjuste>
@@ -786,6 +788,7 @@ export default function Configuracoes() {
             {TODOS_OS_SONS.map((s) => <button key={s} type="button" className="pilula mono" onClick={() => void tocarSom(s)}>{s}</button>)}
           </div>
         </div>
+        <MapaDaIa />
       </>
     ),
   };

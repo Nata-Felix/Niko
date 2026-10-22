@@ -160,7 +160,8 @@ test("capacidades vêm das definições reais e respeitam conexões e privacidad
   for (const nome of ["ler_pomodoro", "controlar_pomodoro", "listar_capacidades", "ler_relatorio_semanal"]) assert.ok(nomes.includes(nome));
   assert.ok(!nomes.includes("enviar_email"));
   assert.ok(!nomes.includes("ler_financas"));
-  assert.match(textoCapacidades(), /Não pesquiso na internet/);
+  assert.match(textoCapacidades(), /internet só é consultada pelas ferramentas buscar_na_web e ler_pagina/);
+  assert.match(textoCapacidades(), /Não controlo programas/);
   assert.match(textoCapacidades(), /controlar_pomodoro/);
   useComunicacao.setState({ conexoes: [{ id: "google", chaveSalva: true }] });
   useConfig.setState({ nuncaFinanceiro: false });
@@ -558,4 +559,53 @@ test("simplificação de dívidas desconta os acertos", async () => {
   assert.deepEqual(simplificarDividas({ pessoas: [], divisoes, acertos: [] }), [{ de: "ana", para: "eu", valor: 50 }]);
   assert.deepEqual(simplificarDividas({ pessoas: [], divisoes, acertos: [{ id: "a", pessoaId: "ana", valor: 50, data: "2026-10-02" }] }), []);
   assert.deepEqual(simplificarDividas({ pessoas: [], divisoes, acertos: [{ id: "a", pessoaId: "ana", valor: 20, data: "2026-10-02" }] }), [{ de: "ana", para: "eu", valor: 30 }]);
+});
+
+test("ferramentas de metas e estudos preparam cartões que só gravam na confirmação", async () => {
+  const { confirmarComando } = await servidor.ssrLoadModule("/src/utilitarios/comandos.ts");
+  const { useOrganizacao } = await servidor.ssrLoadModule("/src/estado/organizacao.ts");
+  const { useEstudos } = await servidor.ssrLoadModule("/src/estado/estudos.ts");
+  useOrganizacao.setState({ metas: [] });
+  useEstudos.setState({ areas: [], materias: [], paginas: [], datas: [], cartoes: [], revisoesConteudo: [] });
+  const o = useOrganizacao.getState();
+  o.criarMeta({ nome: "Ler livros", pilarId: "p", tipo: "manual", alvo: 10, atual: 0, periodo: "ano" });
+  o.criarMeta({ nome: "Treino", pilarId: "p", tipo: "tarefas", alvo: 1, atual: 0, periodo: "ano" });
+  assert.equal((await executarFerramenta("atualizar_meta", { meta: "Treino", valor: 3 })).tipo, "erro");
+  assert.equal((await executarFerramenta("atualizar_meta", { meta: "Ler livros", valor: -1 })).tipo, "erro");
+  const meta = await executarFerramenta("atualizar_meta", { meta: "ler livros", valor: 4 });
+  assert.equal(meta.tipo, "confirmar");
+  assert.equal(useOrganizacao.getState().metas[0].atual, 0);
+  confirmarComando(meta.cartao);
+  assert.equal(useOrganizacao.getState().metas[0].atual, 4);
+
+  const e = useEstudos.getState();
+  const area = e.criarArea("Idiomas", "idiomas");
+  const materia = e.criarMateria(area.id, "Inglês");
+  const pagina = e.criarPagina(materia.id);
+  e.atualizarPagina(pagina.id, { titulo: "Verbos irregulares" });
+  const estudada = await executarFerramenta("marcar_estudada", { pagina: "verbos" });
+  assert.equal(estudada.agente, "tutor");
+  confirmarComando(estudada.cartao);
+  assert.equal(useEstudos.getState().revisoesConteudo.length, 3);
+  assert.equal((await executarFerramenta("criar_cartao_revisao", { materia: "", pergunta: "a", resposta: "b" })).tipo, "erro");
+  const cartao = await executarFerramenta("criar_cartao_revisao", { materia: "inglês", pergunta: "go", resposta: "went" });
+  confirmarComando(cartao.cartao);
+  assert.equal(useEstudos.getState().cartoes[0].frente, "go");
+  const prova = await executarFerramenta("criar_data_estudo", { materia: "Inglês", titulo: "Prova oral", tipo: "inventado", data: "2026-12-01" });
+  assert.equal(prova.cartao.dados.tipo, "prova");
+  confirmarComando(prova.cartao);
+  assert.equal(useEstudos.getState().datas[0].titulo, "Prova oral");
+  const revisoes = await executarFerramenta("consultar_banco", { area: "revisoes_conteudo" });
+  assert.equal(revisoes.tipo, "dados");
+
+  useConfig.setState({ funcoesDesligadas: ["estudos", "metas"] });
+  assert.ok(!definicoesFerramentas().some((f) => ["marcar_estudada", "criar_cartao_revisao", "criar_data_estudo", "atualizar_meta"].includes(f.nome)));
+});
+
+test("ferramentas de internet somem quando a pesquisa na web está desligada", () => {
+  useConfig.setState({ pesquisaNaWeb: true });
+  assert.ok(definicoesFerramentas().some((f) => f.nome === "buscar_na_web"));
+  useConfig.setState({ pesquisaNaWeb: false });
+  assert.ok(!definicoesFerramentas().some((f) => ["buscar_na_web", "ler_pagina"].includes(f.nome)));
+  useConfig.setState({ pesquisaNaWeb: true });
 });

@@ -29,6 +29,8 @@ test("edição protege inputs, texto, seletores e conteúdo editável, mas não 
     const foco = { dentro: true, closest: (seletor) => { assert.match(seletor, /input, textarea, select/); return tag; } };
     assert.equal(editandoNaIlha(raiz, foco), true);
     assert.equal(editandoNaIlha(raiz, { ...foco, dentro: false }), false);
+    // Campo focado, mas a pessoa já clicou em outro app: a ilha pode recolher.
+    assert.equal(editandoNaIlha(raiz, foco, false), false);
   }
   assert.equal(editandoNaIlha(raiz, null), false);
   assert.equal(editandoNaIlha(raiz, { dentro: true, closest: () => null }), false);

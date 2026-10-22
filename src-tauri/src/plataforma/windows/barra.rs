@@ -317,11 +317,16 @@ pub fn reservar_dock(window: WebviewWindow, reservar: bool, altura: Option<f64>)
     reservar_espaco_do_dock(&window, reservar);
 }
 
+// Fora da thread principal: SHAppBarMessage e ShowWindow na barra esperam o Explorer, e o mutex
+// ALTERANDO_BARRA é disputado com o vigia da barra. Travando aqui, todas as janelas do Niko congelariam.
 #[tauri::command]
-pub fn barra_windows(app: AppHandle, ocultar_barra: bool) {
-    if ocultar_barra {
-        ocultar(&app);
-    } else {
-        restaurar(&app);
-    }
+pub async fn barra_windows(app: AppHandle, ocultar_barra: bool) {
+    let _ = tauri::async_runtime::spawn_blocking(move || {
+        if ocultar_barra {
+            ocultar(&app);
+        } else {
+            restaurar(&app);
+        }
+    })
+    .await;
 }

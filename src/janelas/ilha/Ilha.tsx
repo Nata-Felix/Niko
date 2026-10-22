@@ -28,7 +28,9 @@ import { abaLigada } from "../../utilitarios/funcoes";
 import { tiposDeCapturaLigados } from "../../utilitarios/captura";
 import { useClaudeCode, sessaoAtiva, nomeDoModelo } from "../../estado/claudeCode";
 import { useAtualizacao } from "../../estado/atualizacao";
-import { NATIVO, liberarSistemaInicial, ouvirAtalho, ouvirEvento, usarAreaInterativa, usarCliqueFora, usarCursorFora, usarEstadoDaFrente, usarReavivamento } from "../../desktop/desktop";
+import { NATIVO, janelaAtual, liberarSistemaInicial, ouvirAtalho, ouvirEvento, usarAreaInterativa, usarCliqueFora, usarCursorFora, usarEstadoDaFrente, usarReavivamento } from "../../desktop/desktop";
+import { NO_LINUX } from "../../desktop/plataforma";
+import { escalaQueCabe, usarTamanhoDaTela } from "../usarTamanhoDaTela";
 import { Saudacao } from "./animacoes/Saudacao";
 import { usarSaudacaoDiaria } from "./animacoes/usarSaudacaoDiaria";
 import { ALTURA_DA_SAUDACAO, EVENTO_DA_SAUDACAO, LARGURA_DA_SAUDACAO } from "./animacoes/pedirSaudacao";
@@ -93,6 +95,7 @@ function estadoCalmo(e: EstadoAgente): EstadoAgente {
   return e === "alerta" || e === "erro" ? "ocioso" : e;
 }
 const LARGURA_EXPANDIDA = 660;
+const MARGEM_DA_TELA = 16;
 const SAUDACAO_VENCE_EM_MS = 15 * 60_000;
 const ALTURA_COMPACTA = 30;
 const ALTURA_COMPACTA_MIDIA = 34;
@@ -241,6 +244,7 @@ export function Ilha() {
   const appsEsconder = useConfig((s) => s.appsEsconder);
   const reavivamento = usarReavivamento();
   const frente = usarEstadoDaFrente(cfg.ativa, { esconderTelaCheia, apps: appsEsconder }, reavivamento);
+  const tela = usarTamanhoDaTela();
   const [lateraisLivresNativo, setLateraisLivresNativo] = useState(true);
   useEffect(() => {
     setLateraisLivresNativo((anterior) => areaDeTrabalhoNaFrente(frente, anterior));
@@ -303,7 +307,7 @@ export function Ilha() {
     }
     let fim = Date.now() + atraso;
     const verificar = () => {
-      if (editandoNaIlha(raiz.current, document.activeElement)) {
+      if (editandoNaIlha(raiz.current, document.activeElement, document.hasFocus())) {
         fim = Date.now() + atraso;
         setRestanteFechar(null);
         return;
@@ -384,7 +388,6 @@ export function Ilha() {
 
   if (!cfg.ativa || frente.telaCheia) return null;
 
-  const escala = ESCALA[cfg.tamanho];
   const alturaConexoes = alturaDasConexoes(conexaoSelecionada, conexaoLigada);
   const alvo = saudando
     ? { w: LARGURA_DA_SAUDACAO, h: ALTURA_DA_SAUDACAO, r: 40 }
@@ -393,6 +396,8 @@ export function Ilha() {
       : estadoEfetivo === "compacta"
         ? { w: compacta.largura, h: compacta.tipo === "revelacao" ? 56 : compacta.tipo === "midia" ? ALTURA_COMPACTA_MIDIA : ALTURA_COMPACTA, r: compacta.tipo === "midia" || compacta.tipo === "revelacao" ? 14 : 12 }
         : { w: LARGURA_ABA[abaAtual] ?? LARGURA_EXPANDIDA, h: alturaDaVisao(abaAtual, secaoHoje, alturaConexoes), r: 30 };
+  // Em tela pequena ou com zoom alto do sistema, a aba aberta encolhe para caber em vez de sair da tela.
+  const escala = escalaQueCabe(ESCALA[cfg.tamanho], { largura: alvo.w, altura: alvo.h }, { largura: tela.largura - MARGEM_DA_TELA * 2, altura: tela.altura - ALTURA_DA_FAIXA - MARGEM_DA_TELA });
   const crescendo = alvo.w * alvo.h >= anterior.current.w * anterior.current.h;
   anterior.current = { w: alvo.w, h: alvo.h };
   const transicao = crescendo ? MOLA : FECHAR;
@@ -579,6 +584,8 @@ export function Ilha() {
         onPointerEnter={() => {
           setSobre(true);
           window.clearTimeout(relogioRevelada.current);
+          // No Linux o Rust não enxerga o cursor sobre apps Wayland, então a própria ilha libera o teclado.
+          if (NATIVO && NO_LINUX) void janelaAtual().then((j) => j.setFocusable(true)).catch(() => undefined);
         }}
         onDragEnter={(e) => {
           if (!Array.from(e.dataTransfer.types).includes("Files")) return;
@@ -589,6 +596,7 @@ export function Ilha() {
         }}
         onPointerLeave={() => {
           setSobre(false);
+          if (NATIVO && NO_LINUX && !document.activeElement?.matches("input, textarea, [contenteditable='true']")) void janelaAtual().then((j) => j.setFocusable(false)).catch(() => undefined);
           window.clearTimeout(relogioHover.current);
           window.clearTimeout(relogioRevelada.current);
           if (revelada) relogioRevelada.current = window.setTimeout(() => setRevelada(false), 1500);

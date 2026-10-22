@@ -1,5 +1,5 @@
 import { useEffect, useState, type CSSProperties } from "react";
-import { Plus, Trash2, Target, ImagePlus, Pencil, Image as IconeImagem, Check, Link2 } from "lucide-react";
+import { Plus, Trash2, Target, ImagePlus, Pencil, Image as IconeImagem, Check, Link2, TrendingUp } from "lucide-react";
 import { CabecalhoAba } from "../../componentes/CabecalhoAba";
 import { Botao, Campo, Modal, Vazio, ConfirmarModal } from "../../componentes/basicos";
 import { useOrganizacao } from "../../estado/organizacao";
@@ -14,7 +14,7 @@ import { lerImagemComoDataUrl } from "../../utilitarios/basicos";
 import { tocarSom } from "../../ponte/sons";
 import { EVENTO_NOVO } from "../../janelas/area-de-trabalho/usarAtalhos";
 import { progressoDaMeta } from "../../utilitarios/progressoDaMeta";
-import type { CartaoVisao, Meta, TipoMeta } from "../../tipos";
+import type { CartaoVisao, Evento, Meta, TipoMeta } from "../../tipos";
 
 const COR_PILAR = ["var(--sucesso)", "var(--roxo)", "var(--alerta)", "var(--info)", "var(--destaque-claro)"];
 
@@ -24,12 +24,21 @@ function useProgresso() {
   const registros = useRotina((s) => s.registros);
   const sessoes = usePomodoro((s) => s.sessoes);
   const economias = useFinancas((s) => s.metasEconomia);
-  return (m: Meta) => progressoDaMeta(m, { tarefas, habitos, registros, sessoes, economias });
+  const eventos = useOrganizacao((s) => s.eventos);
+  return (m: Meta) => progressoDaMeta(m, { eventos, tarefas, habitos, registros, sessoes, economias });
 }
 
-function FormMeta({ aberto, aoFechar }: { aberto: boolean; aoFechar: () => void }) {
+// Tarefas e eventos guardam o vínculo com a meta; sem isso, ficariam presos a uma meta que não conta mais por eles.
+function desligarDaMeta(metaId: string) {
+  const rotina = useRotina.getState();
+  rotina.tarefas.filter((t) => t.metaId === metaId).forEach((t) => rotina.atualizarTarefa(t.id, { metaId: undefined }));
+  const org = useOrganizacao.getState();
+  org.eventos.filter((e) => e.metaId === metaId).forEach((e) => org.atualizarEvento(e.id, { metaId: undefined }));
+}
+
+function FormMeta({ aberto, meta, aoFechar }: { aberto: boolean; meta?: Meta | null; aoFechar: () => void }) {
   const org = useOrganizacao();
-  const habitos = useRotina((s) => s.habitos).filter((h) => !h.arquivado);
+  const habitos = useRotina((s) => s.habitos).filter((h) => !h.arquivado || h.id === meta?.vinculoId);
   const materias = useEstudos((s) => s.materias);
   const economias = useFinancas((s) => s.metasEconomia);
   const [nome, setNome] = useState("");
@@ -38,22 +47,25 @@ function FormMeta({ aberto, aoFechar }: { aberto: boolean; aoFechar: () => void 
   const [alvo, setAlvo] = useState("10");
   const [vinculo, setVinculo] = useState("");
   const [periodo, setPeriodo] = useState<"trimestre" | "ano">("trimestre");
+  const [prazo, setPrazo] = useState("");
   const [erros, setErros] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (!aberto) return;
-    setNome("");
-    setPilarId(org.pilares[0]?.id ?? "");
-    setTipo("manual");
-    setAlvo("10");
-    setVinculo("");
+    setNome(meta?.nome ?? "");
+    setPilarId(meta?.pilarId ?? org.pilares[0]?.id ?? "");
+    setTipo(meta?.tipo ?? "manual");
+    setAlvo(String(meta?.alvo ?? 10));
+    setVinculo(meta?.vinculoId ?? "");
+    setPeriodo(meta?.periodo ?? "trimestre");
+    setPrazo(meta?.prazo ?? "");
     setErros({});
-  }, [aberto]);
+  }, [aberto, meta]);
 
   const opcoesVinculo = tipo === "habito" ? habitos.map((h) => ({ id: h.id, nome: h.nome })) : tipo === "estudo" ? materias.map((m) => ({ id: m.id, nome: m.nome })) : tipo === "financeira" ? economias.map((e) => ({ id: e.id, nome: e.nome })) : [];
 
   return (
-    <Modal aberto={aberto} titulo={T.metas.novaMeta} aoFechar={aoFechar}>
+    <Modal aberto={aberto} titulo={meta ? T.metas.editarMeta : T.metas.novaMeta} aoFechar={aoFechar}>
       <form
         className="formulario"
         noValidate
@@ -66,9 +78,16 @@ function FormMeta({ aberto, aoFechar }: { aberto: boolean; aoFechar: () => void 
           if (["manual", "estudo", "habito"].includes(tipo) && (!Number.isFinite(a) || a <= 0 || a > 100000)) novos.alvo = T.validacao.entre(1, 100000);
           if (opcoesVinculo.length > 0 && !vinculo) novos.vinculo = T.validacao.obrigatorio;
           if (["habito", "estudo", "financeira"].includes(tipo) && opcoesVinculo.length === 0) novos.vinculo = T.metas.semVinculo;
+          if (prazo && !dataValida(prazo)) novos.prazo = T.validacao.dataInvalida;
           setErros(novos);
           if (Object.keys(novos).length) return;
-          org.criarMeta({ nome, pilarId, tipo, alvo: tipo === "habito" ? Math.min(100, a) : a || 100, atual: 0, vinculoId: vinculo || undefined, periodo });
+          const dados = { nome, pilarId, tipo, alvo: tipo === "habito" ? Math.min(100, a) : a || 100, vinculoId: vinculo || undefined, periodo, prazo: prazo || undefined };
+          if (meta) {
+            if (meta.tipo === "tarefas" && tipo !== "tarefas") desligarDaMeta(meta.id);
+            org.atualizarMeta(meta.id, dados);
+          } else {
+            org.criarMeta({ ...dados, atual: 0 });
+          }
           aoFechar();
         }}
       >
@@ -109,9 +128,12 @@ function FormMeta({ aberto, aoFechar }: { aberto: boolean; aoFechar: () => void 
           </Campo>
         ) : null}
         {tipo === "tarefas" && <p className="campo-dica">{T.metas.metaDeTarefas}</p>}
+        <Campo id="mt-prazo" rotulo={T.financas.prazo} erro={erros.prazo} dica={T.metas.prazoDica}>
+          <input id="mt-prazo" type="date" className="campo" value={prazo} onChange={(e) => setPrazo(e.target.value)} />
+        </Campo>
         <div className="formulario-acoes">
           <Botao onClick={aoFechar}>{T.geral.cancelar}</Botao>
-          <Botao type="submit" variante="primario">{T.geral.criar}</Botao>
+          <Botao type="submit" variante="primario">{meta ? T.geral.salvar : T.geral.criar}</Botao>
         </div>
       </form>
     </Modal>
@@ -121,24 +143,59 @@ function FormMeta({ aberto, aoFechar }: { aberto: boolean; aoFechar: () => void 
 function LigarTarefas({ meta, aoFechar }: { meta: Meta | null; aoFechar: () => void }) {
   const tarefas = useRotina((s) => s.tarefas);
   const atualizar = useRotina((s) => s.atualizarTarefa);
+  const eventos = useOrganizacao((s) => s.eventos);
+  const metas = useOrganizacao((s) => s.metas);
+  const atualizarEvento = useOrganizacao((s) => s.atualizarEvento);
   const [busca, setBusca] = useState("");
   useEffect(() => {
     if (meta) setBusca("");
   }, [meta]);
   if (!meta) return null;
+  // Um item restaurado depois de a meta dele ser excluída aponta para uma meta que não existe: conta como livre.
+  const livre = (metaId?: string) => !metaId || !metas.some((m) => m.id === metaId);
   const termo = busca.trim().toLowerCase();
   const visiveis = tarefas
-    .filter((t) => t.metaId === meta.id || !t.metaId)
+    .filter((t) => t.metaId === meta.id || livre(t.metaId))
     .filter((t) => !termo || t.titulo.toLowerCase().includes(termo))
     .sort((a, b) => Number(b.metaId === meta.id) - Number(a.metaId === meta.id) || Number(a.status === "concluida") - Number(b.status === "concluida") || a.titulo.localeCompare(b.titulo));
   const ligadas = tarefas.filter((t) => t.metaId === meta.id).length;
+  // Eventos com o mesmo título (ex.: "Academia" de segunda a sábado) entram juntos com um clique.
+  const grupos = new Map<string, Evento[]>();
+  for (const e of eventos) {
+    if (e.metaId !== meta.id && !livre(e.metaId)) continue;
+    if (termo && !e.titulo.toLowerCase().includes(termo)) continue;
+    const chave = e.titulo.trim().toLowerCase();
+    grupos.set(chave, [...(grupos.get(chave) ?? []), e]);
+  }
+  const gruposVisiveis = [...grupos.values()].sort((a, b) => Number(b.some((e) => e.metaId === meta.id)) - Number(a.some((e) => e.metaId === meta.id)) || a[0].titulo.localeCompare(b[0].titulo));
+  const eventosLigados = eventos.filter((e) => e.metaId === meta.id).length;
 
   return (
     <Modal aberto titulo={T.metas.ligarTarefasDe(meta.nome)} aoFechar={aoFechar}>
       <div className="formulario">
-        <Campo id="mt-busca-tarefa" rotulo={T.metas.buscarTarefa} dica={T.metas.tarefasLigadas(ligadas)}>
+        <Campo id="mt-busca-tarefa" rotulo={T.metas.buscarTarefa} dica={`${T.metas.tarefasLigadas(ligadas)} · ${T.metas.eventosLigados(eventosLigados)}`}>
           <input id="mt-busca-tarefa" className="campo" value={busca} maxLength={80} onChange={(e) => setBusca(e.target.value)} />
         </Campo>
+        {gruposVisiveis.length > 0 && (
+          <>
+            <span className="campo-rotulo">{T.metas.eventosDoCalendario}</span>
+            <ul className="mt-ligar-lista">
+              {gruposVisiveis.map((grupo) => {
+                const ligado = grupo.every((e) => e.metaId === meta.id);
+                return (
+                  <li key={grupo[0].id}>
+                    <button type="button" className="mt-ligar-item" aria-pressed={ligado} onClick={() => grupo.forEach((e) => atualizarEvento(e.id, { metaId: ligado ? undefined : meta.id }))}>
+                      <span className="mt-ligar-marca">{ligado && <Check size={12} />}</span>
+                      <span className="mt-ligar-titulo cortar">{grupo[0].titulo}</span>
+                      <span className="mt-ligar-data">{grupo.length > 1 ? T.metas.quantosEventos(grupo.length) : grupo[0].repeticao !== "nenhuma" ? T.calendario.repeticoes[grupo[0].repeticao] : formatar(grupo[0].data, "d/MM")}</span>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+            <span className="campo-rotulo">{T.calendario.fontes.tarefas}</span>
+          </>
+        )}
         {visiveis.length === 0 ? (
           <p className="campo-dica">{T.metas.semTarefasParaLigar}</p>
         ) : (
@@ -259,9 +316,9 @@ export default function Metas() {
   const [valor, setValor] = useState("");
   const [excluir, setExcluir] = useState<Meta | null>(null);
   const [ligando, setLigando] = useState<Meta | null>(null);
-  const atualizarTarefa = useRotina((s) => s.atualizarTarefa);
+  const [editando, setEditando] = useState<Meta | null>(null);
   const excluirMeta = (meta: Meta) => {
-    tarefas.filter((t) => t.metaId === meta.id).forEach((t) => atualizarTarefa(t.id, { metaId: undefined }));
+    desligarDaMeta(meta.id);
     org.excluirMeta(meta.id);
   };
 
@@ -363,7 +420,8 @@ export default function Metas() {
                 <span className={`etiqueta ${pct >= 1 ? "etiqueta-sucesso" : "etiqueta-info"}`}>{pct >= 1 ? T.metas.estados.concluida : T.metas.estados.em_andamento}</span>
                 <span className="mt-meta-acoes">
                   {m.tipo === "tarefas" && <Botao pequeno soIcone variante="fantasma" icone={<Link2 size={13} />} aria-label={T.metas.ligarTarefas} title={T.metas.ligarTarefas} onClick={() => setLigando(m)} />}
-                  {m.tipo === "manual" && <Botao pequeno soIcone variante="fantasma" icone={<Pencil size={13} />} aria-label={T.metas.atualizarValor} title={T.metas.atualizarValor} onClick={() => { setAtualizando(m); setValor(String(m.atual)); }} />}
+                  {m.tipo === "manual" && <Botao pequeno soIcone variante="fantasma" icone={<TrendingUp size={13} />} aria-label={T.metas.atualizarValor} title={T.metas.atualizarValor} onClick={() => { setAtualizando(m); setValor(String(m.atual)); }} />}
+                  <Botao pequeno soIcone variante="fantasma" icone={<Pencil size={13} />} aria-label={T.metas.editarMeta} title={T.metas.editarMeta} onClick={() => setEditando(m)} />
                   <Botao pequeno soIcone variante="fantasma" icone={<Trash2 size={13} />} aria-label={T.geral.excluir} title={T.geral.excluir} onClick={() => setExcluir(m)} />
                 </span>
               </span>
@@ -434,7 +492,7 @@ export default function Metas() {
           </div>
         </form>
       </Modal>
-      <FormMeta aberto={novaMeta} aoFechar={() => setNovaMeta(false)} />
+      <FormMeta aberto={novaMeta || !!editando} meta={editando} aoFechar={() => { setNovaMeta(false); setEditando(null); }} />
       <FormVisao aberto={novaVisao} aoFechar={() => setNovaVisao(false)} />
       <Modal aberto={!!atualizando} titulo={T.metas.atualizarValor} aoFechar={() => setAtualizando(null)}>
         {atualizando && (

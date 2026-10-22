@@ -343,10 +343,11 @@ export interface Evento {
   ultimoDisparo?: string;
   excecoes?: string[];
   feitos?: string[];
+  metaId?: string;
 }
 
 export interface CartaoConfirmacao {
-  tipo: "gasto" | "receita" | "dividir" | "tarefa" | "lembrete" | "evento" | "concluir" | "eventoFeito" | "habito" | "novoHabito" | "compra" | "memoria" | "rascunho" | "email";
+  tipo: "gasto" | "receita" | "dividir" | "tarefa" | "lembrete" | "evento" | "concluir" | "eventoFeito" | "habito" | "novoHabito" | "compra" | "memoria" | "rascunho" | "email" | "progressoMeta" | "estudada" | "cartaoEstudo" | "dataEstudo";
   dados: Record<string, string | number | string[]>;
   situacao: "pendente" | "confirmado" | "cancelado" | "verificar";
 }

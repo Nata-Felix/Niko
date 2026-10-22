@@ -77,7 +77,7 @@ fn programa_do_processo(pid: u32) -> String {
 }
 
 fn janela_do_x11() -> Option<Janela> {
-    let id = x11::janela_ativa()?;
+    let id = x11::janela_dona(x11::janela_ativa()?);
     let j = x11::ler_janela(id)?;
     Some(Janela { pid: j.pid, maximizada: j.maximizada, tela_cheia: j.tela_cheia, minimizada: j.minimizada, area_de_trabalho: j.area_de_trabalho, geometria: j.geometria })
 }

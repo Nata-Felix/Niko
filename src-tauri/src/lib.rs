@@ -18,6 +18,27 @@ mod salvamento;
 use plataforma::{barra, janela_frente, miniaturas};
 
 const PORTA: u16 = 47831;
+const PORTAS_RESERVA: u16 = 20;
+const ESPERA_PELA_PORTA: Duration = Duration::from_secs(5);
+static PORTA_ATUAL: std::sync::atomic::AtomicU16 = std::sync::atomic::AtomicU16::new(PORTA);
+
+fn porta_livre(porta: u16) -> bool {
+    std::net::TcpListener::bind(("127.0.0.1", porta)).is_ok()
+}
+
+// A porta padrão costuma estar ocupada só pela ponte de um Niko que acabou de fechar, que sai em até 3 s;
+// por isso espera um pouco antes de trocar, já que os ganchos do Claude Code guardam a porta.
+// Só se outro programa a mantiver ocupada a ponte vai para uma das portas seguintes.
+fn escolher_porta() -> u16 {
+    let limite = std::time::Instant::now() + ESPERA_PELA_PORTA;
+    while std::time::Instant::now() < limite {
+        if porta_livre(PORTA) {
+            return PORTA;
+        }
+        std::thread::sleep(Duration::from_millis(250));
+    }
+    (PORTA + 1..=PORTA + PORTAS_RESERVA).find(|p| porta_livre(*p)).unwrap_or(PORTA)
+}
 const ALTURA_ILHA: f64 = 720.0;
 const ALTURA_DOCK: f64 = 400.0;
 
@@ -33,6 +54,68 @@ struct Estado {
     areas: Mutex<HashMap<String, Vec<Retangulo>>>,
     token: String,
     ponte: Mutex<Option<Child>>,
+    sinais: Mutex<HashMap<String, std::time::Instant>>,
+}
+
+const LOG_DE_EVENTOS_MAXIMO: u64 = 256 * 1024;
+
+// Linhas curtas sobre abrir, recarregar e encerrar, para diagnosticar relatos de "o Niko não abre mais".
+fn anotar(app: &AppHandle, texto: &str) {
+    let Ok(pasta) = app.path().app_data_dir() else { return };
+    let _ = std::fs::create_dir_all(&pasta);
+    let caminho = pasta.join("niko-eventos.log");
+    if std::fs::metadata(&caminho).is_ok_and(|m| m.len() > LOG_DE_EVENTOS_MAXIMO) {
+        let _ = std::fs::remove_file(&caminho);
+    }
+    let segundos = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_secs()).unwrap_or(0);
+    if let Ok(mut arquivo) = std::fs::OpenOptions::new().create(true).append(true).open(caminho) {
+        use std::io::Write;
+        let _ = writeln!(arquivo, "{segundos} {texto}");
+    }
+}
+
+#[tauri::command]
+fn sinal_de_vida(janela: WebviewWindow, estado: tauri::State<Estado>) {
+    if let Ok(mut sinais) = estado.sinais.lock() {
+        sinais.insert(janela.label().to_string(), std::time::Instant::now());
+    }
+}
+
+const ESPERA_PELO_SINAL: Duration = Duration::from_secs(8);
+
+// Uma página que já respondeu e não volta a responder depois de mostrada morreu (o processo do WebView caiu
+// ou travou). Sem isso, o "Abrir" mostra uma janela vazia e o Niko parece não abrir mais.
+fn conferir_janelas_vivas(app: &AppHandle) {
+    let mostradas_em = std::time::Instant::now();
+    let app = app.clone();
+    tauri::async_runtime::spawn(async move {
+        tokio::time::sleep(ESPERA_PELO_SINAL).await;
+        if ENCERRANDO.load(Ordering::Relaxed) { return; }
+        let sinais = match app.state::<Estado>().sinais.lock() {
+            Ok(s) => s.clone(),
+            Err(_) => return,
+        };
+        for (rotulo, janela) in app.webview_windows() {
+            if !janela.is_visible().unwrap_or(false) { continue; }
+            let Some(ultimo) = sinais.get(&rotulo) else { continue };
+            if *ultimo < mostradas_em {
+                anotar(&app, &format!("janela {rotulo} sem resposta depois de mostrada; recarregando"));
+                let _ = janela.reload();
+            }
+        }
+    });
+}
+
+const LIMITE_PARA_ENCERRAR: Duration = Duration::from_secs(6);
+
+// Se o encerramento travar (o Explorer pode demorar a responder ao devolver a barra de tarefas), o processo
+// continuaria vivo segurando a instância única, e abrir o Niko de novo não faria nada.
+fn garantir_encerramento(app: &AppHandle) {
+    anotar(app, "encerrando");
+    std::thread::spawn(|| {
+        std::thread::sleep(LIMITE_PARA_ENCERRAR);
+        std::process::exit(0);
+    });
 }
 
 fn gerar_token() -> String {
@@ -42,9 +125,13 @@ fn gerar_token() -> String {
 }
 
 #[tauri::command]
-fn area_interativa(janela: String, retangulos: Vec<Retangulo>, estado: tauri::State<Estado>) {
+fn area_interativa(app: AppHandle, janela: String, retangulos: Vec<Retangulo>, estado: tauri::State<Estado>) {
+    let caixas: Vec<[f64; 4]> = retangulos.iter().map(|r| [r.x, r.y, r.w, r.h]).collect();
     if let Ok(mut areas) = estado.areas.lock() {
-        areas.insert(janela, retangulos);
+        areas.insert(janela.clone(), retangulos);
+    }
+    if let Some(alvo) = app.get_webview_window(&janela) {
+        plataforma::definir_area_de_entrada(&alvo, caixas);
     }
 }
 
@@ -55,7 +142,7 @@ fn token_ponte(estado: tauri::State<Estado>) -> String {
 
 #[tauri::command]
 fn porta_ponte() -> u16 {
-    PORTA
+    PORTA_ATUAL.load(Ordering::Relaxed)
 }
 
 #[tauri::command]
@@ -72,20 +159,6 @@ fn liberar_abertura(app: &AppHandle) {
     }
 }
 
-#[cfg(target_os = "macos")]
-fn mostrar_inicial(app: &AppHandle) {
-    if let Some(janela) = app.get_webview_window("sistema") {
-        let _ = janela.unminimize();
-        // No macOS, centralizar/maximizar durante a criação não é confiável
-        // enquanto a janela ainda está oculta. Aplique ao revelá-la.
-        let _ = janela.center();
-        let _ = janela.show();
-        let _ = janela.maximize();
-        let _ = janela.set_focus();
-    }
-}
-
-#[cfg(not(target_os = "macos"))]
 fn mostrar_inicial(app: &AppHandle) {
     mostrar(app);
 }
@@ -100,14 +173,16 @@ async fn tempo_ocioso_ms() -> u64 {
     tauri::async_runtime::spawn_blocking(plataforma::tempo_ocioso_ms).await.unwrap_or(0)
 }
 
+// Ativar ou minimizar a janela de outro app espera a resposta dele; com o app "Não respondendo",
+// isso na thread principal congelaria o Niko inteiro.
 #[tauri::command]
-fn agir_na_janela(acao: String, janela: String) -> bool {
-    janela.parse::<isize>().is_ok_and(|id| plataforma::agir_na_janela(&acao, id))
+async fn agir_na_janela(acao: String, janela: String) -> bool {
+    tauri::async_runtime::spawn_blocking(move || janela.parse::<isize>().is_ok_and(|id| plataforma::agir_na_janela(&acao, id))).await.unwrap_or(false)
 }
 
 #[tauri::command]
-fn devolver_foco() {
-    plataforma::devolver_foco();
+async fn devolver_foco() {
+    let _ = tauri::async_runtime::spawn_blocking(plataforma::devolver_foco).await;
 }
 
 #[tauri::command]
@@ -164,8 +239,10 @@ fn mostrar(app: &AppHandle) {
 }
 
 fn reabrir(app: &AppHandle) {
+    anotar(app, if ENCERRANDO.load(Ordering::Relaxed) { "reabrir durante o encerramento" } else { "reabrir" });
     mostrar(app);
     reavivar_sobrepostas(app);
+    conferir_janelas_vivas(app);
 }
 
 fn esconder_sistema(janela: &WebviewWindow) {
@@ -208,6 +285,19 @@ fn dock_sob_o_cursor(app: &AppHandle) -> Option<WebviewWindow> {
         })
     });
     sob_o_cursor.or_else(|| docks.iter().find(|(r, _)| r == "dock")).or(docks.first()).map(|(_, j)| j.clone())
+}
+
+fn executar_atalho(app: &AppHandle, acao: &str) {
+    match acao {
+        "lupa" => abrir_lupa(app),
+        "sistema" => alternar_sistema(app.clone()),
+        "captura" => {
+            mostrar(app);
+            let _ = app.emit_to("sistema", "niko://captura", ());
+        }
+        "pedido" | "proximaAba" | "terminal" => atalhos::avisar_janela(app, "ilha", acao),
+        _ => atalhos::avisar_janela(app, "sistema", acao),
+    }
 }
 
 fn abrir_lupa(app: &AppHandle) {
@@ -333,7 +423,7 @@ fn iniciar_ponte(app: &AppHandle, token: &str, reinicio: bool) {
             comando.stderr(std::process::Stdio::null());
         }
     }
-    comando.arg("ponte.mjs").env("NIKO_PORTA", PORTA.to_string()).env("NIKO_TOKEN", token).env("NIKO_PAI", std::process::id().to_string());
+    comando.arg("ponte.mjs").env("NIKO_PORTA", PORTA_ATUAL.load(Ordering::Relaxed).to_string()).env("NIKO_TOKEN", token).env("NIKO_PAI", std::process::id().to_string());
     plataforma::esconder_console(&mut comando);
     let estado = app.state::<Estado>();
     let Ok(mut ponte) = estado.ponte.lock() else { return };
@@ -430,7 +520,10 @@ pub fn run() {
     let escondido = std::env::args().any(|a| a == "--escondido");
 
     let app = tauri::Builder::default()
-        .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| reabrir(app)))
+        .plugin(tauri_plugin_single_instance::init(|app, args, _cwd| match atalhos::acao_dos_argumentos(&args) {
+            Some(acao) => executar_atalho(app, &acao),
+            None => reabrir(app),
+        }))
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_notification::init())
@@ -442,20 +535,11 @@ pub fn run() {
                         return;
                     }
                     let Some(acao) = atalhos::acao_de(app, atalho) else { return };
-                    match acao.as_str() {
-                        "lupa" => abrir_lupa(app),
-                        "sistema" => alternar_sistema(app.clone()),
-                        "captura" => {
-                            mostrar(app);
-                            let _ = app.emit_to("sistema", "niko://captura", ());
-                        }
-                        "pedido" | "proximaAba" | "terminal" => atalhos::avisar_janela(app, "ilha", &acao),
-                        _ => atalhos::avisar_janela(app, "sistema", &acao),
-                    }
+                    executar_atalho(app, &acao);
                 })
                 .build(),
         )
-        .manage(Estado { areas: Mutex::new(HashMap::new()), token: token.clone(), ponte: Mutex::new(None) })
+        .manage(Estado { areas: Mutex::new(HashMap::new()), token: token.clone(), ponte: Mutex::new(None), sinais: Mutex::new(HashMap::new()) })
         .manage(miniaturas::Miniaturas::default())
         .manage(salvamento::ControleSalvamento::default())
         .manage(atalhos::Atalhos::default())
@@ -482,11 +566,20 @@ pub fn run() {
             miniaturas::miniaturas_janelas,
             atalhos::definir_atalhos,
             devolver_foco,
-            agir_na_janela
+            agir_na_janela,
+            sinal_de_vida
         ])
         .setup(move |app| {
             let handle = app.handle().clone();
             barra::restaurar(&handle);
+            // Aqui, e não no início de run(): uma segunda abertura sai na instância única sem esperar a porta.
+            if !cfg!(debug_assertions) {
+                let porta = escolher_porta();
+                if porta != PORTA {
+                    anotar(&handle, &format!("porta {PORTA} ocupada; ponte na porta {porta}"));
+                }
+                PORTA_ATUAL.store(porta, Ordering::Relaxed);
+            }
             let alvo_da_ponte = handle.clone();
             let chave_da_ponte = token.clone();
             tauri::async_runtime::spawn_blocking(move || iniciar_ponte(&alvo_da_ponte, &chave_da_ponte, false));
@@ -538,9 +631,13 @@ pub fn run() {
                 }
             });
 
-            criar_sobreposta(&handle, "ilha", tela_y, tela_x, tela_largura, ALTURA_ILHA)?;
-            criar_sobreposta(&handle, "dock", my + mh - ALTURA_DOCK, mx, mw, ALTURA_DOCK)?;
-            criar_sobreposta(&handle, "assistive", my, mx, mw, mh)?;
+            if plataforma::sobrepostas_transparentes() {
+                criar_sobreposta(&handle, "ilha", tela_y, tela_x, tela_largura, ALTURA_ILHA)?;
+                criar_sobreposta(&handle, "dock", my + mh - ALTURA_DOCK, mx, mw, ALTURA_DOCK)?;
+                criar_sobreposta(&handle, "assistive", my, mx, mw, mh)?;
+            } else {
+                anotar(&handle, "sem compositor: ilha, dock e AssistiveTouch desligados para não cobrir a janela principal");
+            }
             for rotulo in ["ilha", "dock", "assistive"] {
                 if let Some(j) = handle.get_webview_window(rotulo) {
                     plataforma::ignorar_cursor(&j, true);
@@ -549,6 +646,7 @@ pub fn run() {
             docks::sincronizar(&handle);
             docks::vigiar_monitores(handle.clone());
             vigiar_cursor(handle.clone());
+            plataforma::vigiar_frente(&handle);
 
             let abrir = MenuItem::with_id(app, "abrir", "Abrir o Niko", true, None::<&str>)?;
             let sair_item = MenuItem::with_id(app, "sair", "Sair", true, None::<&str>)?;
@@ -579,6 +677,7 @@ pub fn run() {
     app.run(|handle, evento| {
         if let RunEvent::Exit = evento {
             ENCERRANDO.store(true, Ordering::Relaxed);
+            garantir_encerramento(handle);
             for (rotulo, janela) in handle.webview_windows() {
                 if docks::eh_dock(&rotulo) {
                     barra::reservar_espaco_do_dock(&janela, false);

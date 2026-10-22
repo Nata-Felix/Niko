@@ -1,4 +1,4 @@
-import { TECLA_SUPER } from "../desktop/plataforma";
+import { NO_LINUX, TECLA_SUPER } from "../desktop/plataforma";
 
 export const ACOES_GLOBAIS =["captura", "lupa", "sistema", "pomodoro", "midia", "privacidade", "naoPerturbe", "pedido", "proximaAba", "terminal"] as const;
 
@@ -6,9 +6,12 @@ export type AcaoGlobal = (typeof ACOES_GLOBAIS)[number];
 
 export type SituacaoDoAtalho = "ok" | "desligado" | "invalido" | "repetido" | "digita_caractere" | "em_uso";
 
+// No Cinnamon e no KDE, Ctrl+Alt+L bloqueia a tela; no Linux a lupa usa B, de busca.
+const LUPA_ANTIGA_NO_LINUX = "ctrl+alt+KeyL";
+
 export const ATALHOS_PADRAO: Record<AcaoGlobal, string> = {
   captura: "ctrl+alt+Space",
-  lupa: "ctrl+alt+KeyL",
+  lupa: NO_LINUX ? "ctrl+alt+KeyB" : "ctrl+alt+KeyL",
   sistema: "ctrl+alt+KeyN",
   pomodoro: "ctrl+alt+KeyP",
   midia: "ctrl+alt+KeyM",
@@ -83,6 +86,7 @@ export function atalhosComPadrao(salvos: Partial<Record<string, unknown>> | unde
   const saida = { ...ATALHOS_PADRAO };
   for (const acao of ACOES_GLOBAIS) {
     const valor = salvos?.[acao];
+    if (NO_LINUX && acao === "lupa" && valor === LUPA_ANTIGA_NO_LINUX) continue;
     if (valor === "" || (typeof valor === "string" && separarTeclas(valor))) saida[acao] = valor;
   }
   return saida;

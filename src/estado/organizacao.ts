@@ -51,7 +51,7 @@ export const useOrganizacao = create<EstadoOrganizacao>()(
       excluirPilar: (id) => set((s) => ({ pilares: s.pilares.filter((p) => p.id !== id), metas: s.metas.filter((m) => m.pilarId !== id) })),
       criarMeta: (dados) =>
         set((s) => ({ metas: [...s.metas, { ...dados, nome: dados.nome.trim().slice(0, 80), id: gerarId(), historico: [{ data: hojeISO(), valor: dados.atual }] }] })),
-      atualizarMeta: (id, parcial) => set((s) => ({ metas: s.metas.map((m) => (m.id === id ? { ...m, ...parcial } : m)) })),
+      atualizarMeta: (id, parcial) => set((s) => ({ metas: s.metas.map((m) => (m.id === id ? { ...m, ...parcial, id: m.id, historico: m.historico, nome: (parcial.nome ?? m.nome).trim().slice(0, 80) } : m)) })),
       registrarProgresso: (id, valor) =>
         set((s) => ({
           metas: s.metas.map((m) =>

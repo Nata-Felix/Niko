@@ -60,6 +60,16 @@ export function ouvirComandos(fn: (c: Comando) => void): () => void {
   return () => canal.removeEventListener("message", aoReceber);
 }
 
+const INTERVALO_SINAL_DE_VIDA_MS = 2000;
+
+// O Rust recarrega, ao reabrir o Niko, a janela que parou de mandar este sinal.
+export function iniciarSinalDeVida() {
+  if (!NATIVO) return;
+  const enviar = () => void invocar("sinal_de_vida");
+  enviar();
+  window.setInterval(enviar, INTERVALO_SINAL_DE_VIDA_MS);
+}
+
 export function foraDoSistema(): boolean {
   return NATIVO && JANELA !== "sistema";
 }
@@ -392,6 +402,8 @@ export interface EstadoDaFrente {
   frente: TipoDaFrente;
 }
 
+const EVENTO_FRENTE_MUDOU = "niko://frente-mudou";
+
 const FRENTE_LIVRE: EstadoDaFrente = { cobre: false, telaCheia: false, maximizada: false, naBase: false, frente: "area_de_trabalho" };
 
 export interface RegrasDeSumir {
@@ -464,16 +476,29 @@ export function usarEstadoDaFrente(ativo: boolean, regras: RegrasDeSumir, geraca
   useEffect(() => {
     setEstado(FRENTE_LIVRE);
     if (!NATIVO || !ativo) return;
-    return iniciarConsultaPeriodica(async (sinal) => {
+    let vivo = true;
+    const consultar = async (sinal?: AbortSignal) => {
       const r = await invocar<EstadoDaFrente & { programa?: unknown }>("frente_cobre_tela");
-      if (sinal.aborted || !r) return;
+      if (!vivo || sinal?.aborted || !r) return;
       const cobre = Boolean(r?.cobre);
       const telaCheia = deveSumirPelaFrente(Boolean(r?.telaCheia), typeof r.programa === "string" ? r.programa : "", regrasAtuais.current);
       const maximizada = Boolean(r?.maximizada);
       const naBase = Boolean(r?.naBase);
       const frente: TipoDaFrente = r?.frente === "app" || r?.frente === "sobreposta" ? r.frente : "area_de_trabalho";
       setEstado((anterior) => (anterior.cobre === cobre && anterior.telaCheia === telaCheia && anterior.maximizada === maximizada && Boolean(anterior.naBase) === naBase && anterior.frente === frente ? anterior : { cobre, telaCheia, maximizada, naBase, frente }));
-    }, 800);
+    };
+    // O Windows avisa quando a janela da frente muda; a consulta periódica fica como rede de segurança.
+    let desligarAviso: () => void = () => undefined;
+    void ouvirEvento(EVENTO_FRENTE_MUDOU, () => void consultar()).then((f) => {
+      if (vivo) desligarAviso = f;
+      else f();
+    });
+    const pararConsulta = iniciarConsultaPeriodica(consultar, 800);
+    return () => {
+      vivo = false;
+      desligarAviso();
+      pararConsulta();
+    };
   }, [ativo, geracao]);
   return estado;
 }

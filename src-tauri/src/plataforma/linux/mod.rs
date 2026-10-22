@@ -1,11 +1,26 @@
+mod atalhos_gnome;
 pub mod barra;
 pub mod janela_frente;
 pub mod miniaturas;
 mod x11;
 
+pub use atalhos_gnome::atalhos_do_sistema;
+
+// Sem compositor (X11 simples, máquina virtual, o teste do catálogo de AppImages) janela transparente
+// vira retângulo preto: a ilha, o dock e o AssistiveTouch, que cobrem faixas enormes da tela sempre por
+// cima, esconderiam a janela principal. Nesse caso o Niko abre só como janela comum.
+pub fn sobrepostas_transparentes() -> bool {
+    !x11::sem_compositor()
+}
+
+// No Linux a frente é lida por consulta (X11 ou extensão do GNOME); não há aviso equivalente aqui.
+pub fn vigiar_frente(_app: &AppHandle) {}
+
+use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::sync::atomic::{AtomicU32, Ordering};
+use std::sync::{LazyLock, Mutex};
 
 use tauri::{AppHandle, WebviewWindow};
 use tauri_plugin_global_shortcut::Shortcut;
@@ -15,6 +30,18 @@ pub use barra::RECT;
 pub fn preparar_ambiente() {
     if std::env::var_os("GDK_BACKEND").is_none() {
         std::env::set_var("GDK_BACKEND", "x11");
+    }
+    // O desenho por DMABUF do WebKitGTK falha em várias placas (NVIDIA principalmente) e pelo XWayland:
+    // a janela abre vazia e o terminal mostra "Failed to create GBM buffer". Quem instala o pacote não
+    // lê o README, então o contorno vem ligado; WEBKIT_DISABLE_DMABUF_RENDERER=0 volta ao padrão.
+    if std::env::var_os("WEBKIT_DISABLE_DMABUF_RENDERER").is_none() {
+        std::env::set_var("WEBKIT_DISABLE_DMABUF_RENDERER", "1");
+    }
+    // Sem compositor (X11 simples, máquina virtual, o teste do catálogo de AppImages) a composição
+    // acelerada do WebKitGTK também deixa a janela em branco. Com compositor ela fica ligada,
+    // porque deixa as animações da ilha e do dock mais leves.
+    if std::env::var_os("WEBKIT_DISABLE_COMPOSITING_MODE").is_none() && x11::sem_compositor() {
+        std::env::set_var("WEBKIT_DISABLE_COMPOSITING_MODE", "1");
     }
 }
 
@@ -81,12 +108,47 @@ pub fn botao_do_mouse_pressionado() -> bool {
 
 pub const SOBREPOSTA_FOCAVEL_AO_CRIAR: bool = false;
 
+// No GNOME em Wayland o Niko roda pelo XWayland, que só enxerga o cursor sobre janelas X11.
+// Sobre apps nativos a posição global fica parada, então a janela não pode depender dela para
+// voltar a receber o mouse: a área de entrada fica sempre igual às partes interativas.
+static AREAS_DE_ENTRADA: LazyLock<Mutex<HashMap<String, Vec<[f64; 4]>>>> = LazyLock::new(|| Mutex::new(HashMap::new()));
+const MARGEM_DA_AREA: f64 = 4.0;
+
+pub fn definir_area_de_entrada(janela: &WebviewWindow, caixas: Vec<[f64; 4]>) {
+    if let Ok(mut areas) = AREAS_DE_ENTRADA.lock() {
+        areas.insert(janela.label().to_string(), caixas);
+    }
+    aplicar_area_de_entrada(janela);
+}
+
+fn aplicar_area_de_entrada(janela: &WebviewWindow) {
+    let caixas = AREAS_DE_ENTRADA.lock().ok().and_then(|areas| areas.get(janela.label()).cloned()).unwrap_or_default();
+    let alvo = janela.clone();
+    let _ = janela.run_on_main_thread(move || {
+        use gtk::cairo::{RectangleInt, Region};
+        use gtk::prelude::*;
+        let Ok(gtk_janela) = alvo.gtk_window() else { return };
+        let Some(gdk_janela) = gtk_janela.window() else { return };
+        // Uma região vazia faz alguns gerenciadores voltarem a aceitar a janela inteira; 1 px no canto não atrapalha.
+        let regiao = Region::create_rectangle(&RectangleInt::new(0, 0, 1, 1));
+        for [x, y, w, h] in caixas {
+            let esquerda = (x - MARGEM_DA_AREA).floor() as i32;
+            let topo = (y - MARGEM_DA_AREA).floor() as i32;
+            let largura = (w + MARGEM_DA_AREA * 2.0).ceil() as i32;
+            let altura = (h + MARGEM_DA_AREA * 2.0).ceil() as i32;
+            let _ = regiao.union_rectangle(&RectangleInt::new(esquerda, topo, largura, altura));
+        }
+        gdk_janela.input_shape_combine_region(&regiao, 0, 0);
+    });
+}
+
 pub fn ignorar_cursor(janela: &WebviewWindow, ignorar: bool) -> bool {
     if !janela.is_visible().unwrap_or(false) {
         return false;
     }
     let _ = janela.set_focusable(!ignorar);
-    janela.set_ignore_cursor_events(ignorar).is_ok()
+    aplicar_area_de_entrada(janela);
+    true
 }
 
 pub fn retangulo_da_janela(janela: &WebviewWindow) -> Option<RECT> {

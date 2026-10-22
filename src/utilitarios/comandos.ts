@@ -1,4 +1,4 @@
-import type { AgenteId, CartaoConfirmacao, Repeticao } from "../tipos";
+import type { AgenteId, CartaoConfirmacao, Repeticao, TipoDataImportante } from "../tipos";
 import { extrairRepeticao } from "./itensDoCalendario";
 import { T } from "../textos/textos";
 import { interpretarQuando } from "./linguagem";
@@ -223,6 +223,14 @@ export function linhasDaConfirmacao(c: CartaoConfirmacao): [string, string][] {
       return [[R.itens, (d.itens as string[]).join(", ")]];
     case "memoria":
       return [[R.fato, String(d.texto)]];
+    case "progressoMeta":
+      return [[R.meta, String(d.nome)], [R.novoValor, `${d.valor} / ${d.alvo}`]];
+    case "estudada":
+      return [[R.pagina, String(d.titulo)], ...(d.materia ? ([[R.materia, String(d.materia)]] as [string, string][]) : [])];
+    case "cartaoEstudo":
+      return [[R.materia, String(d.materia)], [R.pergunta, String(d.frente)], [R.resposta, String(d.verso)]];
+    case "dataEstudo":
+      return [[R.materia, String(d.materia)], [R.titulo, String(d.titulo)], [R.tipo, T.estudos.tiposData[d.tipo as TipoDataImportante] ?? String(d.tipo)], ...quando()];
     case "rascunho":
     case "email":
       return [[R.para, String(d.para)], [R.assunto, String(d.assunto)], [R.corpo, String(d.corpo).slice(0, 400)]];
@@ -305,6 +313,36 @@ export function confirmarComando(c: CartaoConfirmacao): string | Promise<string>
   if (c.tipo === "memoria") {
     useComunicacao.getState().lembrar(String(d.texto), "organizador", "comando");
     return T.chat.respostas.lembrar;
+  }
+  if (c.tipo === "progressoMeta") {
+    const meta = useOrganizacao.getState().metas.find((m) => m.id === d.id);
+    if (!meta) return T.chat.respostas.naoAchei;
+    const valor = Number(d.valor);
+    useOrganizacao.getState().registrarProgresso(meta.id, valor);
+    void useAgentes.getState().trabalhar("organizador", meta.nome, 300);
+    return T.chat.respostas.progressoMeta(meta.nome, valor, meta.alvo);
+  }
+  if (c.tipo === "estudada") {
+    const pagina = useEstudos.getState().paginas.find((p) => p.id === d.id);
+    if (!pagina) return T.chat.respostas.naoAchei;
+    useEstudos.getState().marcarEstudada(pagina.id);
+    void useAgentes.getState().trabalhar("tutor", T.estudos.revisoesAgendadas, 400);
+    return T.chat.respostas.estudada(pagina.titulo || T.estudos.semTitulo);
+  }
+  if (c.tipo === "cartaoEstudo") {
+    const materia = useEstudos.getState().materias.find((m) => m.id === d.materiaId);
+    if (!materia) return T.chat.respostas.naoAchei;
+    useEstudos.getState().criarCartao(materia.id, String(d.frente), String(d.verso));
+    void useAgentes.getState().trabalhar("tutor", materia.nome, 300);
+    return T.chat.respostas.cartaoEstudo(materia.nome);
+  }
+  if (c.tipo === "dataEstudo") {
+    const materia = useEstudos.getState().materias.find((m) => m.id === d.materiaId);
+    if (!materia) return T.chat.respostas.naoAchei;
+    const titulo = String(d.titulo);
+    useEstudos.getState().criarData({ materiaId: materia.id, titulo, tipo: d.tipo as TipoDataImportante, data: String(d.data) });
+    void useAgentes.getState().trabalhar("tutor", titulo, 300);
+    return T.chat.respostas.dataEstudo(titulo, formatar(String(d.data), "d 'de' MMM"));
   }
   if (c.tipo === "tarefa") {
     const titulo = String(d.titulo);

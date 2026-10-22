@@ -2,7 +2,7 @@ import { addDays, addMonths, addWeeks, differenceInCalendarDays, eachDayOfInterv
 import { T } from "../textos/textos";
 import { deISO, paraISO } from "./datas";
 import { formatarDinheiro } from "./dinheiro";
-import type { Evento, Habito, Repeticao, Tarefa } from "../tipos";
+import type { Evento, Habito, Repeticao, RevisaoConteudo, Tarefa } from "../tipos";
 import type { useOrganizacao } from "../estado/organizacao";
 import type { useRotina } from "../estado/rotina";
 import type { useEstudos } from "../estado/estudos";
@@ -20,6 +20,7 @@ export interface ItemDoCalendario {
   evento?: Evento;
   habito?: Habito;
   tarefa?: Tarefa;
+  revisao?: RevisaoConteudo;
   link?: string;
 }
 
@@ -38,12 +39,13 @@ export type EscopoDaEdicao = "este" | "todos";
 export type DadosDoEvento = Omit<Evento, "id" | "ultimoDisparo" | "excecoes">;
 
 export function podeMarcarFeito(i: ItemDoCalendario): boolean {
-  return Boolean(i.evento || i.tarefa || i.habito);
+  return Boolean(i.evento || i.tarefa || i.habito || i.revisao);
 }
 
 export function itemFeito(i: ItemDoCalendario, registros: Record<string, Record<string, number>>): boolean {
   if (i.evento) return (i.evento.feitos ?? []).includes(i.data);
   if (i.tarefa) return i.tarefa.status === "concluida";
+  if (i.revisao) return i.revisao.feita;
   if (i.habito) {
     const valor = registros[i.data]?.[i.habito.id];
     return Boolean(valor) && (i.habito.tipo === "sim_nao" ? valor >= 1 : valor >= i.habito.meta);
@@ -60,6 +62,10 @@ export function ocorrencias(e: Evento, inicio: string, fim: string): string[] {
   const pular = new Set(e.excecoes ?? []);
   const resultado: string[] = [];
   let d = deISO(e.data);
+  // Diário e semanal pulam direto para perto do início; sem isso, a proteção de 800 passos esgotava
+  // antes de chegar ao período pedido em eventos com mais de dois anos.
+  const passo = e.repeticao === "diaria" ? 1 : e.repeticao === "semanal" ? 7 : 0;
+  if (passo && e.data < inicio) d = addDays(d, Math.floor(differenceInCalendarDays(deISO(inicio), d) / passo) * passo);
   let protecao = 0;
   while (paraISO(d) <= fim && protecao < 800) {
     const iso = paraISO(d);
@@ -144,7 +150,7 @@ export function itensDoCalendario(todos: DadosDoCalendario, de: string, ate: str
     }
   }
   for (const d of dados.datas) if (d.data >= de && d.data <= ate) lista.push({ id: d.id, titulo: `${T.estudos.tiposData[d.tipo]}: ${d.titulo}`, data: d.data, fonte: "estudos" });
-  for (const r of dados.revisoes) if (!r.feita && r.data >= de && r.data <= ate) lista.push({ id: r.id, titulo: T.calendario.revisao, data: r.data, fonte: "estudos" });
+  for (const r of dados.revisoes) if (!r.feita && r.data >= de && r.data <= ate) lista.push({ id: r.id, titulo: T.calendario.revisao, data: r.data, fonte: "estudos", revisao: r });
   for (const m of dados.metas) if (m.prazo && m.prazo >= de && m.prazo <= ate) lista.push({ id: m.id, titulo: m.nome, data: m.prazo, fonte: "metas" });
   for (const r of dados.recorrentes) {
     if (!r.ativa) continue;

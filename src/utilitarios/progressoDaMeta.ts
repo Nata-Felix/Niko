@@ -2,11 +2,14 @@ import { addDays } from "date-fns";
 import { useRotina, habitoCumprido } from "../estado/rotina";
 import { usePomodoro } from "../estado/pomodoro";
 import { useFinancas } from "../estado/financas";
-import { paraISO } from "./datas";
+import { useOrganizacao } from "../estado/organizacao";
+import { deISO, paraISO } from "./datas";
 import { somar } from "./basicos";
-import type { Meta } from "../tipos";
+import { ocorrencias } from "./itensDoCalendario";
+import type { Evento, Meta } from "../tipos";
 
 export interface DadosDoProgresso {
+  eventos?: Evento[];
   tarefas: ReturnType<typeof useRotina.getState>["tarefas"];
   habitos: ReturnType<typeof useRotina.getState>["habitos"];
   registros: ReturnType<typeof useRotina.getState>["registros"];
@@ -18,6 +21,13 @@ export interface ProgressoDaMeta {
   atual: number;
   alvo: number;
   rotulo: string;
+}
+
+// Ocorrências de eventos contam da criação da meta até o prazo ou o fim do período, sem contagem retroativa.
+export function janelaDaMeta(m: Meta, hoje = new Date()): { inicio: string; fim: string } {
+  const inicio = m.historico[0]?.data ?? paraISO(hoje);
+  const fim = m.prazo ?? paraISO(addDays(deISO(inicio), (m.periodo === "ano" ? 365 : 90) - 1));
+  return { inicio, fim };
 }
 
 export function progressoDaMeta(m: Meta, dados: DadosDoProgresso, hoje = new Date()): ProgressoDaMeta {
@@ -41,8 +51,19 @@ export function progressoDaMeta(m: Meta, dados: DadosDoProgresso, hoje = new Dat
     }
     case "tarefas": {
       const ligadas = dados.tarefas.filter((t) => t.metaId === m.id);
-      const feitas = ligadas.filter((t) => t.status === "concluida").length;
-      return { atual: feitas, alvo: Math.max(1, ligadas.length), rotulo: `${feitas} / ${ligadas.length}` };
+      let feitas = ligadas.filter((t) => t.status === "concluida").length;
+      let total = ligadas.length;
+      const eventos = (dados.eventos ?? []).filter((e) => e.metaId === m.id);
+      if (eventos.length > 0) {
+        const { inicio, fim } = janelaDaMeta(m, hoje);
+        for (const e of eventos) {
+          const datas = ocorrencias(e, inicio, fim);
+          const feitos = new Set(e.feitos ?? []);
+          total += datas.length;
+          feitas += datas.filter((d) => feitos.has(d)).length;
+        }
+      }
+      return { atual: feitas, alvo: Math.max(1, total), rotulo: `${feitas} / ${total}` };
     }
     default:
       return { atual: m.atual, alvo: m.alvo, rotulo: `${m.atual} / ${m.alvo}` };
@@ -51,5 +72,5 @@ export function progressoDaMeta(m: Meta, dados: DadosDoProgresso, hoje = new Dat
 
 export function dadosAtuaisDoProgresso(): DadosDoProgresso {
   const rotina = useRotina.getState();
-  return { tarefas: rotina.tarefas, habitos: rotina.habitos, registros: rotina.registros, sessoes: usePomodoro.getState().sessoes, economias: useFinancas.getState().metasEconomia };
+  return { eventos: useOrganizacao.getState().eventos, tarefas: rotina.tarefas, habitos: rotina.habitos, registros: rotina.registros, sessoes: usePomodoro.getState().sessoes, economias: useFinancas.getState().metasEconomia };
 }

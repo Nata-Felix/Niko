@@ -98,7 +98,10 @@ interface EstadoEstudos extends DadosEstudos {
   atualizarPagina: (id: string, parcial: Partial<Pagina>) => void;
   excluirPagina: (id: string) => void;
   marcarEstudada: (paginaId: string, intervalos?: number[]) => void;
+  desmarcarEstudada: (paginaId: string) => void;
   concluirRevisaoConteudo: (id: string) => void;
+  excluirRevisaoConteudo: (id: string) => RevisaoConteudo | undefined;
+  restaurarRevisaoConteudo: (revisao: RevisaoConteudo) => void;
   criarData: (dados: Omit<DataImportante, "id" | "concluida">) => void;
   atualizarData: (id: string, parcial: Partial<DataImportante>) => void;
   excluirData: (id: string) => void;
@@ -220,7 +223,19 @@ export const useEstudos = create<EstadoEstudos>()(
           ],
         }));
       },
+      desmarcarEstudada: (paginaId) =>
+        set((s) => ({
+          paginas: s.paginas.map((p) => (p.id === paginaId ? { ...p, estudadaEm: undefined } : p)),
+          revisoesConteudo: s.revisoesConteudo.filter((r) => r.paginaId !== paginaId || r.feita),
+        })),
       concluirRevisaoConteudo: (id) => set((s) => ({ revisoesConteudo: s.revisoesConteudo.map((r) => (r.id === id ? { ...r, feita: true } : r)) })),
+      excluirRevisaoConteudo: (id) => {
+        const revisao = get().revisoesConteudo.find((r) => r.id === id);
+        if (revisao) set((s) => ({ revisoesConteudo: s.revisoesConteudo.filter((r) => r.id !== id) }));
+        return revisao;
+      },
+      restaurarRevisaoConteudo: (revisao) =>
+        set((s) => (s.paginas.some((p) => p.id === revisao.paginaId) && !s.revisoesConteudo.some((r) => r.id === revisao.id) ? { revisoesConteudo: [...s.revisoesConteudo, revisao] } : s)),
       criarData: (dados) => {
         validarData(dados, get().materias);
         set((s) => ({ datas: [...s.datas, { ...dados, titulo: dados.titulo.trim(), id: gerarId(), concluida: false }] }));

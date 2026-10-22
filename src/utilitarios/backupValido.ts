@@ -9,7 +9,7 @@ import { corteDasAnalisesValido, registrosValidos } from "../modulos/escritorio/
 type Regra = string | { [campo: string]: Regra } | [Regra];
 const id = "s!";
 const transacao: Regra = { id, tipo: "receita|despesa|transferencia", valor: "i", descricao: "s!", contaId: id, contaDestinoId: "?s!", valorDestino: "?i", categoriaId: "?s!", data: "d", criadaEm: "t", parcela: { numero: "i", total: "i" } };
-const evento: Regra = { id, titulo: "s!", data: "d", hora: "?h", tipo: "evento|lembrete", repeticao: "nenhuma|diaria|semanal|mensal", excecoes: ["d"], feitos: ["d"] };
+const evento: Regra = { id, titulo: "s!", data: "d", hora: "?h", tipo: "evento|lembrete", repeticao: "nenhuma|diaria|semanal|mensal", excecoes: ["d"], feitos: ["d"], metaId: "?s!" };
 const tarefa: Regra = { id, titulo: "s", descricao: "s", status: "a_fazer|em_andamento|concluida|reagendada|cancelada|em_aguardo", prioridade: "baixa|media|alta", checklist: [{ id, texto: "s", feito: "b" }], criadaEm: "t", ordem: "n", data: "?d", hora: "?h" };
 const esquemas: Record<string, Record<string, Regra>> = {
   "escritorio-ias": { config: { ciclo: "auto|day|night", estilo: "niko|original", seguir: "b", esconderDetalhes: "b", guardarAnalises: "b", nomes: {}, salas: {} }, ignorarAte: "?n", registros: [{ id, sessao: id, projeto: id, nome: "s", ferramenta: "claude|codex|copilot|antigravity|kimi|amp|gemini|opencode", em: "n", estado: "?trabalho|espera|ocioso|erro", acao: "b", falha: "b", pedido: "b" }] },

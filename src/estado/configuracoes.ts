@@ -125,6 +125,7 @@ export interface ConfigIlha {
   iconesDaBarra: Record<IconeDaBarra, boolean>;
   monitor: string;
   midiaNaCompacta: boolean;
+  tarefasEmQuadro: boolean;
 }
 
 export type CategoriaDeAviso = "lembretes" | "habitos" | "estudos" | "financas" | "conexoes" | "codigo" | "conquistas" | "consumo";
@@ -163,6 +164,7 @@ export interface Configuracoes {
   avisosDesligados: CategoriaDeAviso[];
   sugestaoAgendaGoogle: boolean;
   nuncaFinanceiro: boolean;
+  pesquisaNaWeb: boolean;
   pausarConexoes: boolean;
   conquistasAtivas: boolean;
   esconderTelaCheia: boolean;
@@ -207,6 +209,7 @@ export const CONFIG_PADRAO: Configuracoes = {
     iconesDaBarra: { rede: true, volume: true, bateria: true },
     monitor: "",
     midiaNaCompacta: true,
+    tarefasEmQuadro: false,
   },
   dock: { ativo: true, modo: "inteligente", favoritos: ["chat", "journal", "estudos", "financas", "calendario"], atalhos: [], fixados: [], escala: 1, appsDeTodosOsMonitores: false, reservarEspaco: true, ampliar: true, mostrarIniciar: true, mostrarBusca: true, fundo: FUNDO_PADRAO_DAS_BORDAS, opacidade: 1, monitores: "todos", buscador: "google" },
   assistive: ASSISTIVE_PADRAO,
@@ -235,6 +238,7 @@ export const CONFIG_PADRAO: Configuracoes = {
   avisosDesligados: [],
   sugestaoAgendaGoogle: true,
   nuncaFinanceiro: true,
+  pesquisaNaWeb: true,
   pausarConexoes: false,
   conquistasAtivas: true,
   esconderTelaCheia: true,

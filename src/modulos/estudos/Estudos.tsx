@@ -206,6 +206,8 @@ function Anotacoes({ materia, paginaInicial }: { materia: Materia; paginaInicial
   const atualizar = useEstudos((s) => s.atualizarPagina);
   const excluir = useEstudos((s) => s.excluirPagina);
   const marcarEstudada = useEstudos((s) => s.marcarEstudada);
+  const desmarcarEstudada = useEstudos((s) => s.desmarcarEstudada);
+  const avisar = useInterface((s) => s.avisar);
   const [atual, setAtual] = useState<string | undefined>(paginaInicial ?? paginas[0]?.id);
   const [confirmar, setConfirmar] = useState(false);
   const pagina = paginas.find((p) => p.id === atual) ?? paginas[0];
@@ -262,12 +264,17 @@ function Anotacoes({ materia, paginaInicial }: { materia: Materia; paginaInicial
                   variante={pagina.estudadaEm ? "secundario" : "primario"}
                   icone={<BookCheck size={12} />}
                   onClick={() => {
+                    if (pagina.estudadaEm) {
+                      desmarcarEstudada(pagina.id);
+                      avisar(T.estudos.estudadaDesmarcada);
+                      return;
+                    }
                     marcarEstudada(pagina.id);
                     void tocarSom("proud", "personagens");
                     void useAgentes.getState().trabalhar("tutor", T.estudos.revisoesAgendadas, 400);
                   }}
                 >
-                  {T.estudos.marcarEstudada}
+                  {pagina.estudadaEm ? T.estudos.desmarcarEstudada : T.estudos.marcarEstudada}
                 </Botao>
                 <Botao pequeno soIcone variante="fantasma" icone={<Trash2 size={13} />} aria-label={T.geral.excluir} title={T.geral.excluir} onClick={() => setConfirmar(true)} />
               </div>
@@ -790,6 +797,7 @@ function Revisoes({ materia }: { materia?: Materia }) {
   const revisoesConteudo = useEstudos((s) => s.revisoesConteudo);
   const paginas = useEstudos((s) => s.paginas);
   const concluirRevisao = useEstudos((s) => s.concluirRevisaoConteudo);
+  const avisar = useInterface((s) => s.avisar);
   const [criando, setCriando] = useState(false);
   const hoje = hojeISO();
   const conteudo = revisoesConteudo.filter((r) => !r.feita && r.data <= hoje && (!materia || paginas.find((p) => p.id === r.paginaId)?.materiaId === materia.id));
@@ -811,6 +819,18 @@ function Revisoes({ materia }: { materia?: Materia }) {
               <div key={r.id} className="est-caixa-linha">
                 <span className="cortar">{paginas.find((p) => p.id === r.paginaId)?.titulo || T.estudos.semTitulo}</span>
                 <Botao pequeno onClick={() => concluirRevisao(r.id)}>{T.estudos.revisaoFeita}</Botao>
+                <Botao
+                  pequeno
+                  soIcone
+                  variante="fantasma"
+                  icone={<Trash2 size={12} />}
+                  aria-label={T.estudos.removerRevisao}
+                  title={T.estudos.removerRevisao}
+                  onClick={() => {
+                    const removida = useEstudos.getState().excluirRevisaoConteudo(r.id);
+                    if (removida) avisar(T.geral.excluido, () => useEstudos.getState().restaurarRevisaoConteudo(removida));
+                  }}
+                />
               </div>
             ))}
           </div>

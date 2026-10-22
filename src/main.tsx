@@ -37,7 +37,7 @@ import "./estilos/telas/conquistas.css";
 import "./estilos/telas/configuracoes.css";
 import "./estilos/telas/busca.css";
 import { iniciarArmazenamento } from "./ponte/armazenamento";
-import { JANELA, NATIVO, prepararPonte, desviarLinksExternos } from "./desktop/desktop";
+import { JANELA, NATIVO, prepararPonte, desviarLinksExternos, iniciarSinalDeVida } from "./desktop/desktop";
 import { T } from "./textos/textos";
 import { LimiteDeErro } from "./componentes/LimiteDeErro";
 
@@ -46,6 +46,7 @@ document.documentElement.dataset.tema = "claro";
 const SELETOR_DAS_SOBREPOSTAS = ".ilha-raiz, .ilha-gatilho, .ilha-barra, .ilha-pop, .dock, .dock-gatilho, .dock-previa";
 
 async function iniciar() {
+  iniciarSinalDeVida();
   const sobreposta = JANELA === "ilha" || JANELA === "dock" || JANELA === "assistive";
   if (sobreposta) document.documentElement.classList.add("janela-sobreposta");
   document.addEventListener("contextmenu", (e) => {

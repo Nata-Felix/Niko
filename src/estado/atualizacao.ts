@@ -85,6 +85,7 @@ export const useAtualizacao = create<EstadoAtualizacao>()((set, get) => ({
     let total = 0;
     let baixado = 0;
     let ponteParada = false;
+    let etapa: "download" | "salvamento" | "instalacao" = "download";
     try {
       await pendente.download((e) => {
         if (e.event === "Started") total = e.data?.contentLength ?? 0;
@@ -96,19 +97,22 @@ export const useAtualizacao = create<EstadoAtualizacao>()((set, get) => ({
       });
       set({ fase: "instalando", progresso: 1 });
       void tocarSom("approve", "avisos");
+      etapa = "salvamento";
       await salvarAgora();
       await prepararAtualizacao();
       ponteParada = true;
+      etapa = "instalacao";
       await pendente.install();
       const { relaunch } = await import("@tauri-apps/plugin-process");
       await relaunch();
-    } catch {
+    } catch (falha) {
+      console.error(`atualizacao falhou na etapa ${etapa}`, falha);
       if (ponteParada) {
         const { relaunch } = await import("@tauri-apps/plugin-process");
         await relaunch().catch(() => undefined);
         return;
       }
-      set({ fase: "erro", erro: T.atualizacao.erroInstalacao });
+      set({ fase: "erro", erro: etapa === "download" ? T.atualizacao.erroDownload : etapa === "salvamento" ? T.atualizacao.erroSalvamento : T.atualizacao.erroInstalacao });
       void tocarSom("error", "avisos");
     }
   },

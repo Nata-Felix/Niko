@@ -156,6 +156,8 @@ export const T = {
     instalando: "Instalando atualização...",
     erroVerificacao: "Não foi possível verificar as atualizações. Confira sua conexão e tente novamente.",
     erroInstalacao: "Não foi possível instalar a atualização. Tente novamente ou baixe pelo GitHub.",
+    erroDownload: "Não foi possível baixar a atualização. Confira sua conexão e tente novamente, ou baixe pelo GitHub.",
+    erroSalvamento: "O Niko não conseguiu salvar tudo antes de atualizar. Se houver uma resposta da IA ou uma confirmação aberta no chat, conclua ou cancele e tente de novo.",
     versaoFalhou: "Não foi possível ler a versão instalada.",
     ultimaVerificacao: "Última verificação",
     novidades: "Novidades da versão",

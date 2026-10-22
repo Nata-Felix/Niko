@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, rmSync, utimesSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { lerArgumentos, lerNotasDoArquivo, lerVersoes, validarVersoes, validarTag, planejarVersao, sincronizarVersao, verificarPublicacao, validarArtefatos, montarManifesto } from "./versao-release.mjs";
+import { lerArgumentos, lerNotasDoArquivo, lerVersoes, validarVersoes, validarTag, planejarVersao, sincronizarVersao, verificarPublicacao, validarArtefatos, montarManifesto, notasEmTextoSimples } from "./versao-release.mjs";
 
 function projeto(t, versoes = ["0.1.1", "0.1.1", "0.1.1", "0.1.1"]) {
   const raiz = mkdtempSync(join(tmpdir(), "niko-release-teste-"));
@@ -46,7 +46,8 @@ test("notas podem vir de arquivo sem conflito, truncamento ou alteração da ver
   assert.equal(lerArgumentos(['0.1.2', `--notas-arquivo=${arquivo}`]).arquivoNotas, arquivo);
   assert.equal(lerNotasDoArquivo(raiz, opcoes.arquivoNotas), texto);
   const manifesto = montarManifesto('0.1.2', lerNotasDoArquivo(raiz, arquivo), { instalador: 'niko.exe', assinatura: 'nsis' }, { instalador: 'niko.msi', assinatura: 'msi' });
-  assert.equal(manifesto.notes, texto);
+  assert.equal(manifesto.notes, texto.replace(/^# Niko\n\n/, '').trim());
+  assert.equal(notasEmTextoSimples('# Niko 1.0: novo\n\nResumo.\n\n## Novidades\n\n- **WhatsApp:** na ilha, com `QR`.'), 'Resumo.\n\nNOVIDADES\n\n• WhatsApp: na ilha, com QR.');
   assert.equal(validarVersoes(lerVersoes(raiz)), '0.1.1');
   assert.throws(() => lerArgumentos(['0.1.2', '--notas-arquivo']), /caminho/);
   assert.throws(() => lerArgumentos(['0.1.2', '--notas-arquivo=']), /caminho/);

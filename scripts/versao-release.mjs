@@ -192,12 +192,24 @@ export function validarArtefatos(raiz, versao, inicio, tipo = "nsis") {
   return { pasta, instalador, assinatura };
 }
 
+export function notasEmTextoSimples(notas) {
+  const linhas = notas.replace(/\r\n/g, "\n").split("\n");
+  if (/^#\s/.test(linhas[0] ?? "")) {
+    linhas.shift();
+    while (linhas[0]?.trim() === "") linhas.shift();
+  }
+  return linhas
+    .map((l) => l.replace(/^#{1,6}\s+(.*)$/, (_, titulo) => titulo.toUpperCase()).replace(/^(\s*)[-*]\s+/, "$1• ").replace(/\*\*(.+?)\*\*/g, "$1").replace(/`([^`]+)`/g, "$1"))
+    .join("\n")
+    .trim();
+}
+
 export function montarManifesto(versao, notas, nsis, msi, data = new Date()) {
   const endereco = (instalador) => `https://github.com/vitorcgo/niko/releases/download/v${validarVersao(versao)}/${instalador}`;
   const entradaNsis = { signature: nsis.assinatura, url: endereco(nsis.instalador) };
   return {
     version: versao,
-    notes: notas || `Niko ${versao}`,
+    notes: (notas && notasEmTextoSimples(notas)) || `Niko ${versao}`,
     pub_date: data.toISOString(),
     platforms: {
       "windows-x86_64": entradaNsis,

@@ -17,7 +17,7 @@ import { receberEventoDoGancho, ehRotaDoGancho, ouvirEventos, decidirPedido, est
 import { buscarNaWeb, lerPagina } from "./web.ts";
 import {
   CAMINHO_DO_WEBHOOK, abrirConversa, definirFiltrosDoWhatsapp, desconectarWhatsapp, enviarMensagem, esquecerWhatsapp, estadoDoWhatsapp, fecharConversa, ignorarConversa,
-  iniciarWhatsapp, instalarWhatsapp, ligarWhatsapp, novidadesDoWhatsapp, receberWebhookDoWhatsapp,
+  enviarArquivoNoWhatsapp, iniciarWhatsapp, instalarWhatsapp, ligarWhatsapp, midiaDaMensagem, novidadesDoWhatsapp, receberWebhookDoWhatsapp,
 } from "./whatsapp/whatsapp.ts";
 import { ehRotaDeAgente, receberEventoDeAgente, estadoDosAgentes, instalarAgente, previaDoAgente, removerAgente } from "./agentesDeCodigo.ts";
 import { listarArquivos, receberArquivo, enviarConteudo, excluirArquivo, excluirArquivosDaMateria, baixarArquivo, abrirArquivoNoPrograma, exportarParaDownloads } from "./arquivos.ts";
@@ -133,6 +133,14 @@ export const rotas: Connect.NextHandleFunction = async (req, res, proximo) => {
       const acao = caminho.slice("/whatsapp/".length);
       if (acao === "estado" && req.method === "GET") return responder(res, 200, estadoDoWhatsapp());
       if (acao === "novidades" && req.method === "GET") return responder(res, 200, novidadesDoWhatsapp(Number(url.searchParams.get("desde")) || 0));
+      if (acao === "midia" && req.method === "GET") {
+        const midia = await midiaDaMensagem(url.searchParams.get("jid"), url.searchParams.get("id"));
+        res.statusCode = 200;
+        res.setHeader("content-type", midia.tipo);
+        res.setHeader("cache-control", "no-store");
+        return res.end(midia.bytes);
+      }
+      if (acao === "enviar-arquivo" && req.method === "POST") return responder(res, 200, await enviarArquivoNoWhatsapp(req, url.searchParams));
       if (req.method === "POST") {
         const corpo = await lerCorpo(req);
         if (acao === "instalar") return responder(res, 200, await instalarWhatsapp());

@@ -1,6 +1,6 @@
 import { randomBytes } from "node:crypto";
-import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { existsSync, mkdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { extname, join, resolve, sep } from "node:path";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { pastaDados } from "../ia.ts";
 import { lerSegredo, gravarSegredo, apagarSegredo } from "../segredos.ts";
@@ -9,7 +9,7 @@ import {
   CaixaWhatsapp, LimiteDeEnvios, caminhoDoQr, conversasDoGateway, dispositivoDoGateway, ehGrupo, jidNormalizado, mensagemDoWebhook,
   mensagensDoGateway, numeroParaExibir, recusaDaResposta, webhookAutentico, type ConversaWhatsapp, type FiltrosWhatsapp, type MensagemWhatsapp, type SituacaoDoVinculo,
 } from "./caixa.ts";
-import { aguardarGowaParar, alvoDaPlataforma, gowaInstalado, gowaRodando, iniciarGowa, instalacao, instalarGowa, pararGowa, portaLivre } from "./gowa.ts";
+import { aguardarGowaParar, alvoDaPlataforma, gowaInstalado, gowaRodando, iniciarGowa, instalacao, instalarGowa, pararGowa, pastaDoWhatsapp, portaLivre } from "./gowa.ts";
 
 export const CAMINHO_DO_WEBHOOK = "/ponte/whatsapp/webhook";
 const DISPOSITIVO = "niko";
@@ -159,8 +159,8 @@ async function carregarHistorico() {
   if (conversas.length === 0) return;
   for (const c of conversas) caixa.registrarConversa(c.jid, c.nome, c.ultima, estado.config, c.arquivada);
   for (const c of [...conversas].sort((a, b) => b.ultima.localeCompare(a.ultima)).slice(0, 8)) {
-    const mensagens = mensagensDoGateway(await chamarComSucesso("GET", `/chat/${encodeURIComponent(c.jid)}/messages`, { query: { limit: "10" } }), estado.eu);
-    for (const m of mensagens) caixa.adicionar(m, estado.config, true, ehGrupo(c.jid) ? c.nome || undefined : undefined);
+    const corpo = await chamarComSucesso("GET", `/chat/${encodeURIComponent(c.jid)}/messages`, { query: { limit: "10" } }).catch(() => null);
+    for (const m of mensagensDoGateway(corpo, estado.eu)) caixa.adicionar(m, estado.config, true, ehGrupo(c.jid) ? c.nome || undefined : undefined);
   }
   caixa.marcarTodasLidas();
   estado.historicoCarregado = true;
@@ -178,8 +178,8 @@ async function varrerSemWebhook() {
   const conversas = conversasDoGateway(await chamarComSucesso("GET", "/chats", { query: { limit: "40" } }));
   for (const c of conversas) caixa.registrarConversa(c.jid, c.nome, c.ultima, estado.config, c.arquivada);
   for (const c of conversas.filter((x) => x.ultima > desde).slice(0, 8)) {
-    const mensagens = mensagensDoGateway(await chamarComSucesso("GET", `/chat/${encodeURIComponent(c.jid)}/messages`, { query: { limit: "10", start_time: desde } }), estado.eu);
-    guardar(mensagens.sort((a, b) => a.data.localeCompare(b.data)), true);
+    const corpo = await chamarComSucesso("GET", `/chat/${encodeURIComponent(c.jid)}/messages`, { query: { limit: "10", start_time: desde } }).catch(() => null);
+    guardar(mensagensDoGateway(corpo, estado.eu).sort((a, b) => a.data.localeCompare(b.data)), true);
   }
 }
 
@@ -242,10 +242,17 @@ async function passo() {
     if (!estado.historicoCarregado) await carregarHistorico();
     else if (horaDeVarrer()) await varrerSemWebhook();
   } catch (e) {
-    estado.falhasSeguidas += 1;
     const mensagem = (e as Error).message;
-    estado.erro = /fetch failed|ECONNREFUSED|gateway_parado|aborted|timeout/i.test(mensagem) ? (estado.falhasSeguidas > 2 ? "gateway_fora" : "") : mensagem;
-    if (estado.falhasSeguidas <= 2) estado.vinculo = "iniciando";
+    const gatewayCaiu = /fetch failed|ECONNREFUSED|gateway_parado/i.test(mensagem);
+    if (!gatewayCaiu) {
+      if (!/aborted|timeout/i.test(mensagem)) estado.erro = mensagem;
+      return;
+    }
+    estado.falhasSeguidas += 1;
+    if (estado.falhasSeguidas > 2) {
+      estado.erro = "gateway_fora";
+      estado.vinculo = "iniciando";
+    } else if (estado.vinculo !== "conectado") estado.vinculo = "iniciando";
   } finally {
     ocupado = false;
   }
@@ -269,6 +276,7 @@ function pararTudo(esquecer: boolean) {
   if (esquecer) {
     caixa.limpar();
     fotos.clear();
+    midias.clear();
     estado.novidades = [];
     estado.conversaAberta = null;
   }
@@ -327,6 +335,80 @@ function pedirFotos(conversas: ConversaWhatsapp[]) {
     fotosPedidas.add(c.id);
     void buscarFoto(c.id);
   }
+}
+
+const MIDIAS_BAIXAVEIS = new Set(["imagem", "figurinha", "video", "audio"]);
+const TAMANHO_MAXIMO_DA_MIDIA = 25 * 1024 * 1024;
+const LIMITE_DAS_MIDIAS_NA_MEMORIA = 80 * 1024 * 1024;
+const TIPOS_POR_EXTENSAO: Record<string, string> = {
+  jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png", webp: "image/webp", gif: "image/gif",
+  mp4: "video/mp4", "3gp": "video/3gpp", mov: "video/quicktime",
+  ogg: "audio/ogg", oga: "audio/ogg", opus: "audio/ogg", mp3: "audio/mpeg", m4a: "audio/mp4", aac: "audio/aac",
+};
+
+export function tipoPelosBytes(b: Buffer, midia: string): string | null {
+  const hex = b.subarray(0, 4).toString("hex");
+  if (hex.startsWith("ffd8ff")) return "image/jpeg";
+  if (hex === "89504e47") return "image/png";
+  if (hex === "47494638") return "image/gif";
+  if (hex === "52494646" && b.subarray(8, 12).toString("latin1") === "WEBP") return "image/webp";
+  if (hex === "4f676753") return midia === "video" ? "video/ogg" : "audio/ogg";
+  if (b.subarray(4, 8).toString("latin1") === "ftyp") return midia === "audio" ? "audio/mp4" : "video/mp4";
+  if (hex.startsWith("494433") || hex.startsWith("fffb") || hex.startsWith("fff3")) return "audio/mpeg";
+  return null;
+}
+type MidiaBaixada = { tipo: string; bytes: Buffer };
+const midias = new Map<string, MidiaBaixada>();
+const midiasEmAndamento = new Map<string, Promise<MidiaBaixada>>();
+
+function guardarMidia(chave: string, midia: MidiaBaixada) {
+  midias.delete(chave);
+  midias.set(chave, midia);
+  let total = [...midias.values()].reduce((soma, m) => soma + m.bytes.length, 0);
+  for (const [antiga, m] of midias) {
+    if (total <= LIMITE_DAS_MIDIAS_NA_MEMORIA || antiga === chave) break;
+    total -= m.bytes.length;
+    midias.delete(antiga);
+  }
+}
+
+async function baixarMidia(jid: string, id: string, tipoDaMidia: string): Promise<MidiaBaixada> {
+  const corpo = await chamarComSucesso("GET", `/message/${encodeURIComponent(id)}/download`, { query: { phone: jid }, tempoMs: 60_000 });
+  const relativo = ((corpo as Record<string, unknown> | null)?.results as Record<string, unknown> | undefined)?.file_path;
+  const pasta = resolve(pastaDoWhatsapp());
+  const caminho = typeof relativo === "string" && relativo ? resolve(pasta, relativo) : "";
+  if (!caminho.startsWith(pasta + sep)) throw new Error("midia_indisponivel");
+  try {
+    if (statSync(caminho).size > TAMANHO_MAXIMO_DA_MIDIA) throw new Error("midia_grande_demais");
+    const bytes = readFileSync(caminho);
+    const tipo = tipoPelosBytes(bytes, tipoDaMidia) ?? TIPOS_POR_EXTENSAO[extname(caminho).slice(1).toLowerCase()];
+    if (!tipo) throw new Error("midia_formato");
+    const midia = { tipo, bytes };
+    guardarMidia(`${jid}/${id}`, midia);
+    return midia;
+  } finally {
+    rmSync(caminho, { force: true });
+  }
+}
+
+export async function midiaDaMensagem(jid: unknown, id: unknown): Promise<MidiaBaixada> {
+  if (typeof jid !== "string" || typeof id !== "string") throw new Error("pedido_invalido");
+  const conversa = caixa.conversas.get(jidNormalizado(jid));
+  const mensagem = conversa?.mensagens.find((m) => m.id === id);
+  if (!conversa || !mensagem || !MIDIAS_BAIXAVEIS.has(mensagem.midia) || mensagem.visualizacaoUnica) throw new Error("midia_indisponivel");
+  if ((mensagem.tamanho ?? 0) > TAMANHO_MAXIMO_DA_MIDIA) throw new Error("midia_grande_demais");
+  const chave = `${conversa.id}/${id}`;
+  const guardada = midias.get(chave);
+  if (guardada) {
+    guardarMidia(chave, guardada);
+    return guardada;
+  }
+  let pedido = midiasEmAndamento.get(chave);
+  if (!pedido) {
+    pedido = baixarMidia(conversa.id, id, mensagem.midia).finally(() => midiasEmAndamento.delete(chave));
+    midiasEmAndamento.set(chave, pedido);
+  }
+  return pedido;
 }
 
 function resumoDaConversa(c: ConversaWhatsapp) {
@@ -441,6 +523,65 @@ export async function enviarMensagem(jid: unknown, texto: unknown) {
   const idDaMensagem = ((corpo as Record<string, unknown> | null)?.results as Record<string, unknown> | undefined)?.message_id;
   caixa.adicionar({ id: typeof idDaMensagem === "string" ? idDaMensagem : `niko-${randomBytes(6).toString("hex")}`, conversa: id, remetente: estado.eu ?? id, nomeRemetente: "", texto: texto.trim(), midia: "nenhuma", data: new Date().toISOString(), minha: true, mencionaMe: false }, estado.config);
   await confirmarLeitura(id);
+  const conversa = caixa.conversas.get(id);
+  return conversa ? resumoDaConversa(conversa) : null;
+}
+
+const TAMANHO_MAXIMO_DO_ENVIO = 16 * 1024 * 1024;
+
+function lerBytes(req: IncomingMessage, limite: number): Promise<Buffer> {
+  return new Promise((resolver, rejeitar) => {
+    const partes: Buffer[] = [];
+    let tamanho = 0;
+    req.on("data", (p: Buffer) => {
+      tamanho += p.length;
+      if (tamanho > limite) {
+        rejeitar(new Error("arquivo_grande_demais"));
+        req.destroy();
+        return;
+      }
+      partes.push(p);
+    });
+    req.on("end", () => resolver(Buffer.concat(partes)));
+    req.on("error", rejeitar);
+  });
+}
+
+function rotaDoEnvio(bytes: Buffer): { caminho: string; campo: string; midia: MensagemWhatsapp["midia"] } {
+  const tipo = tipoPelosBytes(bytes, "");
+  if (tipo === "image/jpeg" || tipo === "image/png") return { caminho: "/send/image", campo: "image", midia: "imagem" };
+  if (tipo === "video/mp4") return { caminho: "/send/video", campo: "video", midia: "video" };
+  return { caminho: "/send/file", campo: "file", midia: "documento" };
+}
+
+export async function enviarArquivoNoWhatsapp(req: IncomingMessage, consulta: URLSearchParams) {
+  const jid = consulta.get("jid") ?? "";
+  const nome = (consulta.get("nome") ?? "arquivo").replace(/[\\/:*?"<>|\u0000-\u001f]/g, "_").slice(0, 120) || "arquivo";
+  const legenda = (consulta.get("legenda") ?? "").trim().slice(0, 1024);
+  const id = jidNormalizado(jid);
+  if (!jid.includes("@") || !caixa.conversas.has(id)) throw new Error("resposta_sem_conversa");
+  const bytes = await lerBytes(req, TAMANHO_MAXIMO_DO_ENVIO);
+  if (bytes.length === 0) throw new Error("arquivo_vazio");
+  if (!envios.permitir()) throw new Error("resposta_muitas");
+  if (!estado.porta) throw new Error("gateway_parado");
+  const rota = rotaDoEnvio(bytes);
+  const formulario = new FormData();
+  formulario.set("phone", id);
+  if (legenda) formulario.set("caption", legenda);
+  formulario.set(rota.campo, new Blob([new Uint8Array(bytes)]), nome);
+  const r = await fetch(`http://127.0.0.1:${estado.porta}${rota.caminho}`, {
+    method: "POST",
+    headers: { authorization: `Basic ${Buffer.from(estado.acesso).toString("base64")}`, "x-device-id": estado.dispositivo },
+    body: formulario,
+    signal: AbortSignal.timeout(120_000),
+  });
+  const corpo = (await r.json().catch(() => null)) as Record<string, unknown> | null;
+  if (!r.ok) throw new Error(codigoDeErro(corpo) || `gateway_${r.status}`);
+  const idDaMensagem = (corpo?.results as Record<string, unknown> | undefined)?.message_id;
+  const idFinal = typeof idDaMensagem === "string" ? idDaMensagem : `niko-${randomBytes(6).toString("hex")}`;
+  const tipo = tipoPelosBytes(bytes, rota.midia);
+  if (tipo && rota.midia !== "documento") guardarMidia(`${id}/${idFinal}`, { tipo, bytes });
+  caixa.adicionar({ id: idFinal, conversa: id, remetente: estado.eu ?? id, nomeRemetente: "", texto: legenda, midia: rota.midia, nomeDoArquivo: nome, tamanho: bytes.length, data: new Date().toISOString(), minha: true, mencionaMe: false }, estado.config);
   const conversa = caixa.conversas.get(id);
   return conversa ? resumoDaConversa(conversa) : null;
 }

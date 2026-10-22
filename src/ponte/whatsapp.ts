@@ -11,6 +11,9 @@ export interface MensagemWhatsapp {
   data: string;
   minha: boolean;
   mencionaMe: boolean;
+  visualizacaoUnica?: boolean;
+  encaminhada?: boolean;
+  tamanho?: number;
 }
 
 export interface ConversaWhatsapp {
@@ -61,7 +64,26 @@ async function pedir<T>(caminho: string, corpo?: unknown): Promise<T> {
   return json;
 }
 
+async function urlDaMidia(jid: string, id: string): Promise<string> {
+  const r = await fetch(`/ponte/whatsapp/midia?${new URLSearchParams({ jid, id })}`, { headers: { "x-niko": "1" } });
+  if (!r.ok) throw new Error(`http_${r.status}`);
+  return URL.createObjectURL(await r.blob());
+}
+
+async function enviarArquivo(jid: string, arquivo: File, legenda: string): Promise<ConversaWhatsapp | null> {
+  const r = await fetch(`/ponte/whatsapp/enviar-arquivo?${new URLSearchParams({ jid, nome: arquivo.name, legenda })}`, {
+    method: "POST",
+    headers: { "x-niko": "1", "content-type": "application/octet-stream" },
+    body: arquivo,
+  });
+  const json = (await r.json().catch(() => ({}))) as ConversaWhatsapp & { erro?: string };
+  if (!r.ok) throw new Error(json.erro ?? `http_${r.status}`);
+  return json;
+}
+
 export const whatsappPonte = {
+  midia: urlDaMidia,
+  enviarArquivo,
   estado: () => pedir<EstadoWhatsapp>("estado"),
   novidades: (desde: number) => pedir<{ seq: number; itens: NovidadeWhatsapp[] }>(`novidades?desde=${desde}`),
   instalar: () => pedir<{ ok: boolean; versao: string }>("instalar", {}),

@@ -14,6 +14,9 @@ export interface MensagemWhatsapp {
   minha: boolean;
   mencionaMe: boolean;
   nomeDaConversa?: string;
+  visualizacaoUnica?: boolean;
+  encaminhada?: boolean;
+  tamanho?: number;
 }
 
 export interface ConversaWhatsapp {
@@ -242,6 +245,8 @@ export function mensagemDoWebhook(corpo: unknown, eu?: string | null): MensagemW
     data: dataIso(p.timestamp),
     minha: p.is_from_me === true,
     mencionaMe: ehGrupo(conversa) && textoMencionaMe(corpoTexto, minhaConta),
+    visualizacaoUnica: p.view_once === true,
+    encaminhada: p.forwarded === true,
   };
 }
 
@@ -297,6 +302,7 @@ export function mensagensDoGateway(corpo: unknown, eu?: string | null): Mensagem
       minha: m.is_from_me === true,
       mencionaMe: grupo && textoMencionaMe(corpoTexto, eu),
       nomeDaConversa: grupo ? nomeDaConversa : undefined,
+      tamanho: typeof m.file_length === "number" ? m.file_length : undefined,
     }];
   });
 }

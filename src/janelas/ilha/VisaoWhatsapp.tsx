@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { ArrowLeft, AtSign, EyeOff, Send, Settings2 } from "lucide-react";
+import { ArrowLeft, AtSign, EyeOff, Forward, Paperclip, Play, Send, Settings2 } from "lucide-react";
 import { T } from "../../textos/textos";
 import { useWhatsapp } from "../../estado/whatsapp";
 import { avisoLigado, useIlha } from "../../estado/ilha";
@@ -8,6 +8,7 @@ import { useInterface } from "../../estado/interface";
 import { tocarSom } from "../../ponte/sons";
 import { corDoNome, iniciaisDoNome, whatsappPonte, type ConversaWhatsapp, type MensagemWhatsapp, type NovidadeWhatsapp } from "../../ponte/whatsapp";
 import { horarioRelativo } from "../../utilitarios/datas";
+import { formatarTamanho } from "../../utilitarios/anexos";
 import { mensagemDoWhatsapp } from "../../modulos/conexoes/ConexaoWhatsapp";
 
 const W = T.whatsapp;
@@ -71,9 +72,61 @@ function Avatar({ nome, foto, tamanho = 30 }: { nome: string; foto?: string | nu
   );
 }
 
+function rotuloDaMidia(m: MensagemWhatsapp): string {
+  const tipo = W.midias[m.midia] ?? W.midias.outra;
+  return m.midia === "documento" && m.nomeDoArquivo ? `${tipo}: ${m.nomeDoArquivo}` : tipo;
+}
+
+const MIDIAS_NA_HORA = new Set(["imagem", "figurinha"]);
+const MIDIAS_COM_CLIQUE = new Set(["video", "audio"]);
+
+function MidiaDaMensagem({ jid, m }: { jid: string; m: MensagemWhatsapp }) {
+  const tipo = W.midias[m.midia] ?? W.midias.outra;
+  const naHora = MIDIAS_NA_HORA.has(m.midia);
+  const [pedida, setPedida] = useState(naHora);
+  const [url, setUrl] = useState<string | null>(null);
+  const [falhou, setFalhou] = useState(false);
+
+  useEffect(() => {
+    if (!pedida || m.visualizacaoUnica) return;
+    let vivo = true;
+    let criada: string | null = null;
+    whatsappPonte
+      .midia(jid, m.id)
+      .then((u) => {
+        criada = u;
+        if (vivo) setUrl(u);
+        else URL.revokeObjectURL(u);
+      })
+      .catch(() => vivo && setFalhou(true));
+    return () => {
+      vivo = false;
+      if (criada) URL.revokeObjectURL(criada);
+    };
+  }, [pedida, jid, m.id, m.visualizacaoUnica]);
+
+  if (m.visualizacaoUnica) return <span className="whatsapp-midia"><EyeOff size={11} /> {W.visualizacaoUnica(tipo)}</span>;
+  if (!naHora && !MIDIAS_COM_CLIQUE.has(m.midia)) {
+    const tamanho = m.tamanho ? ` (${formatarTamanho(m.tamanho)})` : "";
+    return <span className="whatsapp-midia">{rotuloDaMidia(m)}{tamanho}</span>;
+  }
+  if (falhou) return <span className="whatsapp-midia">{W.midiaFalhou(tipo)}</span>;
+  if (!pedida) {
+    return (
+      <button type="button" className="whatsapp-carregar-midia" onClick={() => setPedida(true)}>
+        <Play size={11} /> {W.carregarMidia(tipo, m.tamanho ? formatarTamanho(m.tamanho) : "")}
+      </button>
+    );
+  }
+  if (!url) return <span className="whatsapp-midia-carregando" data-tipo={m.midia}>{W.carregandoMidia}</span>;
+  if (m.midia === "video") return <video className="whatsapp-video" src={url} controls autoPlay />;
+  if (m.midia === "audio") return <audio className="whatsapp-audio" src={url} controls autoPlay />;
+  return <img className="whatsapp-imagem" data-tipo={m.midia} src={url} alt={tipo} />;
+}
+
 function previa(m: MensagemWhatsapp | undefined): string {
   if (!m) return "";
-  const midia = m.midia !== "nenhuma" ? `${W.midias[m.midia] ?? W.midias.outra}${m.nomeDoArquivo ? `: ${m.nomeDoArquivo}` : ""}` : "";
+  const midia = m.midia !== "nenhuma" ? rotuloDaMidia(m) : "";
   const corpo = [midia, m.texto].filter(Boolean).join(" . ");
   return m.minha ? `${W.voce}: ${corpo}` : corpo;
 }
@@ -82,7 +135,37 @@ function Conversa({ conversa, aoVoltar, aoAtualizar }: { conversa: ConversaWhats
   const [texto, setTexto] = useState("");
   const [enviando, setEnviando] = useState(false);
   const [erro, setErro] = useState("");
+  const [arquivo, setArquivo] = useState<File | null>(null);
   const lista = useRef<HTMLDivElement>(null);
+  const seletor = useRef<HTMLInputElement>(null);
+
+  const escolherArquivo = (f: File | undefined) => {
+    if (!f) return;
+    setErro("");
+    if (f.size > 16 * 1024 * 1024) {
+      setErro(W.erros.arquivo_grande_demais);
+      return;
+    }
+    setArquivo(f);
+  };
+
+  const enviarArquivo = async () => {
+    if (!arquivo || enviando) return;
+    setEnviando(true);
+    setErro("");
+    try {
+      const atualizada = await whatsappPonte.enviarArquivo(conversa.id, arquivo, texto.trim());
+      if (atualizada) aoAtualizar(atualizada);
+      setArquivo(null);
+      setTexto("");
+      void tocarSom("send", "interface");
+    } catch (e) {
+      setErro(mensagemDoWhatsapp(e));
+      void tocarSom("error", "avisos");
+    } finally {
+      setEnviando(false);
+    }
+  };
 
   useEffect(() => {
     const el = lista.current;
@@ -130,14 +213,27 @@ function Conversa({ conversa, aoVoltar, aoAtualizar }: { conversa: ConversaWhats
         {conversa.mensagens.map((m) => (
           <div key={m.id} className="whatsapp-mensagem" data-minha={m.minha ? "sim" : "nao"} data-mencao={m.mencionaMe || undefined}>
             {conversa.grupo && !m.minha && m.nomeRemetente && <span className="whatsapp-remetente privado" style={{ color: corDoNome(m.nomeRemetente) }}>{m.nomeRemetente}</span>}
-            {m.midia !== "nenhuma" && <span className="whatsapp-midia">{W.midias[m.midia] ?? W.midias.outra}{m.nomeDoArquivo ? `: ${m.nomeDoArquivo}` : ""}</span>}
+            {m.encaminhada && <span className="whatsapp-encaminhada"><Forward size={10} /> {W.encaminhada}</span>}
+            {m.midia !== "nenhuma" && <MidiaDaMensagem jid={conversa.id} m={m} />}
             {m.texto && <span className="whatsapp-texto privado">{m.texto}</span>}
             <span className="whatsapp-hora">{horarioRelativo(m.data)}</span>
           </div>
         ))}
       </div>
       {erro && <span className="ilha-erro" role="status">{erro}</span>}
+      {arquivo && (
+        <div className="whatsapp-confirmar-arquivo" role="group">
+          <span className="coluna" style={{ gap: 1, minWidth: 0, flex: 1 }}>
+            <span className="cortar">{W.confirmarArquivo(arquivo.name, formatarTamanho(arquivo.size))}</span>
+            <span className="ilha-mini">{W.legendaDoArquivo}</span>
+          </span>
+          <button type="button" className="ilha-pilula" disabled={enviando} onClick={() => setArquivo(null)}>{W.cancelarArquivo}</button>
+          <button type="button" className="ilha-pilula" data-forte disabled={enviando} onClick={() => void enviarArquivo()}>{W.enviarArquivo}</button>
+        </div>
+      )}
       <div className="ilha-chat-entrada">
+        <input ref={seletor} type="file" hidden onChange={(e) => { escolherArquivo(e.target.files?.[0]); e.target.value = ""; }} />
+        <button type="button" className="ilha-botao ilha-botao-icone" aria-label={W.anexar} title={W.anexar} disabled={enviando} onClick={() => seletor.current?.click()}><Paperclip size={13} /></button>
         <div className="ilha-campo" style={{ flex: 1 }}>
           <textarea
             className="whatsapp-resposta"

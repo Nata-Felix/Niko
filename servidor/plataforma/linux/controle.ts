@@ -271,5 +271,6 @@ export const controle: Plataforma["controle"] = {
   donoDaConexao,
   focarProcesso,
   processoNaFrente,
+  nivelDaSaida: async () => 0,
   encerrar: () => undefined,
 };

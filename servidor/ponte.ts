@@ -11,7 +11,7 @@ import { estadoConexoes, lerConexao, salvarChaveConexao, removerChaveConexao, se
 import { buscarGmail, criarRascunhoGmail, enviarGmail } from "./gmail.ts";
 import { lerAgendaGoogle } from "./agendaGoogle.ts";
 import { lerCotacoes } from "./cotacoes.ts";
-import { lerAudio, definirVolume, definirMudo, ajustarSessao, lerTema, lerIniciar, definirTema, abrirFerramenta, agirNaEnergia, lerBandeja, abrirDaBandeja, pastaDaBandeja, encerrarDaBandeja, listarApps, iconesDeApps, abrirApp, appDaJanela, abrirComandoDoSistema } from "./controleRapido.ts";
+import { lerAudio, lerNivelDaSaida, definirVolume, definirMudo, ajustarSessao, lerTema, lerIniciar, definirTema, abrirFerramenta, agirNaEnergia, lerBandeja, abrirDaBandeja, pastaDaBandeja, encerrarDaBandeja, listarApps, iconesDeApps, abrirApp, appDaJanela, abrirComandoDoSistema } from "./controleRapido.ts";
 import { ocrDaRequisicao } from "./ocr.ts";
 import { receberEventoDoGancho, ehRotaDoGancho, ouvirEventos, decidirPedido, estadoDaInstalacao, previaDaInstalacao, removerGanchos, abrirProjeto, trazerTerminal, terminalNaFrente, ehRotaDaStatus, receberStatusDoClaude } from "./claude.ts";
 import { buscarNaWeb, lerPagina } from "./web.ts";
@@ -147,6 +147,7 @@ export const rotas: Connect.NextHandleFunction = async (req, res, proximo) => {
     if (caminho === "/midia" && req.method === "GET") {
       return responder(res, 200, await pedirMidia("estado"));
     }
+    if (caminho === "/midia/nivel" && req.method === "GET") return responder(res, 200, await lerNivelDaSaida());
     const acaoMidia = /^\/midia\/(alternar|proxima|anterior|posicao)$/.exec(caminho);
     if (acaoMidia && req.method === "POST") {
       const corpo = await lerCorpo(req);

@@ -27,7 +27,8 @@ export type Comando =
   | { tipo: "irPara"; rota: Rota; parametros?: Record<string, string> }
   | { tipo: "abrirConexao"; id: ServicoId }
   | { tipo: "abrirBusca" }
-  | { tipo: "abrirCaptura" };
+  | { tipo: "abrirCaptura" }
+  | { tipo: "abrirEstilosDaMidia" };
 
 const canal = !NATIVO && typeof BroadcastChannel !== "undefined" ? new BroadcastChannel("niko-comandos") : null;
 

@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import {
-  Check, Play, Pause, SkipBack, SkipForward, RotateCcw, FastForward, Plus, Minus, ArrowUpRight, CornerDownLeft,
+  Check, Play, Pause, RotateCcw, FastForward, Plus, Minus, ArrowUpRight, CornerDownLeft,
   Bell, ChevronLeft, ChevronRight, Music, Columns3, List,
 } from "lucide-react";
 import { useRotina, tarefasDoDia, habitoCumprido } from "../../estado/rotina";
-import { useMidia, posicaoAtual, capaDaFaixa, fundoDaCapa } from "../../estado/midia";
+import { useMidia, capaDaFaixa } from "../../estado/midia";
+import { PlayerDaMidia, usarDadosDaMidia } from "./midia/PlayerDaMidia";
 import { usePomodoro, restanteAtual, formatarRelogio } from "../../estado/pomodoro";
 import { useEstudos } from "../../estado/estudos";
 import { useOrganizacao } from "../../estado/organizacao";
@@ -14,7 +15,7 @@ import { useAgentes } from "../../estado/agentes";
 import { useConfig, type SecaoHoje } from "../../estado/configuracoes";
 import { useInterface } from "../../estado/interface";
 import { useIlha } from "../../estado/ilha";
-import { Marca, MARCAS, marcaDoApp } from "../../marcas/Marca";
+import { Marca, MARCAS } from "../../marcas/Marca";
 import { Anel } from "../../componentes/Graficos";
 import { T } from "../../textos/textos";
 import { deISO, formatarData, hojeISO, paraISO, horarioRelativo } from "../../utilitarios/datas";
@@ -327,18 +328,9 @@ function ConfirmacaoIlha({ confirmacao, aoMudar, aoFim }: { confirmacao: CartaoC
 
 export function VisaoMidia() {
   const midia = useMidia();
-  const [agora, setAgora] = useState(Date.now());
-  useEffect(() => {
-    setAgora(Date.now());
-    if (!midia.tocando) return;
-    const t = window.setInterval(() => setAgora(Date.now()), 1000);
-    return () => window.clearInterval(t);
-  }, [midia.tocando, midia.lidoEm]);
-  const faixa = midia.faixa;
-  const [c1] = capaDaFaixa(midia.faixa);
-  const pos = posicaoAtual(midia, agora);
-  const fmt = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
-  if (!faixa) {
+  const dados = usarDadosDaMidia(true);
+  const layout = useConfig((s) => s.ilha.layoutDaMidia);
+  if (!dados) {
     return (
       <Cartao>
         <div className="linha" style={{ gap: 12, flex: 1 }}>
@@ -352,68 +344,15 @@ export function VisaoMidia() {
     );
   }
 
-  const marcaApp = marcaDoApp(faixa.app);
-
+  const [c1] = capaDaFaixa(dados.faixa);
   return (
-    <Cartao veu={c1}>
-      <div className="ilha-player" style={{ ["--cor-capa" as string]: c1 }}>
-        <div className="ilha-capa-com-personagem">
-          <div className="ilha-capa" style={{ width: 96, height: 96, borderRadius: 10, background: fundoDaCapa(faixa), boxShadow: `0 8px 24px ${c1}55` }} />
-          <EspacoDoPersonagem tamanho={38} posicao="expandida" flutuar className="ilha-capa-personagem" />
-        </div>
-        <div className="coluna" style={{ gap: 6, flex: 1, minWidth: 0 }}>
-          <div className="coluna" style={{ gap: 0 }}>
-            <span className="ilha-titulo cortar privado">{faixa.titulo}</span>
-            <span className="linha ilha-midia-origem">
-              {marcaApp && (
-                <span className="ilha-midia-app" title={faixa.app} aria-label={faixa.app}>
-                  <Marca marca={marcaApp} tamanho={12} />
-                </span>
-              )}
-              <span className="ilha-sub cortar privado">{faixa.artista}</span>
-              {!marcaApp && faixa.app && <span className="ilha-mini cortar">{faixa.app}</span>}
-            </span>
-          </div>
-          <div
-            className="ilha-trilho"
-            role="slider"
-            tabIndex={0}
-            aria-label={T.ilha.midia}
-            aria-valuemin={0}
-            aria-valuemax={faixa.duracao}
-            aria-valuenow={Math.round(pos)}
-            onClick={(e) => {
-              const r = e.currentTarget.getBoundingClientRect();
-              if (midia.podeBuscar && faixa.duracao > 0) midia.buscar(((e.clientX - r.left) / r.width) * faixa.duracao);
-            }}
-            onKeyDown={(e) => {
-              if (!midia.podeBuscar || faixa.duracao <= 0) return;
-              if (e.key === "ArrowRight") midia.buscar(Math.min(faixa.duracao, pos + 5));
-              if (e.key === "ArrowLeft") midia.buscar(Math.max(0, pos - 5));
-            }}
-          >
-            <span style={{ width: `${faixa.duracao > 0 ? (pos / faixa.duracao) * 100 : 0}%` }} />
-          </div>
-          <div className="linha-entre ilha-mini numero">
-            <span>{fmt(pos)}</span>
-            <span>{fmt(faixa.duracao)}</span>
-          </div>
-        </div>
-        <div className="ilha-player-controles">
-        <div className="linha" style={{ gap: 4, justifyContent: "center" }}>
-          <button type="button" className="ilha-botao ilha-botao-redondo" aria-label={T.ilha.anterior} disabled={!midia.podeVoltar} onClick={midia.anterior}>
-            <SkipBack size={15} />
-          </button>
-          <button type="button" className="ilha-botao ilha-botao-primario ilha-botao-grande" aria-label={midia.tocando ? T.ilha.pausar : T.ilha.tocar} onClick={midia.alternar}>
-            {midia.tocando ? <Pause size={18} /> : <Play size={18} />}
-          </button>
-          <button type="button" className="ilha-botao ilha-botao-redondo" aria-label={T.ilha.proxima} disabled={!midia.podeAvancar} onClick={midia.proxima}>
-            <SkipForward size={15} />
-          </button>
-        </div>
-        <VolumeDoPlayer />
-        </div>
-      </div>
+    <Cartao veu={layout === "cartaz" ? undefined : c1}>
+      <PlayerDaMidia
+        layout={layout}
+        dados={dados}
+        volume={<VolumeDoPlayer />}
+        personagem={<EspacoDoPersonagem tamanho={layout === "cartaz" ? 30 : 38} posicao="expandida" flutuar className={layout === "cartaz" ? undefined : "ilha-capa-personagem"} />}
+      />
     </Cartao>
   );
 }

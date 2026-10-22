@@ -41,6 +41,7 @@ interface EstadoInterface {
   parametros: Record<string, string>;
   buscaAberta: boolean;
   capturaAberta: boolean;
+  estilosDaMidiaAbertos: boolean;
   avisos: AvisoRodape[];
   sistemaAberto: boolean;
   sistemaMinimizado: boolean;
@@ -50,6 +51,7 @@ interface EstadoInterface {
   voltar: () => void;
   abrirBusca: (aberta: boolean) => void;
   abrirCaptura: (aberta: boolean) => void;
+  abrirEstilosDaMidia: (abertos: boolean) => void;
   avisar: (texto: string, desfazer?: () => void) => void;
   dispensarAviso: (id: string) => void;
   definirSistema: (parcial: Partial<Pick<EstadoInterface, "sistemaAberto" | "sistemaMinimizado" | "sistemaMaximizado" | "geometria">>) => void;
@@ -150,6 +152,7 @@ export const useInterface = create<EstadoInterface>()((set, get) => ({
   parametros: {},
   buscaAberta: false,
   capturaAberta: false,
+  estilosDaMidiaAbertos: false,
   avisos: [],
   sistemaAberto: sistemaAbertoSalvo(),
   sistemaMinimizado: false,
@@ -198,6 +201,13 @@ export const useInterface = create<EstadoInterface>()((set, get) => ({
       return;
     }
     set({ capturaAberta: aberta });
+  },
+  abrirEstilosDaMidia: (abertos) => {
+    if (abertos && foraDoSistema()) {
+      enviarComando({ tipo: "abrirEstilosDaMidia" });
+      return;
+    }
+    set({ estilosDaMidiaAbertos: abertos });
   },
   avisar: (texto, desfazer) => {
     const id = gerarId();

@@ -125,8 +125,12 @@ export interface ConfigIlha {
   iconesDaBarra: Record<IconeDaBarra, boolean>;
   monitor: string;
   midiaNaCompacta: boolean;
+  layoutDaMidia: LayoutDaMidia;
   tarefasEmQuadro: boolean;
 }
+
+export type LayoutDaMidia = "classico" | "pulso" | "vinil" | "cartaz";
+export const LAYOUTS_DA_MIDIA: LayoutDaMidia[] = ["classico", "pulso", "vinil", "cartaz"];
 
 export type CategoriaDeAviso = "lembretes" | "habitos" | "estudos" | "financas" | "conexoes" | "codigo" | "conquistas" | "consumo";
 export const CATEGORIAS_DE_AVISO: CategoriaDeAviso[] = ["lembretes", "habitos", "estudos", "financas", "conexoes", "codigo", "conquistas", "consumo"];
@@ -214,6 +218,7 @@ export const CONFIG_PADRAO: Configuracoes = {
     iconesDaBarra: { rede: true, volume: true, bateria: true },
     monitor: "",
     midiaNaCompacta: true,
+    layoutDaMidia: "classico",
     tarefasEmQuadro: false,
   },
   dock: { ativo: true, modo: "inteligente", favoritos: ["chat", "journal", "estudos", "financas", "calendario"], atalhos: [], fixados: [], escala: 1, appsDeTodosOsMonitores: false, reservarEspaco: true, ampliar: true, mostrarIniciar: true, mostrarBusca: true, fundo: FUNDO_PADRAO_DAS_BORDAS, opacidade: 1, monitores: "todos", buscador: "google" },

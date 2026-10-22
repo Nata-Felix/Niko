@@ -1,4 +1,4 @@
-import { ESCALAS_DO_DOCK, LIMITE_DE_FIXADOS, type AppFixado, type Configuracoes } from "../estado/configuracoes";
+import { ESCALAS_DO_DOCK, LAYOUTS_DA_MIDIA, LIMITE_DE_FIXADOS, type AppFixado, type Configuracoes } from "../estado/configuracoes";
 import { exigir, objeto } from "./validacoes";
 import { validarAssistive } from "../janelas/assistive/regras";
 import type { AgenteId } from "../tipos";
@@ -60,6 +60,7 @@ export function configuracoesValidas(valor: unknown, padrao: Configuracoes): Con
   }
   c.ilha.repouso = escolher(c.ilha.repouso, ["nada", "relogio", "midia", "agente"], padrao.ilha.repouso);
   c.ilha.tamanho = escolher(c.ilha.tamanho, ["pequena", "media", "grande"], padrao.ilha.tamanho);
+  c.ilha.layoutDaMidia = escolher(c.ilha.layoutDaMidia, LAYOUTS_DA_MIDIA, padrao.ilha.layoutDaMidia);
   c.ilha.notificacoes = escolher(c.ilha.notificacoes, ["todas", "importantes", "nenhuma"], padrao.ilha.notificacoes);
   c.ilha.fechamentoSeg = c.ilha.fechamentoSeg === -1 ? -1 : limitar(c.ilha.fechamentoSeg, 0, 300);
   c.ilha.esconderSeg = limitar(c.ilha.esconderSeg, 0, 300);

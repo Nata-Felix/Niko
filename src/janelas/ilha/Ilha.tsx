@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import {
   Plus, Eye, EyeOff, Music, Timer, CalendarDays, MessageCircle, Plug, Bell, Volume2, VolumeX, AppWindow, ChevronUp, Pin, PinOff, Check, CircleAlert, Download, CodeXml, ShieldAlert, LoaderCircle,
-  Users, type LucideIcon,
+  Users, Palette, type LucideIcon,
 } from "lucide-react";
 import { useConfig, type AbaIlha, type SecaoHoje, type VisaoIlha } from "../../estado/configuracoes";
 import { estadoComAviso, useIlha } from "../../estado/ilha";
@@ -10,7 +10,9 @@ import { useInterface } from "../../estado/interface";
 import { useComunicacao } from "../../estado/comunicacao";
 import { useAgentes, AGENTES, estadoDoAgente, alertaFresco } from "../../estado/agentes";
 import { usePomodoro, restanteAtual, formatarRelogio } from "../../estado/pomodoro";
-import { useMidia, fundoDaCapa, midiaAtivaNaIlha } from "../../estado/midia";
+import { useMidia, midiaAtivaNaIlha } from "../../estado/midia";
+import { CompactaDaMidia, usarDadosDaMidia } from "./midia/PlayerDaMidia";
+import { CapaDaMidia } from "./midia/CapaDaMidia";
 import { Personagem } from "../../personagens/Personagem";
 import { Marca } from "../../marcas/Marca";
 import { Anel } from "../../componentes/Graficos";
@@ -162,6 +164,7 @@ export function Ilha() {
   const agentes = useAgentes();
   const pomodoro = usePomodoro();
   const midia = useMidia();
+  const dadosDaMidia = usarDadosDaMidia(cfg.layoutDaMidia === "vinil" || cfg.layoutDaMidia === "cartaz");
   usarClaudeCode(cfg.ativa && cfg.blocos.claude);
   const pedidosClaude = useClaudeCode((s) => s.pedidos);
   const minuto = useAgora(60_000, true);
@@ -467,27 +470,12 @@ export function Ilha() {
               {T.pomodoro.etapas[pomodoro.etapa]}
             </span>
             <div className="ilha-compacta-lado">
-              {midia.tocando ? <span className="ilha-capa" style={{ width: 18, height: 18, background: fundoDaCapa(midia.faixa) }} /> : <MiniAgentes ids={trabalhando} />}
+              {midia.tocando ? <CapaDaMidia faixa={midia.faixa} tamanho={18} raio={6} /> : <MiniAgentes ids={trabalhando} />}
             </div>
           </>
         );
       case "midia":
-        return (
-          <>
-            <div className="ilha-compacta-lado">
-              <span className="ilha-capa ilha-capa-compacta" style={{ width: TAMANHO_DA_CAPA_COMPACTA, height: TAMANHO_DA_CAPA_COMPACTA, background: fundoDaCapa(midia.faixa) }} />
-            </div>
-            <span className="ilha-compacta-texto privado">{midia.faixa?.titulo ?? ""}</span>
-            <div className="ilha-compacta-lado">
-              <span className={`ilha-onda ${midia.tocando ? "" : "parada"}`}>
-                <i />
-                <i />
-                <i />
-                <i />
-              </span>
-            </div>
-          </>
-        );
+        return dadosDaMidia ? <CompactaDaMidia layout={cfg.layoutDaMidia} dados={dadosDaMidia} tamanhoDaCapa={TAMANHO_DA_CAPA_COMPACTA} /> : null;
       case "trabalho":
         return (
           <>
@@ -751,6 +739,20 @@ export function Ilha() {
                           {cfg.midiaNaCompacta ? <Eye size={14} /> : <EyeOff size={14} />}
                         </button>
                       )}
+                      {abaAtual === "midia" && (
+                        <button
+                          type="button"
+                          className="ilha-acao"
+                          aria-label={T.ilha.estilosDaMidia.abrir}
+                          data-dica={T.ilha.estilosDaMidia.abrir}
+                          onClick={() => {
+                            void tocarSom("blip");
+                            useInterface.getState().abrirEstilosDaMidia(true);
+                          }}
+                        >
+                          <Palette size={14} />
+                        </button>
+                      )}
                       <button
                         type="button"
                         className="ilha-acao"
@@ -795,7 +797,7 @@ export function Ilha() {
                   </div>
                   <div className="ilha-miolo">
                   {!ABAS_SEM_LATERAL.includes(abaAtual) && <motion.div className="ilha-lateral" initial={{ opacity: 0 }} animate={{ opacity: 1, transition: { delay: 0.2, duration: 0.2 } }}>
-                    <EspacoDoPersonagem agente={agenteLateral} tamanho={alturaDaVisao(abaAtual, secaoHoje, alturaConexoes) < 200 ? 50 : 70} posicao="expandida" />
+                    <EspacoDoPersonagem agente={agenteLateral} tamanho={alturaDaVisao(abaAtual, secaoHoje, alturaConexoes) < 200 ? 60 : 84} posicao="expandida" />
                     <span className="ilha-lateral-nome cortar">{nomes[agenteLateral]}</span>
                     {abaAtual === "claude" && sessaoLateral ? (
                       <>

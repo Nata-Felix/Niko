@@ -175,6 +175,7 @@ export interface Plataforma {
   };
   controle: {
     audio(): Promise<EstadoDoAudio>;
+    nivelDaSaida(): Promise<number>;
     volume(fluxo: Fluxo, valor: number): Promise<{ ok: boolean }>;
     mudo(fluxo: Fluxo, mudo: boolean): Promise<{ ok: boolean }>;
     sessao(pids: number[], volume: number, mudo: number): Promise<{ ajustadas: number }>;

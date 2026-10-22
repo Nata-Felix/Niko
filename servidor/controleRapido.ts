@@ -37,6 +37,7 @@ function porta(valor: unknown): number {
 }
 
 export const lerAudio = () => controle.audio();
+export const lerNivelDaSaida = async () => ({ nivel: await controle.nivelDaSaida() });
 export const definirVolume = (d: Record<string, unknown>) => controle.volume(fluxoDe(d.alvo), percentual(d.volume));
 export const definirMudo = (d: Record<string, unknown>) => controle.mudo(fluxoDe(d.alvo), d.mudo === true);
 

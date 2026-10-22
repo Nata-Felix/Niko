@@ -7,6 +7,7 @@ import { JanelaSistema } from "../janelas/sistema/JanelaSistema";
 import { JanelaConexao } from "../modulos/conexoes/JanelaConexao";
 import { BuscaGlobal } from "../modulos/busca/BuscaGlobal";
 import { CapturaRapida } from "../modulos/busca/CapturaRapida";
+import { EstilosDaMidia } from "../janelas/ilha/midia/EstilosDaMidia";
 import { PrimeiraExecucao } from "../modulos/configuracoes/PrimeiraExecucao";
 import { useInterface } from "../estado/interface";
 import { useConfig } from "../estado/configuracoes";
@@ -40,6 +41,7 @@ export function AppSistema() {
         if (c.tipo === "abrirConexao") ui.abrirJanelaConexaoLocal(c.id);
         if (c.tipo === "abrirBusca") ui.abrirBusca(true);
         if (c.tipo === "abrirCaptura") ui.abrirCaptura(true);
+        if (c.tipo === "abrirEstilosDaMidia") ui.abrirEstilosDaMidia(true);
       }),
     [],
   );
@@ -60,6 +62,7 @@ export function AppSistema() {
       </AnimatePresence>
       <BuscaGlobal />
       <CapturaRapida />
+      <EstilosDaMidia />
       {!primeira && <PrimeiraExecucao />}
     </div>
   );

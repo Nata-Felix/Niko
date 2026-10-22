@@ -40,6 +40,11 @@ public static class NikoControle {
     [PreserveSig] int GetMute([MarshalAs(UnmanagedType.Bool)] out bool mudo);
   }
 
+  [ComImport, Guid("C02216F6-8C67-4B5B-9D00-D008E73E0064"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+  interface IAudioMeterInformation {
+    [PreserveSig] int GetPeakValue(out float pico);
+  }
+
   [ComImport, Guid("77AA99A0-1BD6-484F-8BC7-2C654C9A9B6F"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
   interface IAudioSessionManager2 {
     [PreserveSig] int GetAudioSessionControl(IntPtr grupo, int fluxos, out IntPtr controle);
@@ -138,6 +143,25 @@ public static class NikoControle {
     volume.GetMasterVolumeLevelScalar(out nivel);
     volume.GetMute(out mudo);
     return new Endpoint { Volume = (int)Math.Round(nivel * 100), Mudo = mudo };
+  }
+
+  static IAudioMeterInformation medidor;
+  static DateTime medidorLidoEm = DateTime.MinValue;
+
+  public static float NivelDaSaida() {
+    try {
+      if (medidor == null || (DateTime.UtcNow - medidorLidoEm).TotalSeconds > 5) {
+        var dispositivo = Dispositivo(SAIDA);
+        medidor = dispositivo == null ? null : Ativar<IAudioMeterInformation>(dispositivo);
+        medidorLidoEm = DateTime.UtcNow;
+      }
+      float pico;
+      if (medidor == null || medidor.GetPeakValue(out pico) != 0) return 0;
+      return Math.Max(0, Math.Min(1, pico));
+    } catch {
+      medidor = null;
+      return 0;
+    }
   }
 
   public static bool DefinirVolume(int fluxo, int valor) {
@@ -596,6 +620,7 @@ while ($true) {
     $pedido = $linha | ConvertFrom-Json
     switch ($pedido.acao) {
       'audio' { $r = Audio }
+      'nivel' { $r = @{ nivel = [Math]::Round([NikoControle]::NivelDaSaida(), 3) } }
       'volume' { $r = @{ ok = [NikoControle]::DefinirVolume([int]$pedido.fluxo, [int]$pedido.valor) } }
       'mudo' { $r = @{ ok = [NikoControle]::DefinirMudo([int]$pedido.fluxo, [bool]$pedido.mudo) } }
       'sessao' {
@@ -681,6 +706,10 @@ function exeDaBandeja(caminho: string): string {
 
 export const controle: Plataforma["controle"] = {
   audio: () => pedir<EstadoDoAudio>({ acao: "audio" }),
+  async nivelDaSaida() {
+    const r = await pedir<{ nivel?: unknown }>({ acao: "nivel" }, 1500);
+    return typeof r.nivel === "number" && Number.isFinite(r.nivel) ? Math.max(0, Math.min(1, r.nivel)) : 0;
+  },
   volume: (fluxo, valor) => pedir({ acao: "volume", fluxo, valor }),
   mudo: (fluxo, mudo) => pedir({ acao: "mudo", fluxo, mudo }),
   sessao: (pids, volume, mudo) => pedir({ acao: "sessao", pids, volume, mudo }),

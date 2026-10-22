@@ -190,7 +190,7 @@ export function BarraLateral({ recolhida }: { recolhida: boolean }) {
     const contador = contadores[r];
     const atalho = posicao > 0 && posicao <= 9 ? ` (Ctrl + ${posicao})` : "";
     return (
-      <button key={r} type="button" className="barra-item" aria-current={ativo ? "page" : undefined} title={`${rotulo}${atalho}`} onClick={() => irPara(r)}>
+      <button key={r} type="button" className="barra-item" data-rota={r} aria-current={ativo ? "page" : undefined} title={`${rotulo}${atalho}`} onClick={() => irPara(r)}>
         <Icone size={16} />
         {!recolhida && <span className="cortar">{rotulo}</span>}
         {contador && contador.n > 0 && <span className={`barra-contador ${contador.alerta ? "barra-contador-alerta" : ""}`} aria-label={String(contador.n)}>{recolhida ? "" : contador.n}</span>}
@@ -278,7 +278,7 @@ export function BarraLateral({ recolhida }: { recolhida: boolean }) {
               <button type="button" className="barra-icone" role="switch" aria-checked={escuroAgora} aria-label={rotuloTema} title={rotuloTema} onClick={(evento) => mudarTema(escuroAgora ? "claro" : "escuro", evento.currentTarget)}>
                 {escuroAgora ? <Moon size={15} /> : <Sun size={15} />}
               </button>
-              <button type="button" className="barra-icone" aria-current={emAjustes ? "page" : undefined} aria-label={T.rotas.configuracoes} title={T.rotas.configuracoes} onClick={() => irPara("configuracoes")}>
+              <button type="button" className="barra-icone" data-tour="ajustes" aria-current={emAjustes ? "page" : undefined} aria-label={T.rotas.configuracoes} title={T.rotas.configuracoes} onClick={() => irPara("configuracoes")}>
                 <Settings size={15} />
               </button>
             </>
@@ -289,7 +289,7 @@ export function BarraLateral({ recolhida }: { recolhida: boolean }) {
             <button type="button" className="barra-icone barra-icone-largo" role="switch" aria-checked={escuroAgora} aria-label={rotuloTema} title={rotuloTema} onClick={(evento) => mudarTema(escuroAgora ? "claro" : "escuro", evento.currentTarget)}>
               {escuroAgora ? <Moon size={16} /> : <Sun size={16} />}
             </button>
-            <button type="button" className="barra-icone barra-icone-largo" aria-current={emAjustes ? "page" : undefined} aria-label={T.rotas.configuracoes} title={T.rotas.configuracoes} onClick={() => irPara("configuracoes")}>
+            <button type="button" className="barra-icone barra-icone-largo" data-tour="ajustes" aria-current={emAjustes ? "page" : undefined} aria-label={T.rotas.configuracoes} title={T.rotas.configuracoes} onClick={() => irPara("configuracoes")}>
               <Settings size={16} />
             </button>
           </>

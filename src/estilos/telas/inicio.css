@@ -992,3 +992,8 @@
   vertical-align: bottom;
   padding-bottom: 0.06em;
 }
+
+.estilo-sistema .inicio-foco-materia .escolha-gatilho {
+  height: 32px;
+  font-size: 12px;
+}

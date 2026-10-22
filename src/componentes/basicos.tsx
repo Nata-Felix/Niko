@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { AlertCircle, Check, X, Info, TriangleAlert } from "lucide-react";
 import { T } from "../textos/textos";
 import { useInterface } from "../estado/interface";
+import { GotaDoAlternador } from "./GotaDoAlternador";
 
 type VarianteBotao = "primario" | "secundario" | "fantasma" | "perigo" | "destaque";
 
@@ -63,7 +64,9 @@ export function Alternador({ ligado, aoMudar, rotulo, desativado }: { ligado: bo
       aria-label={rotulo}
       disabled={desativado}
       onClick={() => aoMudar(!ligado)}
-    />
+    >
+      <GotaDoAlternador ligado={ligado} />
+    </button>
   );
 }
 

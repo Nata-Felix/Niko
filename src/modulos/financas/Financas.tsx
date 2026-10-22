@@ -16,7 +16,7 @@ import { useInterface } from "../../estado/interface";
 import { useConfig } from "../../estado/configuracoes";
 import { useAgentes } from "../../estado/agentes";
 import { T } from "../../textos/textos";
-import { formatarDinheiro, lerValorEmCentavos, centavosParaCampo, converter, emReais, formatarCotacao, temCotacao, MOEDAS, SIMBOLO_DA_MOEDA, type Cotacoes } from "../../utilitarios/dinheiro";
+import { formatarDinheiro, formatarDinheiroCompacto, lerValorEmCentavos, centavosParaCampo, converter, emReais, formatarCotacao, temCotacao, MOEDAS, SIMBOLO_DA_MOEDA, type Cotacoes } from "../../utilitarios/dinheiro";
 import { usarCotacoes } from "./usarCotacoes";
 import { dataValida, formatar, hojeISO, paraISO, deISO, formatarData, horarioRelativo } from "../../utilitarios/datas";
 import { contem, lerArquivoTexto, normalizarTexto, somar } from "../../utilitarios/basicos";
@@ -25,6 +25,9 @@ import { detectarAssinaturas, assinaturasComValorNovo, lerCsv, lerOfx } from "..
 import { tocarSom } from "../../ponte/sons";
 import { EVENTO_NOVO } from "../../janelas/area-de-trabalho/usarAtalhos";
 import { SeletorDeCategoria } from "../../componentes/SeletorDeCategoria";
+import { GraficoDeArea } from "../../componentes/GraficoDeArea";
+import { CarteiraDeContas } from "../../componentes/CarteiraDeContas";
+import { seriesDoSaldo } from "../../utilitarios/serieDoSaldo";
 import { categoriaPelaDescricao } from "../../utilitarios/comandos";
 import type { Categoria, Conta, Moeda, Recorrente, TipoConta, TipoTransacao, Transacao } from "../../tipos";
 
@@ -697,6 +700,12 @@ function VisaoGeral({ modo, mes }: { modo: Modo; mes: string }) {
   const liquido = entradas - saidas;
   const textoSaldo = formatarDinheiro(saldoTotal);
   const virgula = textoSaldo.lastIndexOf(",");
+  const privacidade = useConfig((s) => s.privacidade);
+  const [saldosVisiveis, setSaldosVisiveis] = useState(!privacidade);
+  const seriesDoGrafico = useMemo(() => seriesDoSaldo(fin, deISO(hojeISO())), [fin.contas, fin.transacoes, fin.cotacoes]);
+  const contasNaCarteira = contasAtivas
+    .map((c) => ({ id: c.id, nome: c.nome, cor: c.cor, saldo: saldoDaContaEmReais(fin, c.id) }))
+    .sort((a, b) => b.saldo - a.saldo);
 
   const serie = Array.from({ length: 6 }, (_, i) => format(addMonths(deISO(`${mes}-01`), i - 5), "yyyy-MM")).map((m) => ({
     mes: m,
@@ -756,6 +765,37 @@ function VisaoGeral({ modo, mes }: { modo: Modo; mes: string }) {
           <span className="fin-hero-valor numero privado">{formatarDinheiro(aReceber)}</span>
         </div>
       </section>
+
+      {contasAtivas.length > 0 && (
+        <section className="fin-trajetoria">
+          <article className="fin-bloco fin-trajetoria-grafico">
+            <GraficoDeArea
+              series={seriesDoGrafico}
+              rotulosDosPeriodos={T.financas.trajetoria.periodos}
+              periodoInicial="30d"
+              titulo={T.financas.trajetoria.titulo}
+              formatarValor={formatarDinheiro}
+              formatarCompacto={formatarDinheiroCompacto}
+              formatarDia={(data) => formatarData(new Date(data), "d 'de' MMM yyyy")}
+              formatarEixo={(data, pontos) => formatarData(new Date(data), pontos <= 7 ? "EEE" : pontos <= 31 ? "d/MM" : "MMM")}
+              descrever={T.financas.trajetoria.descrever}
+            />
+          </article>
+          <article className="fin-bloco fin-trajetoria-carteira">
+            <CarteiraDeContas
+              contas={contasNaCarteira}
+              visivel={saldosVisiveis}
+              aoMudarVisivel={setSaldosVisiveis}
+              formatar={formatarDinheiro}
+              rotuloDoTotal={T.financas.carteira.total}
+              rotuloMostrar={T.financas.carteira.mostrar}
+              rotuloEsconder={T.financas.carteira.esconder}
+              rotuloEscondido={T.financas.carteira.escondido}
+              rotuloDoGrupo={T.financas.carteira.grupo}
+            />
+          </article>
+        </section>
+      )}
 
       <section className="bento fin-bento">
         <article className="fin-bloco">

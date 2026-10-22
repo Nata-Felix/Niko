@@ -145,6 +145,7 @@ export interface Configuracoes {
   escala: number;
   reduzirAnimacoes: boolean;
   journalEmQuadro: boolean;
+  tourVisto: boolean;
   modoLeveEscritorio: boolean;
   barraLateral: ItemBarra[];
   barraRecolhida: boolean;
@@ -189,6 +190,7 @@ export const CONFIG_PADRAO: Configuracoes = {
   escala: 1,
   reduzirAnimacoes: false,
   journalEmQuadro: false,
+  tourVisto: false,
   modoLeveEscritorio: false,
   barraLateral: BARRA_PADRAO,
   barraRecolhida: false,

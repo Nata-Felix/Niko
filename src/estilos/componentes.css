@@ -776,3 +776,16 @@
   justify-content: center;
   gap: 12px;
 }
+
+.alternador::after {
+  content: none;
+}
+
+.alternador-gota {
+  position: absolute;
+  inset: 0;
+  overflow: visible;
+  pointer-events: none;
+  fill: #fff;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.18));
+}

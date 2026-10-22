@@ -32,6 +32,12 @@ export function formatarDinheiro(centavos: number, moeda: Moeda = "BRL"): string
   return formatadorDa(moeda).format(centavos / 100);
 }
 
+const COMPACTO = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", notation: "compact", maximumFractionDigits: 1 });
+
+export function formatarDinheiroCompacto(centavos: number): string {
+  return COMPACTO.format(centavos / 100);
+}
+
 export function cotacaoDe(moeda: Moeda, cotacoes: Cotacoes): number {
   return moeda === "BRL" ? 1 : cotacoes[moeda] > 0 ? cotacoes[moeda] : 0;
 }

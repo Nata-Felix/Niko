@@ -1,3 +1,4 @@
+import { useTour } from "../../estado/tour";
 import { useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { ArrowRight, BrainCircuit } from "lucide-react";
@@ -36,6 +37,7 @@ export function PrimeiraExecucao() {
   const concluir = () => {
     cfg.definir({ primeiraExecucaoFeita: true, nome: nome.trim().slice(0, 40) });
     void tocarSom("greet", "personagens");
+    if (!cfg.tourVisto) window.setTimeout(() => useTour.getState().abrir(), 600);
   };
 
   const avancar = () => {

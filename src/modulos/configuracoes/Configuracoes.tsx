@@ -34,6 +34,7 @@ import { SecaoAssistive } from "./SecaoAssistive";
 import { EditorDeAtalhos } from "./EditorDeAtalhos";
 import { AlternadorAjuste, FaixaAjuste, GrupoAjuste, LinhaAjuste, NotaAjuste, Teclas } from "./LinhaAjuste";
 import { NATIVO, usarMonitores } from "../../desktop/desktop";
+import { useTour } from "../../estado/tour";
 import { escolhaDoDock, opcoesDeMonitorDoDock } from "../../janelas/dock/monitores";
 import { pedirSaudacao } from "../../janelas/ilha/animacoes/pedirSaudacao";
 import type { EstadoAgente, Rota } from "../../tipos";
@@ -752,6 +753,9 @@ export default function Configuracoes() {
         </LinhaAjuste>
         <LinhaAjuste rotulo={T.configuracoes.licencaRotulo} dica={T.configuracoes.licenca} />
         <LinhaAjuste rotulo={T.configuracoes.diagnostico} dica={T.configuracoes.itensGuardados(listarChaves().length, (tamanhoGuardado() / 1024).toFixed(0))} />
+        <LinhaAjuste rotulo={T.tour.verTour} dica={T.tour.verTourDica}>
+          <Botao onClick={() => useTour.getState().abrir()}>{T.tour.verTour}</Botao>
+        </LinhaAjuste>
         <LinhaAjuste rotulo={T.configuracoes.primeiraExecucao}>
           <Botao variante="primario" onClick={() => cfg.definir({ primeiraExecucaoFeita: false })}>{T.configuracoes.refazerPrimeira}</Botao>
         </LinhaAjuste>

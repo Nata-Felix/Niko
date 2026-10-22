@@ -1552,3 +1552,17 @@
   width: 10px;
   height: 10px;
 }
+
+.estilo-sistema .alternador .alternador-gota {
+  fill: var(--texto);
+  filter: none;
+}
+
+[data-tema="claro"] .estilo-sistema .alternador .alternador-gota {
+  fill: #ffffff;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.2));
+}
+
+.estilo-sistema .alternador[aria-checked="true"] .alternador-gota {
+  fill: #f2efe9;
+}

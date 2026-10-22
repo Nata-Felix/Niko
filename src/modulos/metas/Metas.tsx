@@ -14,6 +14,7 @@ import { lerImagemComoDataUrl } from "../../utilitarios/basicos";
 import { tocarSom } from "../../ponte/sons";
 import { EVENTO_NOVO } from "../../janelas/area-de-trabalho/usarAtalhos";
 import { QuadroDeTarefas } from "../../componentes/QuadroDeTarefas";
+import { CaixaDeEscolha } from "../../componentes/CaixaDeEscolha";
 import { progressoDaMeta } from "../../utilitarios/progressoDaMeta";
 import type { CartaoVisao, Evento, Meta, TipoMeta } from "../../tipos";
 
@@ -122,10 +123,16 @@ function FormMeta({ aberto, meta, aoFechar }: { aberto: boolean; meta?: Meta | n
         </div>
         {opcoesVinculo.length > 0 || erros.vinculo ? (
           <Campo id="mt-vinc" rotulo={T.metas.vinculo} obrigatorio erro={erros.vinculo}>
-            <select id="mt-vinc" className="seletor" value={vinculo} onChange={(e) => setVinculo(e.target.value)}>
-              <option value="">{T.financas.escolha}</option>
-              {opcoesVinculo.map((o) => <option key={o.id} value={o.id}>{o.nome}</option>)}
-            </select>
+            <CaixaDeEscolha
+              id="mt-vinc"
+              opcoes={opcoesVinculo.map((o) => ({ valor: o.id, rotulo: o.nome }))}
+              valor={vinculo}
+              aoMudar={setVinculo}
+              placeholder={T.financas.escolha}
+              textoDaBusca={T.geral.buscarOpcao}
+              textoSemResultado={T.geral.nadaEncontrado}
+              invalida={Boolean(erros.vinculo)}
+            />
           </Campo>
         ) : null}
         {tipo === "tarefas" && <p className="campo-dica">{T.metas.metaDeTarefas}</p>}

@@ -821,6 +821,47 @@ test("quadro de tarefas ordena, detecta atraso e move entre colunas vizinhas", a
   assert.deepEqual(q.progressoDoQuadro([{ status: "concluida" }, { status: "a_fazer" }, { status: "cancelada" }]), { feitas: 1, total: 2 });
 });
 
+test("componentes do easyui: escala, curva sem ultrapassar, busca, cartão do tour e série do saldo", async () => {
+  const g = await vite.ssrLoadModule("/src/componentes/GraficoDeArea.tsx");
+  assert.deepEqual(g.escalaBonita(28300, 34330), { baixo: 27500, alto: 35000, marcas: [27500, 30000, 32500, 35000] });
+  assert.deepEqual(g.escalaBonita(5, 5), { baixo: 4, alto: 6, marcas: [4, 6] });
+  const valores = [10, 10, 10, 10, 50];
+  const tangentes = g.tangentesMonotonas(valores);
+  for (let p = 0; p <= 4; p += 0.05) {
+    const y = g.curvaMonotona(valores, tangentes, p);
+    assert.ok(y >= 10 - 1e-9 && y <= 50 + 1e-9, `fora do intervalo em ${p}: ${y}`);
+  }
+  assert.equal(g.curvaMonotona(valores, tangentes, 2.5), 10);
+
+  const c = await vite.ssrLoadModule("/src/componentes/CaixaDeEscolha.tsx");
+  const opcoes = [{ valor: "a", rotulo: "Cálculo I" }, { valor: "b", rotulo: "Física", palavras: ["mecânica"] }, { valor: "c", rotulo: "Ler", descricao: "Hábito diário" }];
+  assert.deepEqual(c.filtrarOpcoes(opcoes, "calculo").map((o) => o.valor), ["a"]);
+  assert.deepEqual(c.filtrarOpcoes(opcoes, "MECANICA").map((o) => o.valor), ["b"]);
+  assert.deepEqual(c.filtrarOpcoes(opcoes, "habito").map((o) => o.valor), ["c"]);
+  assert.equal(c.filtrarOpcoes(opcoes, "  ").length, 3);
+
+  const t = await vite.ssrLoadModule("/src/componentes/TourGuiado.tsx");
+  assert.deepEqual(t.posicionarCartao(null, 320, 180, 1440, 900), { x: 560, y: 360 });
+  const abaixo = t.posicionarCartao({ x: 100, y: 100, w: 200, h: 40 }, 320, 180, 1440, 900);
+  assert.equal(abaixo.y, 154);
+  const aDireita = t.posicionarCartao({ x: 20, y: 80, w: 220, h: 800 }, 320, 180, 1440, 900);
+  assert.equal(aDireita.x, 254);
+  assert.ok(aDireita.y >= 16 && aDireita.y + 180 <= 900 - 16);
+
+  const s = await vite.ssrLoadModule("/src/utilitarios/serieDoSaldo.ts");
+  const dados = {
+    contas: [{ id: "n", nome: "Nubank", tipo: "corrente", saldoInicial: 100000, cor: "#000" }, { id: "x", nome: "Velha", tipo: "corrente", saldoInicial: 999900, cor: "#000", arquivada: true }],
+    transacoes: [{ id: "1", tipo: "despesa", valor: 20000, contaId: "n", data: "2026-10-20", descricao: "" }, { id: "2", tipo: "receita", valor: 50000, contaId: "n", data: "2026-10-30", descricao: "" }],
+  };
+  const series = s.seriesDoSaldo(dados, new Date(2026, 9, 22, 12));
+  assert.equal(series["7d"].length, 7);
+  assert.equal(series["30d"].length, 30);
+  assert.equal(series["12m"].length, 53);
+  assert.equal(series["7d"][0].valor, 1000);
+  assert.equal(series["7d"].at(-1).valor, 1300);
+  assert.equal(series["7d"][5].valor, 800);
+});
+
 test("endereço do provedor de IA aceita http só neste PC e na rede local, e nunca com chave fora deste PC", async () => {
   const { situacaoDoEndereco, alcanceDoEndereco } = await vite.ssrLoadModule("/src/utilitarios/enderecoDoProvedor.ts");
   assert.equal(alcanceDoEndereco("localhost"), "este_pc");

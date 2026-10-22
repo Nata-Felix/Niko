@@ -9,6 +9,7 @@ import { faltaPara, nivelDoUso, rotuloJanela } from "../../utilitarios/consumo";
 import { DndContext, closestCenter, type DragEndEvent } from "@dnd-kit/core";
 import { SortableContext, useSortable, verticalListSortingStrategy, arrayMove } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { CaixaDeEscolha } from "../../componentes/CaixaDeEscolha";
 import { Botao, Modal, Alternador, Progresso, Vazio } from "../../componentes/basicos";
 import { CabecalhoAba } from "../../componentes/CabecalhoAba";
 import { ItemTarefa } from "../../componentes/ItemTarefa";
@@ -293,10 +294,17 @@ function Cronometro() {
           ))}
         </div>
         {p.etapa === "foco" && comEstudos && (
-          <select className="seletor inicio-foco-materia" aria-label={T.pomodoro.materia} value={p.materiaId ?? ""} onChange={(e) => p.definirVinculo(e.target.value || undefined, p.tarefaId)}>
-            <option value="">{T.pomodoro.semMateria}</option>
-            {materias.map((m) => <option key={m.id} value={m.id}>{m.nome}</option>)}
-          </select>
+          <div className="inicio-foco-materia">
+            <CaixaDeEscolha
+              opcoes={[{ valor: "", rotulo: T.pomodoro.semMateria }, ...materias.map((m) => ({ valor: m.id, rotulo: m.nome }))]}
+              valor={p.materiaId ?? ""}
+              aoMudar={(v) => p.definirVinculo(v || undefined, p.tarefaId)}
+              placeholder={T.pomodoro.semMateria}
+              textoDaBusca={T.geral.buscarOpcao}
+              textoSemResultado={T.geral.nadaEncontrado}
+              rotuloAcessivel={T.pomodoro.materia}
+            />
+          </div>
         )}
         <div className="inicio-foco-botoes">
           <Botao variante={p.rodando ? "secundario" : "primario"} className="inicio-foco-principal" icone={p.rodando ? <Pause size={13} /> : <Play size={13} />} onClick={p.alternar}>

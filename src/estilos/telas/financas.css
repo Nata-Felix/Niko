@@ -2505,3 +2505,22 @@
   height: 1px;
   opacity: 0;
 }
+
+.estilo-sistema .fin-trajetoria {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(240px, 320px);
+  gap: var(--esp-3, 12px);
+  margin-bottom: var(--esp-3, 12px);
+}
+
+.estilo-sistema .fin-trajetoria-carteira {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@container conteudo (max-width: 760px) {
+  .estilo-sistema .fin-trajetoria {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

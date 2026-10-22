@@ -15,7 +15,7 @@ import { lerAudio, definirVolume, definirMudo, ajustarSessao, lerTema, lerInicia
 import { ocrDaRequisicao } from "./ocr.ts";
 import { receberEventoDoGancho, ehRotaDoGancho, ouvirEventos, decidirPedido, estadoDaInstalacao, previaDaInstalacao, removerGanchos, abrirProjeto, trazerTerminal, terminalNaFrente, ehRotaDaStatus, receberStatusDoClaude } from "./claude.ts";
 import { buscarNaWeb, lerPagina } from "./web.ts";
-import { ehRotaDeAgente, receberEventoDeAgente, estadoDosAgentes, instalarAgente, removerAgente } from "./agentesDeCodigo.ts";
+import { ehRotaDeAgente, receberEventoDeAgente, estadoDosAgentes, instalarAgente, previaDoAgente, removerAgente } from "./agentesDeCodigo.ts";
 import { listarArquivos, receberArquivo, enviarConteudo, excluirArquivo, excluirArquivosDaMateria, baixarArquivo, abrirArquivoNoPrograma, exportarParaDownloads } from "./arquivos.ts";
 import { tipoDoComputador, estadoDoSistema, listarRedes, listarBluetooth, lerComputador, conectarRede, esquecerRede, desconectarRede, definirBrilho, definirRadio, abrirConfiguracoesDoSistema } from "./sistema.ts";
 
@@ -118,6 +118,8 @@ export const rotas: Connect.NextHandleFunction = async (req, res, proximo) => {
     if (caminho === "/claude/instalar" && req.method === "POST") return responder(res, 200, instalarAgente("claude", await lerCorpo(req)));
     if (caminho === "/claude/remover" && req.method === "POST") return responder(res, 200, removerGanchos(await lerCorpo(req)));
     if (caminho === "/agentes" && req.method === "GET") return responder(res, 200, estadoDosAgentes());
+    const previaDeAgente = /^\/agentes\/([a-z]{2,20})\/previa$/.exec(caminho);
+    if (previaDeAgente && req.method === "GET") return responder(res, 200, previaDoAgente(previaDeAgente[1], url.searchParams.get("acao") === "remover" ? "remover" : "instalar"));
     const agente = /^\/agentes\/([a-z]{2,20})\/(instalar|remover)$/.exec(caminho);
     if (agente && req.method === "POST") return responder(res, 200, agente[2] === "instalar" ? instalarAgente(agente[1], await lerCorpo(req)) : removerAgente(agente[1], await lerCorpo(req)));
     if (caminho === "/ocr" && req.method === "POST") return responder(res, 200, await ocrDaRequisicao(req));

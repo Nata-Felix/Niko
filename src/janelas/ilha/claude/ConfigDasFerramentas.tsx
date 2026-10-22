@@ -7,6 +7,7 @@ import { Marca } from "../../../marcas/Marca";
 import { tocarSom } from "../../../ponte/sons";
 import { T } from "../../../textos/textos";
 import { COR_DA_FERRAMENTA, MARCA_DA_FERRAMENTA, nomeDaFerramenta } from "./ferramentas";
+import { linhasQueMudam, type LinhaQueMuda } from "../../../utilitarios/linhasQueMudam";
 
 const C = T.ilha.claude.config;
 
@@ -54,6 +55,24 @@ function Detalhe({ id, estado, aoVoltar, aoMudar, ocultarCaminhos = false }: { i
   const [ocupado, setOcupado] = useState(false);
   const [retorno, setRetorno] = useState<{ ok: boolean; texto: string } | null>(null);
   const aprova = FERRAMENTAS_QUE_APROVAM.includes(id);
+  const [previa, setPrevia] = useState<{ linhas: LinhaQueMuda[]; apaga: boolean } | "carregando" | null>(null);
+
+  useEffect(() => {
+    if (!confirmando) return setPrevia(null);
+    let vivo = true;
+    setPrevia("carregando");
+    agentesDeCodigo
+      .previa(id, confirmando)
+      .then((p) => vivo && setPrevia({ linhas: linhasQueMudam(p.atual, p.proposto), apaga: p.proposto === null && p.atual !== null }))
+      .catch((e: Error) => {
+        if (!vivo) return;
+        setConfirmando(null);
+        setRetorno({ ok: false, texto: C.falhou[e.message] ?? (e.message === "Failed to fetch" ? C.semPonte : C.falhou.outro) });
+      });
+    return () => {
+      vivo = false;
+    };
+  }, [confirmando, id]);
 
   const executar = (acao: "instalar" | "remover") => {
     setOcupado(true);
@@ -115,11 +134,23 @@ function Detalhe({ id, estado, aoVoltar, aoMudar, ocultarCaminhos = false }: { i
       <AnimatePresence mode="wait" initial={false}>
         {confirmando ? (
           <motion.div key="confirmar" className="cfg-acoes cfg-confirmar" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }}>
+            <pre className="cfg-previa" aria-label={C.previaRotulo}>
+              {previa === "carregando" || previa === null
+                ? C.previaCarregando
+                : previa.linhas.length === 0
+                  ? C.previaSemMudanca
+                  : previa.linhas.map((l, i) => (
+                      <div key={i} className="cfg-previa-linha" data-tipo={l.tipo}>
+                        {`${l.tipo === "entra" ? "+" : "-"} ${l.texto}`}
+                      </div>
+                    ))}
+              {previa && previa !== "carregando" && previa.apaga && <div className="cfg-previa-linha" data-tipo="sai">{C.previaApaga}</div>}
+            </pre>
             <span className="cfg-aviso">{confirmando === "instalar" ? C.avisoLigar : C.avisoDesligar}</span>
             <button type="button" className="vsc-botao" disabled={ocupado} onClick={() => setConfirmando(null)}>
               {C.cancelar}
             </button>
-            <button type="button" className="vsc-botao vsc-botao-primario" disabled={ocupado} onClick={() => executar(confirmando)}>
+            <button type="button" className="vsc-botao vsc-botao-primario" disabled={ocupado || previa === "carregando" || previa === null} onClick={() => executar(confirmando)}>
               {ocupado ? <LoaderCircle size={13} className="girando" /> : <Check size={13} />}
               {C.confirmar}
             </button>

@@ -1175,6 +1175,33 @@
   border-top: 1px solid var(--vsc-borda);
 }
 
+.cfg-confirmar {
+  flex-wrap: wrap;
+}
+
+.cfg-previa {
+  flex-basis: 100%;
+  max-height: 120px;
+  margin: 0;
+  padding: 6px 8px;
+  overflow: auto;
+  border: 1px solid var(--vsc-borda);
+  border-radius: 6px;
+  font-family: var(--vsc-mono);
+  font-size: 11px;
+  line-height: 1.45;
+  white-space: pre;
+  color: var(--vsc-texto);
+}
+
+.cfg-previa-linha[data-tipo="entra"] {
+  color: var(--vsc-verde);
+}
+
+.cfg-previa-linha[data-tipo="sai"] {
+  color: var(--vsc-vermelho);
+}
+
 .cfg-aviso,
 .cfg-retorno {
   margin-right: auto;

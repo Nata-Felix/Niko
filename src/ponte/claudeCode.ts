@@ -44,7 +44,7 @@ export interface RegraSugerida {
 export interface PreviaDaInstalacao {
   caminho: string;
   atual: string | null;
-  proposto: string;
+  proposto: string | null;
 }
 
 const CABECALHOS = { "x-niko": "1", "content-type": "application/json" };
@@ -78,6 +78,7 @@ async function pedirAgentes<T>(caminho: string, opcoes: RequestInit = {}): Promi
 
 export const agentesDeCodigo = {
   estado: () => pedirAgentes<{ ferramentas: EstadoDaFerramenta[] }>(""),
+  previa: (id: FerramentaDeCodigo, acao: "instalar" | "remover") => pedirAgentes<PreviaDaInstalacao>(`/${id}/previa?acao=${acao}`),
   instalar: (id: FerramentaDeCodigo) => pedirAgentes<{ caminho: string; copia: string | null }>(`/${id}/instalar`, { method: "POST", body: JSON.stringify({ confirmacao: "INSTALAR" }) }),
   remover: (id: FerramentaDeCodigo) => pedirAgentes<{ caminho: string; copia: string | null }>(`/${id}/remover`, { method: "POST", body: JSON.stringify({ confirmacao: "REMOVER" }) }),
 };

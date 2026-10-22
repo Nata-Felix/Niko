@@ -374,7 +374,7 @@ function comGanchosDoNiko(dados: Settings): Settings {
   return { ...limpo, hooks, statusLine: statusDoNiko(anterior, porta(), chave) };
 }
 
-function ocultarSegredo(texto: string) {
+export function ocultarSegredo(texto: string) {
   return texto.split(segredo()).join("••••••••");
 }
 

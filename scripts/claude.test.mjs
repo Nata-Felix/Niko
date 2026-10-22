@@ -702,3 +702,14 @@ test("plugin do OpenCode não quebra o setup se um hook da v2 falhar", async () 
   const limpar = await plugin.setup({ location: { directory: "/p" }, session: { hook: async () => { throw new Error("mudou"); } } });
   await limpar();
 });
+
+test("prévia dos ganchos mostra só as linhas que entram e saem", async () => {
+  const { linhasQueMudam } = await vite.ssrLoadModule("/src/utilitarios/linhasQueMudam.ts");
+  assert.deepEqual(linhasQueMudam("a\nb\n", "a\nb\nc\n"), [{ tipo: "entra", texto: "c" }]);
+  assert.deepEqual(linhasQueMudam("a\nx\nb\n", "a\nb\n"), [{ tipo: "sai", texto: "x" }]);
+  assert.deepEqual(linhasQueMudam("}\n", "}\n}\n"), [{ tipo: "entra", texto: "}" }]);
+  assert.deepEqual(linhasQueMudam(null, "novo\r\n"), [{ tipo: "entra", texto: "novo" }]);
+  assert.deepEqual(linhasQueMudam("igual\n", "igual\n"), []);
+  const { previaDoAgente } = await vite.ssrLoadModule("/servidor/agentesDeCodigo.ts");
+  assert.throws(() => previaDoAgente("inexistente", "instalar"), /ferramenta_desconhecida/);
+});

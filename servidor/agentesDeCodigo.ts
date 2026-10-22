@@ -3,7 +3,7 @@ import { copyFileSync, existsSync, mkdirSync, readFileSync, renameSync, rmSync, 
 import { homedir } from "node:os";
 import { delimiter, dirname, join } from "node:path";
 import {
-  CABECALHO_SEGREDO, estadoDaInstalacao, instalarGanchos, lembrarProcesso, lerCorpoJson, porta, processarEvento, removerGanchos, segredo, segredoConfere, type FerramentaDeCodigo,
+  CABECALHO_SEGREDO, estadoDaInstalacao, instalarGanchos, lembrarProcesso, lerCorpoJson, ocultarSegredo, porta, previaDaInstalacao, processarEvento, removerGanchos, segredo, segredoConfere, type FerramentaDeCodigo,
 } from "./claude.ts";
 import { plataforma } from "./plataforma/index.ts";
 
@@ -516,6 +516,16 @@ export function instalarAgente(id: string, corpo: Corpo) {
   const instalador = INSTALADORES[id as Exclude<FerramentaDeCodigo, "claude">];
   const caminho = instalador.arquivo();
   return gravarComCopia(caminho, instalador.propor(lerTexto(caminho), segredo()));
+}
+
+export function previaDoAgente(id: string, acao: "instalar" | "remover") {
+  if (!FERRAMENTAS_DE_CODIGO.includes(id as FerramentaDeCodigo)) throw new Error("ferramenta_desconhecida");
+  if (id === "claude") return previaDaInstalacao(acao);
+  const instalador = INSTALADORES[id as Exclude<FerramentaDeCodigo, "claude">];
+  const caminho = instalador.arquivo();
+  const atual = lerTexto(caminho);
+  const proposto = acao === "instalar" ? instalador.propor(atual, segredo()) : atual === null ? null : instalador.retirar(atual);
+  return { caminho, atual: atual === null ? null : ocultarSegredo(atual), proposto: proposto === null ? null : ocultarSegredo(proposto) };
 }
 
 export function removerAgente(id: string, corpo: Corpo) {

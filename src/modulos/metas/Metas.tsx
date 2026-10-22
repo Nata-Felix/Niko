@@ -1,5 +1,5 @@
 import { useEffect, useState, type CSSProperties } from "react";
-import { Plus, Trash2, Target, ImagePlus, Pencil, Image as IconeImagem, Check, Link2, TrendingUp } from "lucide-react";
+import { Plus, Trash2, Target, ImagePlus, Pencil, Image as IconeImagem, Check, Link2, TrendingUp, Columns3 } from "lucide-react";
 import { CabecalhoAba } from "../../componentes/CabecalhoAba";
 import { Botao, Campo, Modal, Vazio, ConfirmarModal } from "../../componentes/basicos";
 import { useOrganizacao } from "../../estado/organizacao";
@@ -13,6 +13,7 @@ import { dataValida, diasAte, formatar } from "../../utilitarios/datas";
 import { lerImagemComoDataUrl } from "../../utilitarios/basicos";
 import { tocarSom } from "../../ponte/sons";
 import { EVENTO_NOVO } from "../../janelas/area-de-trabalho/usarAtalhos";
+import { QuadroDeTarefas } from "../../componentes/QuadroDeTarefas";
 import { progressoDaMeta } from "../../utilitarios/progressoDaMeta";
 import type { CartaoVisao, Evento, Meta, TipoMeta } from "../../tipos";
 
@@ -316,6 +317,7 @@ export default function Metas() {
   const [valor, setValor] = useState("");
   const [excluir, setExcluir] = useState<Meta | null>(null);
   const [ligando, setLigando] = useState<Meta | null>(null);
+  const [vendoQuadro, setVendoQuadro] = useState<Meta | null>(null);
   const [editando, setEditando] = useState<Meta | null>(null);
   const excluirMeta = (meta: Meta) => {
     desligarDaMeta(meta.id);
@@ -420,6 +422,7 @@ export default function Metas() {
                 <span className={`etiqueta ${pct >= 1 ? "etiqueta-sucesso" : "etiqueta-info"}`}>{pct >= 1 ? T.metas.estados.concluida : T.metas.estados.em_andamento}</span>
                 <span className="mt-meta-acoes">
                   {m.tipo === "tarefas" && <Botao pequeno soIcone variante="fantasma" icone={<Link2 size={13} />} aria-label={T.metas.ligarTarefas} title={T.metas.ligarTarefas} onClick={() => setLigando(m)} />}
+                  {m.tipo === "tarefas" && <Botao pequeno soIcone variante="fantasma" icone={<Columns3 size={13} />} aria-label={T.metas.verQuadro} title={T.metas.verQuadro} onClick={() => setVendoQuadro(m)} />}
                   {m.tipo === "manual" && <Botao pequeno soIcone variante="fantasma" icone={<TrendingUp size={13} />} aria-label={T.metas.atualizarValor} title={T.metas.atualizarValor} onClick={() => { setAtualizando(m); setValor(String(m.atual)); }} />}
                   <Botao pequeno soIcone variante="fantasma" icone={<Pencil size={13} />} aria-label={T.metas.editarMeta} title={T.metas.editarMeta} onClick={() => setEditando(m)} />
                   <Botao pequeno soIcone variante="fantasma" icone={<Trash2 size={13} />} aria-label={T.geral.excluir} title={T.geral.excluir} onClick={() => setExcluir(m)} />
@@ -520,6 +523,13 @@ export default function Metas() {
       </Modal>
       <ConfirmarModal aberto={!!excluir} titulo={T.geral.confirmarExclusao} texto={excluir?.nome ?? ""} aoFechar={() => setExcluir(null)} aoConfirmar={() => excluir && excluirMeta(excluir)} />
       <LigarTarefas meta={ligando} aoFechar={() => setLigando(null)} />
+      <Modal aberto={!!vendoQuadro} largo titulo={vendoQuadro ? T.metas.quadroDe(vendoQuadro.nome) : ""} aoFechar={() => setVendoQuadro(null)}>
+        {vendoQuadro && (tarefas.some((t) => t.metaId === vendoQuadro.id) ? (
+          <div className="mt-quadro"><QuadroDeTarefas tarefas={tarefas.filter((t) => t.metaId === vendoQuadro.id)} variante="sistema" mostrarData semMeta /></div>
+        ) : (
+          <p className="campo-dica">{T.metas.quadroVazio}</p>
+        ))}
+      </Modal>
     </>
   );
 }

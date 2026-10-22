@@ -144,6 +144,7 @@ export interface Configuracoes {
   destaque: string | null;
   escala: number;
   reduzirAnimacoes: boolean;
+  journalEmQuadro: boolean;
   modoLeveEscritorio: boolean;
   barraLateral: ItemBarra[];
   barraRecolhida: boolean;
@@ -187,6 +188,7 @@ export const CONFIG_PADRAO: Configuracoes = {
   destaque: null,
   escala: 1,
   reduzirAnimacoes: false,
+  journalEmQuadro: false,
   modoLeveEscritorio: false,
   barraLateral: BARRA_PADRAO,
   barraRecolhida: false,

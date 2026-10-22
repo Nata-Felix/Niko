@@ -798,3 +798,25 @@ test("pesquisa na web bloqueia endereços internos e lê resultados de busca", a
   const bing = w.resultadosDoBing('<li class="b_algo"><h2><a href="https://www.bing.com/ck/a?!&amp;u=a1aHR0cHM6Ly90YXVyaS5hcHAv&amp;ntb=1">Tauri</a></h2><p class="b_lineclamp2">Rápido</p></li>');
   assert.deepEqual(bing, [{ titulo: "Tauri", url: "https://tauri.app/", trecho: "Rápido" }]);
 });
+
+test("quadro de tarefas ordena, detecta atraso e move entre colunas vizinhas", async () => {
+  const q = await vite.ssrLoadModule("/src/utilitarios/quadroDeTarefas.ts");
+  assert.equal(q.colunaDaTarefa({ status: "reagendada" }), "a_fazer");
+  assert.equal(q.colunaVizinha("a_fazer", -1), null);
+  assert.equal(q.colunaVizinha("a_fazer", 1), "em_andamento");
+  assert.equal(q.colunaVizinha("concluida", 1), null);
+  assert.equal(q.tarefaAtrasada({ status: "a_fazer", data: "2026-10-21" }, "2026-10-22", "10:00"), true);
+  assert.equal(q.tarefaAtrasada({ status: "a_fazer", data: "2026-10-22", hora: "09:00" }, "2026-10-22", "10:00"), true);
+  assert.equal(q.tarefaAtrasada({ status: "a_fazer", data: "2026-10-22", hora: "11:00" }, "2026-10-22", "10:00"), false);
+  assert.equal(q.tarefaAtrasada({ status: "concluida", data: "2026-10-01" }, "2026-10-22", "10:00"), false);
+  const base = { checklist: [], descricao: "", criadaEm: "2026-10-01" };
+  const lista = [
+    { ...base, id: "1", titulo: "B", status: "a_fazer", prioridade: "media", hora: "09:00" },
+    { ...base, id: "2", titulo: "A", status: "a_fazer", prioridade: "alta" },
+    { ...base, id: "3", titulo: "C", status: "a_fazer", prioridade: "media", hora: "08:00" },
+  ];
+  assert.deepEqual(q.ordenarCartoes(lista, "a_fazer").map((t) => t.id), ["2", "3", "1"]);
+  const detalhes = q.detalhesDoCartao({ ...base, id: "x", titulo: "X", status: "em_andamento", prioridade: "alta", data: "2026-10-25", metaId: "m", materiaId: "c", estimativaPomodoros: 2, checklist: [{ id: "a", texto: "a", feito: true }, { id: "b", texto: "b", feito: false }] }, { metas: [{ id: "m", nome: "Portfólio" }], materias: [{ id: "c", nome: "Cálculo" }], hoje: "2026-10-22", agoraHHMM: "10:00", mostrarData: true });
+  assert.deepEqual({ ...detalhes }, { hora: undefined, data: "2026-10-25", atrasada: false, prioridade: "alta", checklist: { feitos: 1, total: 2 }, pomodoros: 2, meta: "Portfólio", materia: "Cálculo" });
+  assert.deepEqual(q.progressoDoQuadro([{ status: "concluida" }, { status: "a_fazer" }, { status: "cancelada" }]), { feitas: 1, total: 2 });
+});

@@ -498,3 +498,7 @@
   font-size: 11px;
   color: var(--texto-3);
 }
+
+.estilo-sistema .mt-quadro {
+  min-height: 320px;
+}

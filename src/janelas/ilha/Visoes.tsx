@@ -24,7 +24,7 @@ import { usarAgendaGoogle } from "../../modulos/calendario/usarAgendaGoogle";
 import { ConexaoNaIlha } from "./ConexaoNaIlha";
 import { conexaoEmTestes } from "../../utilitarios/disponibilidadeConexoes";
 import { VolumeDoPlayer } from "./VolumeDoPlayer";
-import { QuadroDeTarefas } from "./QuadroDeTarefas";
+import { QuadroDeTarefas } from "../../componentes/QuadroDeTarefas";
 import { EspacoDoPersonagem } from "./animacoes/PersonagemContinuo";
 import { funcaoLigada, secoesDoHojeLigadas } from "../../utilitarios/funcoes";
 import { useFinancas } from "../../estado/financas";
@@ -133,7 +133,7 @@ function SecaoTarefas() {
         {lista.length === 0 ? (
           <span className="ilha-sub">{T.ilha.semTarefasHoje}</span>
         ) : emQuadro ? (
-          <QuadroDeTarefas tarefas={lista} />
+          <QuadroDeTarefas tarefas={lista} variante="ilha" />
         ) : (
           lista.map((t) => (
             <div key={t.id} className="ilha-linha">

@@ -95,6 +95,8 @@ function estadoCalmo(e: EstadoAgente): EstadoAgente {
   return e === "alerta" || e === "erro" ? "ocioso" : e;
 }
 const LARGURA_EXPANDIDA = 660;
+const LARGURA_DO_QUADRO = 880;
+const ALTURA_DO_QUADRO = 480;
 const MARGEM_DA_TELA = 16;
 const SAUDACAO_VENCE_EM_MS = 15 * 60_000;
 const ALTURA_COMPACTA = 30;
@@ -389,13 +391,16 @@ export function Ilha() {
   if (!cfg.ativa || frente.telaCheia) return null;
 
   const alturaConexoes = alturaDasConexoes(conexaoSelecionada, conexaoLigada);
+  const quadroDeTarefasAberto = cfg.tarefasEmQuadro && abaAtual === "hoje" && secaoHoje === "tarefas";
   const alvo = saudando
     ? { w: LARGURA_DA_SAUDACAO, h: ALTURA_DA_SAUDACAO, r: 40 }
     : estadoEfetivo === "escondida"
       ? { w: 120, h: 6, r: 6 }
       : estadoEfetivo === "compacta"
         ? { w: compacta.largura, h: compacta.tipo === "revelacao" ? 56 : compacta.tipo === "midia" ? ALTURA_COMPACTA_MIDIA : ALTURA_COMPACTA, r: compacta.tipo === "midia" || compacta.tipo === "revelacao" ? 14 : 12 }
-        : { w: LARGURA_ABA[abaAtual] ?? LARGURA_EXPANDIDA, h: alturaDaVisao(abaAtual, secaoHoje, alturaConexoes), r: 30 };
+        : quadroDeTarefasAberto
+          ? { w: LARGURA_DO_QUADRO, h: ALTURA_DO_QUADRO, r: 30 }
+          : { w: LARGURA_ABA[abaAtual] ?? LARGURA_EXPANDIDA, h: alturaDaVisao(abaAtual, secaoHoje, alturaConexoes), r: 30 };
   // Em tela pequena ou com zoom alto do sistema, a aba aberta encolhe para caber em vez de sair da tela.
   const escala = escalaQueCabe(ESCALA[cfg.tamanho], { largura: alvo.w, altura: alvo.h }, { largura: tela.largura - MARGEM_DA_TELA * 2, altura: tela.altura - ALTURA_DA_FAIXA - MARGEM_DA_TELA });
   const crescendo = alvo.w * alvo.h >= anterior.current.w * anterior.current.h;

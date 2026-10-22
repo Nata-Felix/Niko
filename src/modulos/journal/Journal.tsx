@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { addDays, addMonths, eachDayOfInterval, endOfMonth, endOfWeek, format, getDaysInMonth, isSameMonth, startOfMonth, startOfWeek } from "date-fns";
-import { ChevronLeft, ChevronRight, Plus, Undo2, Redo2, Printer, Check, Minus, Pencil, Archive, Flame, Timer, CircleCheck, Circle, CalendarClock, CalendarArrowDown, CalendarDays, Repeat, X, Pause, Trash2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Undo2, Redo2, Printer, Check, Minus, Pencil, Archive, Flame, Timer, CircleCheck, Circle, CalendarClock, CalendarArrowDown, CalendarDays, Repeat, X, Pause, Trash2, Columns3, List } from "lucide-react";
 import { CabecalhoAba } from "../../componentes/CabecalhoAba";
 import { Cartao, Botao, Campo, Modal, Segmentado, Vazio } from "../../componentes/basicos";
+import { QuadroDeTarefas } from "../../componentes/QuadroDeTarefas";
 import { ICONE_STATUS, ORDEM_STATUS } from "../../componentes/ItemTarefa";
 import { Editor } from "../../componentes/Editor";
 import { BarrasVerticais } from "../../componentes/Graficos";
@@ -501,6 +502,8 @@ export default function Journal() {
   const eventos = useOrganizacao((s) => s.eventos);
   const desligadas = useConfig((s) => s.funcoesDesligadas);
   const virada = useConfig((s) => s.viradaAs4h);
+  const emQuadro = useConfig((s) => s.journalEmQuadro);
+  const definirConfig = useConfig((s) => s.definir);
   const [novaTarefa, setNovaTarefa] = useState("");
   const [erroTarefa, setErroTarefa] = useState("");
   const [salvo, setSalvo] = useState(false);
@@ -640,7 +643,25 @@ export default function Journal() {
         <>
           <section className="jn-colunas">
             <div className="jn-coluna">
-              <Cartao className="jn-tarefas" titulo={T.journal.tarefas} acoes={doDia.length > 0 ? <span className="secao-extra mono">{T.journal.tarefasFeitas(feitasDoDia, doDia.length)}</span> : undefined}>
+              <Cartao
+                className="jn-tarefas"
+                titulo={T.journal.tarefas}
+                acoes={
+                  <>
+                    {doDia.length > 0 && <span className="secao-extra mono">{T.journal.tarefasFeitas(feitasDoDia, doDia.length)}</span>}
+                    <Botao
+                      pequeno
+                      soIcone
+                      variante="fantasma"
+                      icone={emQuadro ? <List size={13} /> : <Columns3 size={13} />}
+                      aria-pressed={emQuadro}
+                      aria-label={emQuadro ? T.ilha.verLista : T.ilha.verQuadro}
+                      title={emQuadro ? T.ilha.verLista : T.ilha.verQuadro}
+                      onClick={() => definirConfig({ journalEmQuadro: !emQuadro })}
+                    />
+                  </>
+                }
+              >
                 <form onSubmit={adicionar} className="jn-nova" noValidate>
                   <div className="jn-nova-caixa" data-erro={erroTarefa ? "sim" : "nao"}>
                     <button type="submit" className="jn-nova-mais" aria-label={T.geral.adicionar} title={T.geral.adicionar}>
@@ -673,7 +694,8 @@ export default function Journal() {
                     </div>
                   </div>
                 )}
-                {semHora.length > 0 && (
+                {emQuadro && doDia.length > 0 && <div className="jn-quadro"><QuadroDeTarefas tarefas={doDia} variante="sistema" /></div>}
+                {!emQuadro && semHora.length > 0 && (
                   <div className="jn-periodo">
                     <span className="jn-periodo-nome">{T.journal.semHora}</span>
                     <div className="jn-periodo-lista">
@@ -681,7 +703,7 @@ export default function Journal() {
                     </div>
                   </div>
                 )}
-                {PERIODOS.map((p) => (
+                {!emQuadro && PERIODOS.map((p) => (
                   <div key={p} className="jn-periodo">
                     <span className="jn-periodo-nome">{T.journal[p]}</span>
                     <div className="jn-periodo-lista">

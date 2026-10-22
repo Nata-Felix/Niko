@@ -10,7 +10,7 @@ import { formatarDinheiro } from "./dinheiro";
 import { somar } from "./basicos";
 import { T } from "../textos/textos";
 import type { AgenteId } from "../tipos";
-import { funcaoDoComando, funcaoLigada, regraDasFuncoesParaIa } from "./funcoes";
+import { ferramentaLigada, funcaoDoComando, funcaoLigada, regraDasFuncoesParaIa } from "./funcoes";
 import { personaValida } from "../personagens/personalizacao";
 import type { MensagemPonteIa } from "../ponte/ponteLocal";
 
@@ -78,15 +78,21 @@ export function preferenciasDoAgente(agente: AgenteId): MensagemPonteIa | null {
   return persona ? { papel: "usuario", texto: JSON.stringify({ preferenciasDeConversa: persona }) } : null;
 }
 
+function regraDaWeb(apenasAnalise: boolean): string {
+  const webDisponivel = !apenasAnalise && useConfig.getState().pesquisaNaWeb && ferramentaLigada("buscar_na_web");
+  return webDisponivel ? T.chat.confianca.regraComWeb : T.chat.confianca.regraSemWeb;
+}
+
 export function promptDoAgente(agente: AgenteId, apenasAnalise = false): string {
   const { nomes, cargos } = useConfig.getState().agentes;
-  if (apenasAnalise) return [T.chat.anexos.analiseSistema, ...T.chat.confianca.regras].join("\n");
+  if (apenasAnalise) return [T.chat.anexos.analiseSistema, ...T.chat.confianca.regras, regraDaWeb(true)].join("\n");
   const colegas = AGENTES.filter((a) => a !== agente).map((a) => `- ${nomes[a]}, ${cargos[a]}: ${T.agentes.areas[a]}`).join("\n");
   return [
     `Você é ${nomes[agente]}, ${cargos[agente]} no Niko, um app pessoal do usuário para rotina, estudos, finanças e projetos. Sua área: ${T.agentes.areas[agente]}.`,
     `Responda somente como ${nomes[agente]}. Não escreva nomes seguidos de dois pontos no início da resposta, não encene outros agentes e não atribua suas respostas a um colega. O Niko identifica o autor na interface.`,
     T.agentes.personalizacao.regraPersona,
     ...T.chat.confianca.regras,
+    regraDaWeb(false),
     `Colegas do time:\n${colegas}`,
     "Regras:",
     "- Responda sempre em português do Brasil, curto e direto. Nunca use travessão nem emoji.",

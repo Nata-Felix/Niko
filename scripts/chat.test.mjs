@@ -15,6 +15,7 @@ const { useConfig, CONFIG_PADRAO } = await servidor.ssrLoadModule("/src/estado/c
 const { useRotina } = await servidor.ssrLoadModule("/src/estado/rotina.ts");
 const { useComunicacao } = await servidor.ssrLoadModule("/src/estado/comunicacao.ts");
 const { executarFerramenta, definicoesFerramentas, textoCapacidades } = await servidor.ssrLoadModule("/src/utilitarios/ferramentasIa.ts");
+const { promptDoAgente } = await servidor.ssrLoadModule("/src/utilitarios/contextoIa.ts");
 const { detectarIntencao } = await servidor.ssrLoadModule("/src/utilitarios/intencoes.ts");
 const { perguntarAssistente, escolherAgente } = await servidor.ssrLoadModule("/src/utilitarios/assistente.ts");
 const { enviarAoTime, useConversando, tentarDeNovo, decidirCartao, alterarDadosDoCartao } = await servidor.ssrLoadModule("/src/estado/conversando.ts");
@@ -607,5 +608,15 @@ test("ferramentas de internet somem quando a pesquisa na web está desligada", (
   assert.ok(definicoesFerramentas().some((f) => f.nome === "buscar_na_web"));
   useConfig.setState({ pesquisaNaWeb: false });
   assert.ok(!definicoesFerramentas().some((f) => ["buscar_na_web", "ler_pagina"].includes(f.nome)));
+  useConfig.setState({ pesquisaNaWeb: true });
+});
+
+test("prompt do agente não nega a pesquisa na web quando ela está ligada", () => {
+  useConfig.setState({ pesquisaNaWeb: true });
+  const ligada = promptDoAgente("organizador");
+  assert.ok(ligada.includes(T.chat.confianca.regraComWeb));
+  assert.ok(!ligada.includes(T.chat.confianca.regraSemWeb));
+  useConfig.setState({ pesquisaNaWeb: false });
+  assert.ok(promptDoAgente("organizador").includes(T.chat.confianca.regraSemWeb));
   useConfig.setState({ pesquisaNaWeb: true });
 });

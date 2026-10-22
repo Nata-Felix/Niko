@@ -318,6 +318,7 @@ fn criar_sobreposta(app: &AppHandle, rotulo: &str, y: f64, x: f64, largura: f64,
         .resizable(false)
         .focused(false)
         .focusable(plataforma::SOBREPOSTA_FOCAVEL_AO_CRIAR)
+        .disable_drag_drop_handler()
         .visible(false)
         .position(x, y)
         .inner_size(largura, altura)

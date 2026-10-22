@@ -23,11 +23,18 @@ export interface ConversaWhatsapp {
   mensagens: MensagemWhatsapp[];
   naoLidas: number;
   ultimaAtividade: string;
+  arquivada?: boolean;
 }
 
 export interface FiltrosWhatsapp {
   silenciarGrupos: boolean;
   ignoradas: string[];
+  esconderArquivadas?: boolean;
+  esconderGrupos?: boolean;
+}
+
+function escondida(c: ConversaWhatsapp, filtros: FiltrosWhatsapp): boolean {
+  return filtros.ignoradas.includes(c.id) || (filtros.esconderArquivadas !== false && c.arquivada === true) || (filtros.esconderGrupos === true && c.grupo);
 }
 
 export type Resultado = "repetida" | "ignorada" | "silenciosa" | "avisar";
@@ -100,28 +107,29 @@ export class CaixaWhatsapp {
       resultado = "silenciosa";
     } else {
       conversa.naoLidas += 1;
-      resultado = grupo && filtros.silenciarGrupos && !m.mencionaMe ? "silenciosa" : "avisar";
+      resultado = escondida(conversa, filtros) || (grupo && filtros.silenciarGrupos && !m.mencionaMe) ? "silenciosa" : "avisar";
     }
     this.conversas.set(id, conversa);
     return resultado;
   }
 
-  registrarConversa(jid: string, nome: string, ultima: string, filtros: FiltrosWhatsapp) {
+  registrarConversa(jid: string, nome: string, ultima: string, filtros: FiltrosWhatsapp, arquivada = false) {
     const id = jidNormalizado(jid);
     if (filtros.ignoradas.includes(id)) return;
     const numero = numeroParaExibir(id);
     const atual = this.conversas.get(id);
     if (!atual) {
-      this.conversas.set(id, { id, nome: nome || numero, grupo: ehGrupo(id), mensagens: [], naoLidas: 0, ultimaAtividade: ultima || new Date(0).toISOString() });
+      this.conversas.set(id, { id, nome: nome || numero, grupo: ehGrupo(id), mensagens: [], naoLidas: 0, ultimaAtividade: ultima || new Date(0).toISOString(), arquivada });
       return;
     }
+    atual.arquivada = arquivada;
     if (nome && atual.nome === numero) atual.nome = nome;
     if (ultima > atual.ultimaAtividade) atual.ultimaAtividade = ultima;
   }
 
   visiveis(filtros: FiltrosWhatsapp): ConversaWhatsapp[] {
     return [...this.conversas.values()]
-      .filter((c) => !filtros.ignoradas.includes(c.id))
+      .filter((c) => !escondida(c, filtros))
       .sort((a, b) => b.ultimaAtividade.localeCompare(a.ultimaAtividade));
   }
 
@@ -257,12 +265,12 @@ function resultados(corpo: unknown): Record<string, unknown> | null {
   return r && typeof r === "object" ? (r as Record<string, unknown>) : null;
 }
 
-export function conversasDoGateway(corpo: unknown): { jid: string; nome: string; ultima: string }[] {
+export function conversasDoGateway(corpo: unknown): { jid: string; nome: string; ultima: string; arquivada: boolean }[] {
   const lista = resultados(corpo)?.data;
   if (!Array.isArray(lista)) return [];
   return lista.flatMap((c: Record<string, unknown>) => {
     const jid = texto(c?.jid);
-    return jid ? [{ jid, nome: texto(c.name) ?? "", ultima: typeof c.last_message_time === "string" ? dataIso(c.last_message_time) : "" }] : [];
+    return jid ? [{ jid, nome: texto(c.name) ?? "", ultima: typeof c.last_message_time === "string" ? dataIso(c.last_message_time) : "", arquivada: c.archived === true }] : [];
   });
 }
 

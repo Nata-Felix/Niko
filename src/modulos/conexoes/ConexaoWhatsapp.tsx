@@ -119,7 +119,9 @@ export function ConfigWhatsapp({ aberto, aoFechar }: { aberto: boolean; aoFechar
             )}
             {estado && (
               <>
-                <LinhaAlternador rotulo={W.silenciarGrupos} ligado={estado.filtros.silenciarGrupos} aoMudar={(v) => void agir(() => whatsappPonte.filtros({ silenciarGrupos: v }))} />
+                <LinhaAlternador rotulo={W.esconderArquivadas} dica={W.esconderArquivadasDica} ligado={estado.filtros.esconderArquivadas} aoMudar={(v) => void agir(() => whatsappPonte.filtros({ esconderArquivadas: v }))} />
+                <LinhaAlternador rotulo={W.esconderGrupos} dica={W.esconderGruposDica} ligado={estado.filtros.esconderGrupos} aoMudar={(v) => void agir(() => whatsappPonte.filtros({ esconderGrupos: v }))} />
+                {!estado.filtros.esconderGrupos && <LinhaAlternador rotulo={W.silenciarGrupos} ligado={estado.filtros.silenciarGrupos} aoMudar={(v) => void agir(() => whatsappPonte.filtros({ silenciarGrupos: v }))} />}
                 <LinhaAlternador rotulo={W.lerAoAbrir} dica={W.lerAoAbrirDica} ligado={estado.filtros.lerAoAbrir} aoMudar={(v) => void agir(() => whatsappPonte.filtros({ lerAoAbrir: v }))} />
                 {estado.filtros.ignoradas.length > 0 && (
                   <fieldset className="cx-lista">

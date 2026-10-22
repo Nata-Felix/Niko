@@ -25,7 +25,7 @@ interface ConfigWhatsapp extends FiltrosWhatsapp {
   lerAoAbrir: boolean;
 }
 
-const PADRAO: ConfigWhatsapp = { ligado: false, silenciarGrupos: true, ignoradas: [], lerAoAbrir: true };
+const PADRAO: ConfigWhatsapp = { ligado: false, silenciarGrupos: true, ignoradas: [], lerAoAbrir: true, esconderArquivadas: true, esconderGrupos: false };
 const arquivoDeConfig = () => join(pastaDados(), "whatsapp.json");
 
 function lerConfig(): ConfigWhatsapp {
@@ -37,6 +37,8 @@ function lerConfig(): ConfigWhatsapp {
       silenciarGrupos: lido.silenciarGrupos !== false,
       ignoradas: Array.isArray(lido.ignoradas) ? lido.ignoradas.filter((j): j is string => typeof j === "string").slice(0, 500) : [],
       lerAoAbrir: lido.lerAoAbrir !== false,
+      esconderArquivadas: lido.esconderArquivadas !== false,
+      esconderGrupos: lido.esconderGrupos === true,
     };
   } catch {
     return { ...PADRAO };
@@ -151,9 +153,9 @@ async function nomearGrupo(jid: string) {
 }
 
 async function carregarHistorico() {
-  const conversas = conversasDoGateway(await chamarComSucesso("GET", "/chats", { query: { limit: "20" } }));
+  const conversas = conversasDoGateway(await chamarComSucesso("GET", "/chats", { query: { limit: "40" } }));
   if (conversas.length === 0) return;
-  for (const c of conversas) caixa.registrarConversa(c.jid, c.nome, c.ultima, estado.config);
+  for (const c of conversas) caixa.registrarConversa(c.jid, c.nome, c.ultima, estado.config, c.arquivada);
   for (const c of [...conversas].sort((a, b) => b.ultima.localeCompare(a.ultima)).slice(0, 8)) {
     const mensagens = mensagensDoGateway(await chamarComSucesso("GET", `/chat/${encodeURIComponent(c.jid)}/messages`, { query: { limit: "10" } }), estado.eu);
     for (const m of mensagens) caixa.adicionar(m, estado.config, true, ehGrupo(c.jid) ? c.nome || undefined : undefined);
@@ -171,8 +173,8 @@ function horaDeVarrer() {
 async function varrerSemWebhook() {
   const desde = new Date(estado.ultimaVarredura - 5000).toISOString();
   estado.ultimaVarredura = Date.now();
-  const conversas = conversasDoGateway(await chamarComSucesso("GET", "/chats", { query: { limit: "20" } }));
-  for (const c of conversas) caixa.registrarConversa(c.jid, c.nome, c.ultima, estado.config);
+  const conversas = conversasDoGateway(await chamarComSucesso("GET", "/chats", { query: { limit: "40" } }));
+  for (const c of conversas) caixa.registrarConversa(c.jid, c.nome, c.ultima, estado.config, c.arquivada);
   for (const c of conversas.filter((x) => x.ultima > desde).slice(0, 8)) {
     const mensagens = mensagensDoGateway(await chamarComSucesso("GET", `/chat/${encodeURIComponent(c.jid)}/messages`, { query: { limit: "10", start_time: desde } }), estado.eu);
     guardar(mensagens.sort((a, b) => a.data.localeCompare(b.data)), true);
@@ -293,7 +295,7 @@ export function estadoDoWhatsapp() {
     eu: estado.eu,
     qr: estado.vinculo === "precisa_qr" ? estado.qr?.png ?? null : null,
     erro: estado.erro,
-    filtros: { silenciarGrupos: filtros.silenciarGrupos, lerAoAbrir: filtros.lerAoAbrir, ignoradas: filtros.ignoradas },
+    filtros: { silenciarGrupos: filtros.silenciarGrupos, lerAoAbrir: filtros.lerAoAbrir, esconderArquivadas: filtros.esconderArquivadas !== false, esconderGrupos: filtros.esconderGrupos === true, ignoradas: filtros.ignoradas },
     conversas: caixa.visiveis(filtros).slice(0, 30).map(resumoDaConversa),
     naoLidas: caixa.naoLidasVisiveis(filtros),
     seq: estado.seq,
@@ -327,6 +329,8 @@ export function definirFiltrosDoWhatsapp(dados: Record<string, unknown>) {
     ...estado.config,
     ...(typeof dados.silenciarGrupos === "boolean" ? { silenciarGrupos: dados.silenciarGrupos } : {}),
     ...(typeof dados.lerAoAbrir === "boolean" ? { lerAoAbrir: dados.lerAoAbrir } : {}),
+    ...(typeof dados.esconderArquivadas === "boolean" ? { esconderArquivadas: dados.esconderArquivadas } : {}),
+    ...(typeof dados.esconderGrupos === "boolean" ? { esconderGrupos: dados.esconderGrupos } : {}),
   };
   salvarConfig(estado.config);
   return estadoDoWhatsapp();

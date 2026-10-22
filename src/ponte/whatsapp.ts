@@ -35,7 +35,7 @@ export interface EstadoWhatsapp {
   eu: string | null;
   qr: string | null;
   erro: string;
-  filtros: { silenciarGrupos: boolean; lerAoAbrir: boolean; ignoradas: string[] };
+  filtros: { silenciarGrupos: boolean; lerAoAbrir: boolean; esconderArquivadas: boolean; esconderGrupos: boolean; ignoradas: string[] };
   conversas: ConversaWhatsapp[];
   naoLidas: number;
   seq: number;
@@ -64,7 +64,7 @@ export const whatsappPonte = {
   novidades: (desde: number) => pedir<{ seq: number; itens: NovidadeWhatsapp[] }>(`novidades?desde=${desde}`),
   instalar: () => pedir<{ ok: boolean; versao: string }>("instalar", {}),
   ligar: (ligado: boolean) => pedir<EstadoWhatsapp>("ligar", { ligado }),
-  filtros: (filtros: { silenciarGrupos?: boolean; lerAoAbrir?: boolean }) => pedir<EstadoWhatsapp>("filtros", filtros),
+  filtros: (filtros: { silenciarGrupos?: boolean; lerAoAbrir?: boolean; esconderArquivadas?: boolean; esconderGrupos?: boolean }) => pedir<EstadoWhatsapp>("filtros", filtros),
   ignorar: (jid: string, ignorar: boolean) => pedir<EstadoWhatsapp>("ignorar", { jid, ignorar }),
   abrir: (jid: string) => pedir<ConversaWhatsapp | null>("abrir", { jid }),
   fechar: () => pedir<{ ok: boolean }>("fechar", {}),

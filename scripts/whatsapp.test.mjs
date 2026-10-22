@@ -89,6 +89,13 @@ test("caixa do whatsapp silencia grupos sem menção, ignora conversas e limita 
   assert.equal(pessoa.nome, "Ana");
   assert.equal(pessoa.naoLidas, 0);
   assert.equal(c.naoLidasVisiveis(filtros), 2);
+  c.registrarConversa("5511777770000@s.whatsapp.net", "Arquivo", new Date().toISOString(), filtros, true);
+  assert.ok(!c.visiveis(filtros).some((x) => x.id === "5511777770000@s.whatsapp.net"));
+  assert.ok(c.visiveis({ ...filtros, esconderArquivadas: false }).some((x) => x.id === "5511777770000@s.whatsapp.net"));
+  assert.equal(c.adicionar(m("m6", "5511777770000@s.whatsapp.net"), filtros), "silenciosa");
+  assert.ok(c.visiveis(filtros).some((x) => x.grupo));
+  assert.ok(!c.visiveis({ ...filtros, esconderGrupos: true }).some((x) => x.grupo));
+  assert.equal(c.adicionar(m("m7", "1203@g.us", { mencionaMe: true }), { ...filtros, esconderGrupos: true }), "silenciosa");
   assert.equal(caixa.recusaDaResposta("  ", "5511888880000@s.whatsapp.net", c), "vazia");
   assert.equal(caixa.recusaDaResposta("ok", "5500000000000@s.whatsapp.net", c), "sem_conversa");
   assert.equal(caixa.recusaDaResposta("ok", "5511888880000@c.us", c), null);

@@ -726,6 +726,7 @@ export default function Configuracoes() {
     ),
     privacidade: (
       <>
+        <AvisoFaixa>{T.configuracoes.semTelemetria}</AvisoFaixa>
         <AlternadorAjuste rotulo={T.configuracoes.privacidade} dica={T.configuracoes.privacidadeDica} ligado={cfg.privacidade} aoMudar={(v) => cfg.definir({ privacidade: v })} />
         <AlternadorAjuste rotulo={T.configuracoes.pausarConexoes} ligado={cfg.pausarConexoes} aoMudar={(v) => cfg.definir({ pausarConexoes: v })} />
         <AlternadorAjuste rotulo={T.configuracoes.nuncaFinanceiro} ligado={cfg.nuncaFinanceiro} aoMudar={(v) => cfg.definir({ nuncaFinanceiro: v })} />

@@ -3090,6 +3090,7 @@ export const T = {
     },
     privacidade: "Modo privacidade",
     privacidadeDica: "Esconde títulos de música, textos de alerta e valores. O atalho fica em Configurações > Atalhos.",
+    semTelemetria: "O Niko não coleta nem envia dados de uso. Ele só acessa a internet para procurar atualizações no GitHub, buscar a cotação quando você tem conta em outra moeda e falar com o que você configurou: provedores de IA, conexões e pesquisa na web.",
     nuncaFinanceiro: "Nunca enviar dados financeiros para a IA",
     pesquisaNaWeb: "Permitir que o time pesquise na internet",
     pesquisaNaWebDica: "Os agentes buscam no DuckDuckGo e leem páginas públicas quando a pergunta pede algo atual. Só o texto da busca sai do computador; endereços da sua rede nunca são acessados.",

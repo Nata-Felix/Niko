@@ -31,6 +31,29 @@ claude.buscaDeProcesso.focar = async (pid) => {
 const { useClaudeCode } = await vite.ssrLoadModule("/src/estado/claudeCode.ts");
 const { indicadorDePermissoes } = await vite.ssrLoadModule("/src/janelas/ilha/claude/indicadorDePermissoes.ts");
 
+test("sessão interrompida ou sem notícias deixa de aparecer trabalhando", () => {
+  const usuario = (texto) => JSON.stringify({ type: "user", message: { role: "user", content: [{ type: "text", text: texto }] } });
+  const assistente = JSON.stringify({ type: "assistant", message: { role: "assistant", content: [{ type: "text", text: "ok" }] } });
+  const meta = JSON.stringify({ type: "system", subtype: "turn_duration" });
+  assert.equal(claude.ultimaLinhaFoiInterrupcao(`${assistente}\n${usuario("[Request interrupted by user]")}\n`), true);
+  assert.equal(claude.ultimaLinhaFoiInterrupcao(`${usuario("[Request interrupted by user for tool use]")}\n${meta}\n`), true);
+  assert.equal(claude.ultimaLinhaFoiInterrupcao(`${usuario("[Request interrupted by user]")}\n${assistente}\n`), false);
+  assert.equal(claude.ultimaLinhaFoiInterrupcao(`linha cortada"}\n${usuario("faz o deploy")}\n`), false);
+  const agora = Date.parse("2026-10-22T12:00:00Z");
+  assert.equal(claude.motivoDaParada({ interrompida: true, ultimoEventoMs: agora, transcriptModificadoMs: agora, agora }), "interrompida");
+  assert.equal(claude.motivoDaParada({ interrompida: false, ultimoEventoMs: agora - 11 * 60_000, transcriptModificadoMs: agora - 11 * 60_000, agora }), "sem_noticias");
+  assert.equal(claude.motivoDaParada({ interrompida: false, ultimoEventoMs: agora - 11 * 60_000, transcriptModificadoMs: agora - 30_000, agora }), null);
+  assert.equal(claude.motivoDaParada({ interrompida: false, ultimoEventoMs: agora - 60_000, transcriptModificadoMs: null, agora }), null);
+  useClaudeCode.setState({ sessoes: {}, ordem: [], pedidos: [], focada: null });
+  const base = { ferramenta: "claude", sessao: "s-parada", cwd: "C:/projeto" };
+  useClaudeCode.getState().aplicar({ ...base, id: "p1", recebidoEm: "2026-10-22T12:00:00.000Z", evento: "PreToolUse", dados: { tool_name: "Bash", tool_input: { command: "npm test" } } });
+  assert.equal(useClaudeCode.getState().sessoes["s-parada"].estado, "trabalhando");
+  useClaudeCode.getState().aplicar({ ...base, id: "p2", recebidoEm: "2026-10-22T12:00:05.000Z", evento: "NikoSessaoParada", dados: { motivo: "interrompida" } });
+  assert.equal(useClaudeCode.getState().sessoes["s-parada"].estado, "esperando");
+  useClaudeCode.getState().aplicar({ ...base, sessao: "s-desconhecida", id: "p3", recebidoEm: "2026-10-22T12:00:06.000Z", evento: "NikoSessaoParada", dados: { motivo: "sem_noticias" } });
+  assert.equal(useClaudeCode.getState().sessoes["s-desconhecida"], undefined);
+});
+
 test("pergunta aceita resposta escrita livre e recusa texto vazio", () => {
   const perguntas = [{ question: "Qual banco?", multiSelect: false, rotulos: ["Postgres", "SQLite"] }];
   assert.deepEqual(claude.respostasValidas(perguntas, ["  MongoDB  "]), { "Qual banco?": "MongoDB" });

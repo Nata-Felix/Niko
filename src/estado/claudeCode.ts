@@ -285,6 +285,7 @@ export const useClaudeCode = create<EstadoClaude>((set, get) => ({
       set((s) => (s.sessoes[e.sessao] ? semASessao(s, e.sessao) : {}));
       return;
     }
+    if (e.evento === "NikoSessaoParada" && !get().sessoes[e.sessao]) return;
     set((s) => {
       const d = e.dados;
       const anterior = s.sessoes[e.sessao];
@@ -386,6 +387,12 @@ export const useClaudeCode = create<EstadoClaude>((set, get) => ({
           sessao.resposta = texto(d.last_assistant_message) || sessao.resposta;
           passos.push(novoPasso(e, "fim", T.ilha.claude.estados.terminou));
           break;
+        case "NikoSessaoParada": {
+          const interrompida = d.motivo === "interrompida";
+          sessao.estado = interrompida ? "esperando" : "ociosa";
+          passos.push(novoPasso(e, "aviso", interrompida ? T.ilha.claude.paradas.interrompida : T.ilha.claude.paradas.semNoticias));
+          break;
+        }
         case "StopFailure":
           sessao.estado = "erro";
           sessao.erro = texto(d.error_message) || texto(d.error_type);

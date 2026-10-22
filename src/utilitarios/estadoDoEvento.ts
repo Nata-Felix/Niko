@@ -9,6 +9,7 @@ export function estadoDoEvento(evento: string, dados: Record<string, unknown>, p
     case "PermissionRequest": return pedidoId ? "aprovacao" : undefined;
     case "Stop": return "terminou";
     case "StopFailure": return "erro";
+    case "NikoSessaoParada": return dados.motivo === "interrompida" ? "esperando" : "ociosa";
     case "Notification":
       if (typeof dados.message === "string" && /rate limit|limite de uso|usage limit/i.test(dados.message)) return "limite";
       if (["idle_prompt", "agent_needs_input", "elicitation_dialog", "elicitation_url_dialog"].includes(String(dados.notification_type ?? ""))) return "esperando";

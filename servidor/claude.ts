@@ -153,6 +153,105 @@ function regrasSugeridas(dados: Record<string, unknown>): RegraSugerida[] {
   return regras.slice(0, 4);
 }
 
+const VIGIA_DAS_SESSOES_MS = 5000;
+const SEM_NOTICIAS_MS = 10 * 60_000;
+const FIM_LIDO_DO_TRANSCRIPT = 16 * 1024;
+const MARCA_DE_INTERRUPCAO = "[Request interrupted by user";
+
+export type MotivoDaParada = "interrompida" | "sem_noticias";
+
+interface AcompanhamentoDaSessao {
+  ferramenta: FerramentaDeCodigo;
+  transcript: string | null;
+  ultimoEventoMs: number;
+}
+
+const acompanhamentos = new Map<string, AcompanhamentoDaSessao>();
+let vigiaDasSessoes: NodeJS.Timeout | null = null;
+
+export function ultimaLinhaFoiInterrupcao(fim: string): boolean {
+  const linhas = fim.split("\n").map((l) => l.trim()).filter(Boolean);
+  for (let i = linhas.length - 1; i >= 0; i--) {
+    const linha = linhas[i];
+    if (!linha.startsWith("{")) continue;
+    try {
+      const registro = JSON.parse(linha) as { type?: string; message?: { content?: unknown } };
+      if (registro.type !== "user" && registro.type !== "assistant") continue;
+      if (registro.type !== "user") return false;
+      const conteudo = registro.message?.content;
+      const texto = typeof conteudo === "string" ? conteudo : Array.isArray(conteudo) ? conteudo.map((c) => (c as { text?: unknown })?.text).filter((t): t is string => typeof t === "string").join(" ") : "";
+      return texto.includes(MARCA_DE_INTERRUPCAO);
+    } catch {
+      continue;
+    }
+  }
+  return false;
+}
+
+export function motivoDaParada(entrada: { interrompida: boolean; ultimoEventoMs: number; transcriptModificadoMs: number | null; agora: number }): MotivoDaParada | null {
+  if (entrada.interrompida) return "interrompida";
+  const ultimaAtividade = Math.max(entrada.ultimoEventoMs, entrada.transcriptModificadoMs ?? 0);
+  return entrada.agora - ultimaAtividade >= SEM_NOTICIAS_MS ? "sem_noticias" : null;
+}
+
+function fimDoArquivo(caminho: string, bytes: number): string {
+  let descritor: number | undefined;
+  try {
+    const tamanho = statSync(caminho).size;
+    const ler = Math.min(bytes, tamanho);
+    const trecho = Buffer.alloc(ler);
+    descritor = openSync(caminho, "r");
+    readSync(descritor, trecho, 0, ler, tamanho - ler);
+    return trecho.toString("utf8");
+  } catch {
+    return "";
+  } finally {
+    if (descritor !== undefined) closeSync(descritor);
+  }
+}
+
+function modificadoEm(caminho: string | null): number | null {
+  if (!caminho) return null;
+  try {
+    return statSync(caminho).mtimeMs;
+  } catch {
+    return null;
+  }
+}
+
+function vigiarSessoes() {
+  const agora = Date.now();
+  for (const [sessao, atual] of estadosAtuais) {
+    if (atual.estado !== "trabalhando" && atual.estado !== "pensando") continue;
+    const acompanhamento = acompanhamentos.get(sessao);
+    if (!acompanhamento) continue;
+    if ([...pendentes.values()].some((p) => p.sessao === sessao)) continue;
+    const interrompida = acompanhamento.transcript ? ultimaLinhaFoiInterrupcao(fimDoArquivo(acompanhamento.transcript, FIM_LIDO_DO_TRANSCRIPT)) : false;
+    const motivo = motivoDaParada({ interrompida, ultimoEventoMs: acompanhamento.ultimoEventoMs, transcriptModificadoMs: modificadoEm(acompanhamento.transcript), agora });
+    if (!motivo) continue;
+    transmitir({ id: randomUUID(), recebidoEm: new Date(agora).toISOString(), ferramenta: acompanhamento.ferramenta, evento: "NikoSessaoParada", sessao, cwd: "", dados: { motivo } });
+  }
+  if (![...estadosAtuais.values()].some((e) => e.estado === "trabalhando" || e.estado === "pensando") && vigiaDasSessoes) {
+    clearInterval(vigiaDasSessoes);
+    vigiaDasSessoes = null;
+  }
+}
+
+function acompanharSessao(sessao: string, ferramenta: FerramentaDeCodigo, transcript: unknown, evento: string) {
+  if (!sessao) return;
+  if (evento === "SessionEnd") {
+    acompanhamentos.delete(sessao);
+    return;
+  }
+  const anterior = acompanhamentos.get(sessao);
+  acompanhamentos.set(sessao, { ferramenta, transcript: typeof transcript === "string" && transcript ? transcript : anterior?.transcript ?? null, ultimoEventoMs: Date.now() });
+  if (acompanhamentos.size > 64) acompanhamentos.delete(acompanhamentos.keys().next().value!);
+  if (!vigiaDasSessoes) {
+    vigiaDasSessoes = setInterval(vigiarSessoes, VIGIA_DAS_SESSOES_MS);
+    vigiaDasSessoes.unref?.();
+  }
+}
+
 const historico: EventoClaude[] = [];
 const sessoesAtuais = new Set<string>();
 const estadosAtuais = new Map<string, { sessao: string; estado: EstadoSessao; atualizadaEm: string }>();
@@ -452,7 +551,7 @@ export function modeloDoTranscript(caminho: string): string | undefined {
 }
 
 function transmitir(evento: EventoClaude) {
-  if (evento.sessao && (evento.evento === "NikoPensando" || EVENTOS_INSTALADOS.includes(evento.evento as typeof EVENTOS_INSTALADOS[number]))) {
+  if (evento.sessao && (evento.evento === "NikoPensando" || evento.evento === "NikoSessaoParada" || EVENTOS_INSTALADOS.includes(evento.evento as typeof EVENTOS_INSTALADOS[number]))) {
     if (evento.evento === "SessionEnd") {
       sessoesAtuais.delete(evento.sessao);
       estadosAtuais.delete(evento.sessao);
@@ -533,6 +632,7 @@ export function processarEvento(corpo: Record<string, unknown>, ferramenta: Ferr
   const assinatura = assinaturaDaFerramenta(corpo);
   const sessaoDoEvento = typeof corpo.session_id === "string" ? corpo.session_id : "";
   for (const pedidoId of pedidosRespondidosForaDoNiko(nome, sessaoDoEvento, assinatura, pendentes)) encerrarPedido(pedidoId, null, "cancelado");
+  acompanharSessao(sessaoDoEvento, ferramenta, corpo.transcript_path, nome);
   const modeloAtual = EVENTOS_COM_MODELO.has(nome) && typeof corpo.transcript_path === "string" ? modeloDoTranscript(corpo.transcript_path) : undefined;
   for (const campo of CAMPOS_DESCARTADOS) delete corpo[campo];
   if (modeloAtual) corpo.model = modeloAtual;

@@ -700,6 +700,10 @@ export const T = {
         limite: "No limite de uso",
         ociosa: "Parado",
       },
+      paradas: {
+        interrompida: "Você interrompeu no terminal",
+        semNoticias: "Sem atividade há 10 minutos. O terminal pode ter sido fechado.",
+      },
       pedido: "Você pediu",
       resposta: "Resposta",
       atividade: "Atividade",

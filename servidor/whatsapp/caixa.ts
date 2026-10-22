@@ -106,14 +106,28 @@ export class CaixaWhatsapp {
     return resultado;
   }
 
+  registrarConversa(jid: string, nome: string, ultima: string, filtros: FiltrosWhatsapp) {
+    const id = jidNormalizado(jid);
+    if (filtros.ignoradas.includes(id)) return;
+    const numero = numeroParaExibir(id);
+    const atual = this.conversas.get(id);
+    if (!atual) {
+      this.conversas.set(id, { id, nome: nome || numero, grupo: ehGrupo(id), mensagens: [], naoLidas: 0, ultimaAtividade: ultima || new Date(0).toISOString() });
+      return;
+    }
+    if (nome && atual.nome === numero) atual.nome = nome;
+    if (ultima > atual.ultimaAtividade) atual.ultimaAtividade = ultima;
+  }
+
   visiveis(filtros: FiltrosWhatsapp): ConversaWhatsapp[] {
     return [...this.conversas.values()]
-      .filter((c) => !filtros.ignoradas.includes(c.id) && (!c.grupo || !filtros.silenciarGrupos || c.mensagens.some((m) => m.mencionaMe && !m.minha)))
+      .filter((c) => !filtros.ignoradas.includes(c.id))
       .sort((a, b) => b.ultimaAtividade.localeCompare(a.ultimaAtividade));
   }
 
   naoLidasVisiveis(filtros: FiltrosWhatsapp): number {
-    return this.visiveis(filtros).reduce((total, c) => total + c.naoLidas, 0);
+    const conta = (c: ConversaWhatsapp) => !c.grupo || !filtros.silenciarGrupos || c.mensagens.some((m) => m.mencionaMe && !m.minha);
+    return this.visiveis(filtros).filter(conta).reduce((total, c) => total + c.naoLidas, 0);
   }
 
   marcarLida(jid: string) {

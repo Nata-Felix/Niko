@@ -722,3 +722,23 @@
   background: #fff;
   image-rendering: pixelated;
 }
+
+.estilo-sistema .whatsapp-qr-preparando {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 252px;
+  min-height: 252px;
+  padding: 18px;
+  border: 1px dashed var(--borda);
+  border-radius: 12px;
+  text-align: center;
+  color: var(--texto-2);
+}
+
+.estilo-sistema .whatsapp-qr-preparando strong {
+  color: var(--texto);
+  font-size: 13px;
+}

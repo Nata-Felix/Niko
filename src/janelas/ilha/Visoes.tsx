@@ -16,6 +16,7 @@ import { useAgentes } from "../../estado/agentes";
 import { useConfig, type SecaoHoje } from "../../estado/configuracoes";
 import { useInterface } from "../../estado/interface";
 import { useIlha } from "../../estado/ilha";
+import { useWhatsapp } from "../../estado/whatsapp";
 import { Marca, corDaMarca } from "../../marcas/Marca";
 import { Anel } from "../../componentes/Graficos";
 import { T } from "../../textos/textos";
@@ -493,6 +494,7 @@ export function VisaoConexoes({ aberta, aoSelecionar }: { aberta: ServicoId | nu
   const lista = [...conexoes].sort((a, b) => Number(b.ligada) - Number(a.ligada) || Number(b.fixadaNaIlha) - Number(a.fixadaNaIlha));
   const ligadas = conexoes.filter((c) => c.ligada).length;
   const atual = conexoes.find((c) => c.id === aberta);
+  const whatsapp = useWhatsapp((s) => s.estado);
 
   return (
     <Cartao veu={atual ? corDaMarca(atual.id) : undefined}>
@@ -505,6 +507,32 @@ export function VisaoConexoes({ aberta, aoSelecionar }: { aberta: ServicoId | nu
             </div>
             <div className="ilha-rolagem">
               <div className="ilha-conexoes-grade">
+                {whatsapp?.ligado && (
+                  <motion.button
+                    type="button"
+                    className="ilha-conexao-bloco"
+                    data-ligada="sim"
+                    style={{ ["--marca" as string]: corDaMarca("whatsapp") }}
+                    initial={{ opacity: 0, y: 8, scale: 0.96 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    whileHover={{ y: -2 }}
+                    whileTap={{ scale: 0.96 }}
+                    onClick={() => {
+                      void tocarSom("blip");
+                      useIlha.getState().abrir("whatsapp");
+                    }}
+                  >
+                    <span className="ilha-conexao-logo"><Marca marca="whatsapp" tamanho={17} /></span>
+                    <span className="ilha-conexao-textos">
+                      <span className="ilha-conexao-nome">
+                        <span className="ilha-conexao-nome-texto">{T.whatsapp.nome}</span>
+                        <span className="ilha-conexao-estado" data-status={whatsapp.vinculo === "conectado" ? "conectado" : "erro"} />
+                      </span>
+                      <span className="ilha-conexao-resumo cortar">{whatsapp.vinculo === "conectado" ? T.whatsapp.naoLidasNaIlha(whatsapp.naoLidas) : T.whatsapp.vinculos[whatsapp.vinculo]}</span>
+                    </span>
+                    {whatsapp.naoLidas > 0 && <span className="ilha-conexao-selo">{whatsapp.naoLidas}</span>}
+                  </motion.button>
+                )}
                 {lista.map((c, i) => {
                   const cor = corDaMarca(c.id);
                   const falhas = falhasNaoVistas(c, eventos);

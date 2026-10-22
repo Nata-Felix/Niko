@@ -103,8 +103,14 @@ export function ConfigWhatsapp({ aberto, aoFechar }: { aberto: boolean; aoFechar
             <LinhaAlternador rotulo={W.ligar} ligado={Boolean(estado?.ligado)} desativado={!estado?.instalado || ocupado} aoMudar={(v) => void agir(() => whatsappPonte.ligar(v))} />
             {estado?.ligado && (
               <div className="whatsapp-vinculo">
-                {estado.vinculo === "precisa_qr" ? (
-                  estado.qr ? <img className="whatsapp-qr" src={estado.qr} alt={W.qrAlt} width={232} height={232} /> : <span className="campo-dica"><LoaderCircle size={13} className="girando" /> {W.qrAguarde}</span>
+                {estado.vinculo === "precisa_qr" && estado.qr ? (
+                  <img className="whatsapp-qr" src={estado.qr} alt={W.qrAlt} width={232} height={232} />
+                ) : estado.vinculo === "precisa_qr" || estado.vinculo === "iniciando" || estado.vinculo === "desligado" ? (
+                  <div className="whatsapp-qr-preparando" role="status" aria-live="polite">
+                    <LoaderCircle size={28} className="girando" />
+                    <strong>{W.qrPreparando}</strong>
+                    <span className="campo-dica">{W.qrPreparandoDica}</span>
+                  </div>
                 ) : (
                   <span className="linha"><Smartphone size={14} />{estado.vinculo === "conectado" && estado.eu ? W.conectadoComo(numeroDoJid(estado.eu)) : W.vinculos[estado.vinculo]}</span>
                 )}

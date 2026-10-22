@@ -16,7 +16,8 @@ const DISPOSITIVO = "niko";
 const TICK_MS = 5000;
 const SILENCIO_DO_WEBHOOK_MS = 90_000;
 const STATUS_CONECTADO_MS = 60_000;
-const HISTORICO_MS = 6 * 3600_000;
+const VARREDURA_COM_WEBHOOK_MS = 60_000;
+const VARREDURA_SEM_WEBHOOK_MS = 20_000;
 const MAXIMO_DE_NOVIDADES = 50;
 
 interface ConfigWhatsapp extends FiltrosWhatsapp {
@@ -151,8 +152,9 @@ async function nomearGrupo(jid: string) {
 
 async function carregarHistorico() {
   const conversas = conversasDoGateway(await chamarComSucesso("GET", "/chats", { query: { limit: "20" } }));
-  const desde = new Date(Date.now() - HISTORICO_MS).toISOString();
-  for (const c of conversas.filter((x) => x.ultima > desde).slice(0, 8)) {
+  if (conversas.length === 0) return;
+  for (const c of conversas) caixa.registrarConversa(c.jid, c.nome, c.ultima, estado.config);
+  for (const c of [...conversas].sort((a, b) => b.ultima.localeCompare(a.ultima)).slice(0, 8)) {
     const mensagens = mensagensDoGateway(await chamarComSucesso("GET", `/chat/${encodeURIComponent(c.jid)}/messages`, { query: { limit: "10" } }), estado.eu);
     for (const m of mensagens) caixa.adicionar(m, estado.config, true, ehGrupo(c.jid) ? c.nome || undefined : undefined);
   }
@@ -161,10 +163,16 @@ async function carregarHistorico() {
   estado.ultimaVarredura = Date.now();
 }
 
+function horaDeVarrer() {
+  const webhookCalado = Date.now() - estado.ultimoWebhook > SILENCIO_DO_WEBHOOK_MS;
+  return Date.now() - estado.ultimaVarredura > (webhookCalado ? VARREDURA_SEM_WEBHOOK_MS : VARREDURA_COM_WEBHOOK_MS);
+}
+
 async function varrerSemWebhook() {
   const desde = new Date(estado.ultimaVarredura - 5000).toISOString();
   estado.ultimaVarredura = Date.now();
   const conversas = conversasDoGateway(await chamarComSucesso("GET", "/chats", { query: { limit: "20" } }));
+  for (const c of conversas) caixa.registrarConversa(c.jid, c.nome, c.ultima, estado.config);
   for (const c of conversas.filter((x) => x.ultima > desde).slice(0, 8)) {
     const mensagens = mensagensDoGateway(await chamarComSucesso("GET", `/chat/${encodeURIComponent(c.jid)}/messages`, { query: { limit: "10", start_time: desde } }), estado.eu);
     guardar(mensagens.sort((a, b) => a.data.localeCompare(b.data)), true);
@@ -205,8 +213,8 @@ async function passo() {
       return;
     }
     await prepararGateway();
-    if (estado.vinculo === "conectado" && estado.historicoCarregado && estado.falhasSeguidas === 0 && gowaRodando() &&Date.now() - estado.ultimoStatus < STATUS_CONECTADO_MS) {
-      if (Date.now() - estado.ultimoWebhook > SILENCIO_DO_WEBHOOK_MS && Date.now() - estado.ultimaVarredura > 20_000) await varrerSemWebhook();
+    if (estado.vinculo === "conectado" && estado.historicoCarregado && estado.falhasSeguidas === 0 && gowaRodando() && Date.now() - estado.ultimoStatus < STATUS_CONECTADO_MS) {
+      if (horaDeVarrer()) await varrerSemWebhook();
       return;
     }
     let dispositivo = dispositivoDoGateway(await chamarComSucesso("GET", "/devices"));
@@ -228,7 +236,7 @@ async function passo() {
     estado.qr = null;
     if (dispositivo.vinculo !== "conectado") return;
     if (!estado.historicoCarregado) await carregarHistorico();
-    else if (Date.now() - estado.ultimoWebhook > SILENCIO_DO_WEBHOOK_MS && Date.now() - estado.ultimaVarredura > 20_000) await varrerSemWebhook();
+    else if (horaDeVarrer()) await varrerSemWebhook();
   } catch (e) {
     estado.falhasSeguidas += 1;
     const mensagem = (e as Error).message;
@@ -422,7 +430,6 @@ export function receberWebhookDoWhatsapp(req: IncomingMessage, res: ServerRespon
       res.statusCode = 401;
       return res.end();
     }
-    estado.ultimoWebhook = Date.now();
     res.statusCode = 200;
     res.end();
     let lido: unknown;
@@ -432,6 +439,8 @@ export function receberWebhookDoWhatsapp(req: IncomingMessage, res: ServerRespon
       return;
     }
     const mensagem = mensagemDoWebhook(lido, estado.eu);
-    if (mensagem && estado.historicoCarregado) guardar([mensagem], true);
+    if (!mensagem) return;
+    estado.ultimoWebhook = Date.now();
+    if (estado.historicoCarregado) guardar([mensagem], true);
   });
 }

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
 import { DndContext, DragOverlay, PointerSensor, useDraggable, useDroppable, useSensor, useSensors, type DragEndEvent, type DragStartEvent } from "@dnd-kit/core";
-import { BookOpen, ChevronLeft, ChevronRight, CircleAlert, Clock, Flag, ListChecks, Pencil, Target, Timer, Trash2 } from "lucide-react";
+import { BookOpen, ChevronLeft, ChevronRight, CircleAlert, Clock, Flag, ListChecks, Pencil, Target, Timer, Trash2, Undo2 } from "lucide-react";
 import { useRotina } from "../estado/rotina";
 import { useInterface } from "../estado/interface";
 import { useOrganizacao } from "../estado/organizacao";
@@ -48,40 +48,28 @@ function Chips({ detalhes, semMeta }: { detalhes: DetalhesDoCartao; semMeta?: bo
   return itens.length ? <span className="qt-chips">{itens}</span> : null;
 }
 
-function Cartao({ tarefa, detalhes, semMeta, variante, aoMover, aoAbrir }: { tarefa: Tarefa; detalhes: DetalhesDoCartao; semMeta?: boolean; variante: Variante; aoMover: (t: Tarefa, c: ColunaDoQuadro) => void; aoAbrir?: (t: Tarefa) => void }) {
+interface Excluida {
+  tarefa: Tarefa;
+  coluna: ColunaDoQuadro;
+}
+
+const TEMPO_PARA_DESFAZER = 5000;
+
+function Cartao({ tarefa, detalhes, semMeta, aoMover, aoAbrir, aoExcluir }: { tarefa: Tarefa; detalhes: DetalhesDoCartao; semMeta?: boolean; aoMover: (t: Tarefa, c: ColunaDoQuadro) => void; aoAbrir?: (t: Tarefa) => void; aoExcluir: (t: Tarefa) => void }) {
   const atualizar = useRotina((s) => s.atualizarTarefa);
-  const excluir = useRotina((s) => s.excluirTarefa);
-  const restaurar = useRotina((s) => s.restaurarTarefa);
-  const avisar = useInterface((s) => s.avisar);
   const [editando, setEditando] = useState(false);
   const [titulo, setTitulo] = useState(tarefa.titulo);
-  const [confirmando, setConfirmando] = useState(false);
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: tarefa.id, disabled: editando });
   const coluna = colunaDaTarefa(tarefa);
   const anterior = colunaVizinha(coluna, -1);
   const proxima = colunaVizinha(coluna, 1);
   const rotulo = aoAbrir ? `${tarefa.titulo}. ${Q.abrir}` : proxima ? T.ilha.moverCartao(tarefa.titulo, T.ilha.colunasQuadro[proxima]) : tarefa.titulo;
 
-  useEffect(() => {
-    if (!confirmando) return;
-    const id = window.setTimeout(() => setConfirmando(false), 3000);
-    return () => window.clearTimeout(id);
-  }, [confirmando]);
-
   const salvarTitulo = () => {
     const limpo = titulo.trim();
     if (limpo && limpo !== tarefa.titulo) atualizar(tarefa.id, { titulo: limpo.slice(0, 200) });
     else setTitulo(tarefa.titulo);
     setEditando(false);
-  };
-
-  const apagar = () => {
-    if (variante === "ilha" && !confirmando) {
-      setConfirmando(true);
-      return;
-    }
-    const removida = excluir(tarefa.id);
-    if (removida && variante === "sistema") avisar(T.geral.excluido, () => restaurar(removida));
   };
 
   return (
@@ -125,7 +113,7 @@ function Cartao({ tarefa, detalhes, semMeta, variante, aoMover, aoAbrir }: { tar
         </button>
       )}
       {!editando && (
-        <span className="qt-cartao-acoes" data-confirmando={confirmando || undefined} onMouseLeave={() => setConfirmando(false)}>
+        <span className="qt-cartao-acoes">
           {anterior && (
             <button type="button" className="qt-acao" aria-label={Q.voltarPara(T.ilha.colunasQuadro[anterior])} title={Q.voltarPara(T.ilha.colunasQuadro[anterior])} onPointerDown={(e) => e.stopPropagation()} onClick={() => aoMover(tarefa, anterior)}>
               <ChevronLeft size={13} />
@@ -140,7 +128,7 @@ function Cartao({ tarefa, detalhes, semMeta, variante, aoMover, aoAbrir }: { tar
           <button type="button" className="qt-acao" aria-label={T.geral.editar} title={T.geral.editar} onPointerDown={(e) => e.stopPropagation()} onClick={() => { setTitulo(tarefa.titulo); setEditando(true); }}>
             <Pencil size={12} />
           </button>
-          <button type="button" className="qt-acao qt-acao-excluir" data-confirmando={confirmando || undefined} aria-label={confirmando ? Q.confirmarExclusao : T.geral.excluir} title={confirmando ? Q.confirmarExclusao : T.geral.excluir} onPointerDown={(e) => e.stopPropagation()} onClick={apagar}>
+          <button type="button" className="qt-acao qt-acao-excluir" aria-label={T.geral.excluir} title={T.geral.excluir} onPointerDown={(e) => e.stopPropagation()} onClick={() => aoExcluir(tarefa)}>
             <Trash2 size={12} />
           </button>
         </span>
@@ -149,7 +137,7 @@ function Cartao({ tarefa, detalhes, semMeta, variante, aoMover, aoAbrir }: { tar
   );
 }
 
-function Coluna({ id, tarefas, detalhes, semMeta, variante, aoMover, aoAbrir }: { id: ColunaDoQuadro; tarefas: Tarefa[]; detalhes: Map<string, DetalhesDoCartao>; semMeta?: boolean; variante: Variante; aoMover: (t: Tarefa, c: ColunaDoQuadro) => void; aoAbrir?: (t: Tarefa) => void }) {
+function Coluna({ id, tarefas, excluidas, detalhes, semMeta, aoMover, aoAbrir, aoExcluir, aoDesfazer }: { id: ColunaDoQuadro; tarefas: Tarefa[]; excluidas: Excluida[]; detalhes: Map<string, DetalhesDoCartao>; semMeta?: boolean; aoMover: (t: Tarefa, c: ColunaDoQuadro) => void; aoAbrir?: (t: Tarefa) => void; aoExcluir: (t: Tarefa) => void; aoDesfazer: (e: Excluida) => void }) {
   const { setNodeRef, isOver } = useDroppable({ id });
   return (
     <section ref={setNodeRef} className="qt-coluna" data-coluna={id} data-sobre={isOver || undefined} aria-label={`${T.ilha.colunasQuadro[id]}, ${tarefas.length}`}>
@@ -159,11 +147,17 @@ function Coluna({ id, tarefas, detalhes, semMeta, variante, aoMover, aoAbrir }: 
         <span className="qt-coluna-numero numero">{tarefas.length}</span>
       </header>
       <div className="qt-cartoes">
-        {tarefas.length === 0 ? (
-          <span className="qt-vazio">{isOver ? T.ilha.arrasteAqui : Q.vazioColuna}</span>
-        ) : (
-          tarefas.map((t) => <Cartao key={t.id} tarefa={t} detalhes={detalhes.get(t.id)!} semMeta={semMeta} variante={variante} aoMover={aoMover} aoAbrir={aoAbrir} />)
-        )}
+        {tarefas.map((t) => <Cartao key={t.id} tarefa={t} detalhes={detalhes.get(t.id)!} semMeta={semMeta} aoMover={aoMover} aoAbrir={aoAbrir} aoExcluir={aoExcluir} />)}
+        {excluidas.map((e) => (
+          <div key={e.tarefa.id} className="qt-excluida" role="status">
+            <span className="qt-excluida-texto">{Q.excluida}</span>
+            <button type="button" className="qt-excluida-desfazer" onClick={() => aoDesfazer(e)}>
+              <Undo2 size={12} />
+              {T.geral.desfazer}
+            </button>
+          </div>
+        ))}
+        {tarefas.length === 0 && excluidas.length === 0 && <span className="qt-vazio">{isOver ? T.ilha.arrasteAqui : Q.vazioColuna}</span>}
       </div>
     </section>
   );
@@ -173,6 +167,10 @@ export function QuadroDeTarefas({ tarefas, variante, mostrarData, semMeta, aoAbr
   const mudarStatus = useRotina((s) => s.mudarStatus);
   const metas = useOrganizacao((s) => s.metas);
   const materias = useEstudos((s) => s.materias);
+  const excluir = useRotina((s) => s.excluirTarefa);
+  const restaurar = useRotina((s) => s.restaurarTarefa);
+  const avisar = useInterface((s) => s.avisar);
+  const [excluidas, setExcluidas] = useState<Excluida[]>([]);
   const [arrastando, setArrastando] = useState<Tarefa | null>(null);
   const [cores, setCores] = useState<CSSProperties>({});
   const quadro = useRef<HTMLDivElement>(null);
@@ -208,6 +206,24 @@ export function QuadroDeTarefas({ tarefas, variante, mostrarData, semMeta, aoAbr
 
   const abrir = aoAbrir ? (t: Tarefa) => { if (!acabouDeArrastar.current) aoAbrir(t); } : undefined;
 
+  useEffect(() => {
+    if (!excluidas.length) return;
+    const id = window.setTimeout(() => setExcluidas((lista) => lista.slice(1)), TEMPO_PARA_DESFAZER);
+    return () => window.clearTimeout(id);
+  }, [excluidas]);
+
+  const apagar = (t: Tarefa) => {
+    const removida = excluir(t.id);
+    if (!removida) return;
+    if (variante === "sistema") avisar(T.geral.excluido, () => restaurar(removida));
+    else setExcluidas((lista) => [...lista, { tarefa: removida, coluna: colunaDaTarefa(removida) }]);
+  };
+
+  const desfazer = (e: Excluida) => {
+    restaurar(e.tarefa);
+    setExcluidas((lista) => lista.filter((x) => x.tarefa.id !== e.tarefa.id));
+  };
+
   return (
     <DndContext sensors={sensores} onDragStart={aoComecar} onDragEnd={aoSoltar} onDragCancel={() => setArrastando(null)}>
       <div ref={quadro} className="qt" data-variante={variante}>
@@ -221,7 +237,7 @@ export function QuadroDeTarefas({ tarefas, variante, mostrarData, semMeta, aoAbr
         )}
         <div className="qt-colunas">
           {COLUNAS_DO_QUADRO.map((c) => (
-            <Coluna key={c} id={c} tarefas={ordenarCartoes(visiveis.filter((t) => colunaDaTarefa(t) === c), c)} detalhes={detalhes} semMeta={semMeta} variante={variante} aoMover={mover} aoAbrir={abrir} />
+            <Coluna key={c} id={c} tarefas={ordenarCartoes(visiveis.filter((t) => colunaDaTarefa(t) === c), c)} excluidas={excluidas.filter((e) => e.coluna === c)} detalhes={detalhes} semMeta={semMeta} aoMover={mover} aoAbrir={abrir} aoExcluir={apagar} aoDesfazer={desfazer} />
           ))}
         </div>
       </div>

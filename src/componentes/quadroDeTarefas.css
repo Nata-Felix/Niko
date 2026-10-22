@@ -289,8 +289,7 @@
 }
 
 .qt-cartao:hover .qt-cartao-acoes,
-.qt-cartao:focus-within .qt-cartao-acoes,
-.qt-cartao-acoes[data-confirmando] {
+.qt-cartao:focus-within .qt-cartao-acoes {
   opacity: 1;
   transform: none;
   pointer-events: auto;
@@ -330,8 +329,39 @@
   display: none;
 }
 
-.qt-acao-excluir:hover,
-.qt-acao-excluir[data-confirmando] {
+.qt-excluida {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 6px 6px 10px;
+  border-radius: calc(var(--qt-raio) - 2px);
+  border: 1px dashed var(--qt-borda);
+  font-size: 11px;
+  color: var(--qt-texto-3);
+}
+
+.qt-excluida-desfazer {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 22px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 6px;
+  background: var(--qt-chip);
+  color: var(--qt-texto);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.qt-excluida-desfazer:hover {
+  background: var(--qt-cartao-hover);
+}
+
+.qt-acao-excluir:hover {
   color: var(--qt-vermelho);
   background: color-mix(in srgb, var(--qt-vermelho) 16%, transparent);
 }

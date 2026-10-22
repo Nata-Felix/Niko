@@ -29,6 +29,7 @@ export function SecaoClaudeCode() {
   const definirIlha = useConfig((s) => s.definirIlha);
   const definir = useConfig((s) => s.definir);
   const notificar = useConfig((s) => s.notificarClaude);
+  const silenciarComTerminal = useConfig((s) => s.silenciarComTerminalNaFrente);
   const [estado, setEstado] = useState<EstadoDaInstalacao | null>(null);
   const [previa, setPrevia] = useState<{ acao: "instalar" | "remover"; dados: PreviaDaInstalacao } | null>(null);
   const [trabalhando, setTrabalhando] = useState(false);
@@ -116,6 +117,7 @@ export function SecaoClaudeCode() {
       </LinhaAjuste>
 
       <AlternadorAjuste rotulo={C.mostrarAba} dica={C.mostrarAbaDica} ligado={ilha.blocos.claude} aoMudar={(v) => definirIlha({ blocos: { ...ilha.blocos, claude: v } })} />
+      <AlternadorAjuste rotulo={C.silenciarComTerminal} dica={C.silenciarComTerminalDica} ligado={silenciarComTerminal} aoMudar={(v) => definir({ silenciarComTerminalNaFrente: v })} />
       <AlternadorAjuste
         rotulo={C.notificar}
         dica={C.notificarDica}

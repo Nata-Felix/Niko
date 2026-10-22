@@ -2900,6 +2900,8 @@ export const T = {
       invalidoDica: "Corrija o arquivo ou faça uma cópia dele antes. O Niko não altera um arquivo que não consegue ler, para não perder suas configurações.",
       mostrarAba: "Mostrar a aba Código na ilha",
       mostrarAbaDica: "Na aba Código você acompanha o Claude Code e as outras ferramentas de código. Para conectar, use a engrenagem dela.",
+      silenciarComTerminal: "Silêncio com o terminal na frente",
+      silenciarComTerminalDica: "Se a sessão termina ou falha enquanto a janela do terminal dela está na frente, o Niko não toca som nem abre a ilha. Você já está vendo.",
       notificar: `Notificação do ${SISTEMA} quando a ilha estiver escondida`,
       notificarDica: "Avisa pedidos de permissão, fim e erro quando você não está vendo a ilha, como com uma janela maximizada na frente.",
       notificarNegado: NO_LINUX ? "O sistema bloqueou as notificações do Niko. Libere nas configurações de notificações do sistema." : "O Windows bloqueou as notificações do Niko. Libere em Configurações do Windows, Sistema, Notificações.",

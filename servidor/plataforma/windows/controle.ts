@@ -249,6 +249,12 @@ public static class NikoControle {
     return ok;
   }
 
+  public static uint ProcessoDaFrente() {
+    uint pid;
+    GetWindowThreadProcessId(GetForegroundWindow(), out pid);
+    return pid;
+  }
+
   public static void AbrirIniciar() {
     const byte TECLA_WINDOWS = 0x5B;
     const uint SOLTAR = 0x0002;
@@ -514,6 +520,19 @@ function FocarJanelaDoProcesso($processoId) {
   throw 'sem_janela'
 }
 
+function ProcessoNaFrente($processoId) {
+  $frente = [int][NikoControle]::ProcessoDaFrente()
+  if ($frente -le 4) { return $false }
+  $atual = [int]$processoId
+  for ($nivel = 0; $nivel -lt 10 -and $atual -gt 4; $nivel++) {
+    if ($atual -eq $frente) { return $true }
+    $info = Get-CimInstance Win32_Process -Filter "ProcessId=$atual" -ErrorAction SilentlyContinue
+    if (-not $info) { break }
+    $atual = [int]$info.ParentProcessId
+  }
+  return $false
+}
+
 function AbrirApp($id, $admin) {
   AppConhecido $id
   if ($id -like 'lnk:*') { Start-Process -FilePath $id.Substring(4); return }
@@ -632,6 +651,7 @@ while ($true) {
       }
       'donoDaConexao' { $r = @{ pid = (DonoDaConexao $pedido.portaLocal $pedido.portaRemota) } }
       'focarProcesso' { $r = @{ ok = $true; janela = (FocarJanelaDoProcesso $pedido.pid) } }
+      'processoNaFrente' { $r = @{ naFrente = [bool](ProcessoNaFrente $pedido.pid) } }
       'comandoDoSistema' {
         $alvo = $COMANDOS_DO_SISTEMA[[string]$pedido.comando]
         if (-not $alvo) { throw 'comando_desconhecido' }
@@ -687,5 +707,9 @@ export const controle: Plataforma["controle"] = {
     return Number.isInteger(r.pid) && (r.pid as number) > 0 ? (r.pid as number) : 0;
   },
   focarProcesso: (pid) => pedir({ acao: "focarProcesso", pid }, 10000),
+  async processoNaFrente(pid) {
+    const r = await pedir<{ naFrente?: unknown }>({ acao: "processoNaFrente", pid }, 3000);
+    return r.naFrente === true;
+  },
   encerrar: () => processo.encerrar(),
 };

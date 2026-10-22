@@ -96,4 +96,9 @@ export function focarJanelaDoProcesso(processoId: number) {
   return controle.focarProcesso(processoId);
 }
 
+export function processoEstaNaFrente(processoId: number) {
+  if (!Number.isInteger(processoId) || processoId <= 4) throw new Error("valor_invalido");
+  return controle.processoNaFrente(processoId);
+}
+
 export const encerrarControle = () => controle.encerrar();

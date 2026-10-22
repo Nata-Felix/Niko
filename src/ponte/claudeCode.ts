@@ -65,6 +65,7 @@ export const claudeCode = {
   responder: (pedidoId: string, respostas: (number[] | string)[]) => pedir<{ ok: boolean }>("decisao", { method: "POST", body: JSON.stringify({ pedidoId, decisao: "allow", respostas }) }),
   abrir: (cwd: string, como: "vscode" | "pasta") => pedir<{ ok: boolean }>("abrir", { method: "POST", body: JSON.stringify({ cwd, como }) }),
   terminal: (sessao: string) => pedir<{ ok: boolean }>("terminal", { method: "POST", body: JSON.stringify({ sessao }) }),
+  terminalNaFrente: (sessao: string) => pedir<{ naFrente: boolean }>("terminal-na-frente", { method: "POST", body: JSON.stringify({ sessao }) }),
   abrirArquivo: (cwd: string, arquivo: string) => pedir<{ ok: boolean }>("abrir", { method: "POST", body: JSON.stringify({ cwd, como: "arquivo", arquivo }) }),
 };
 

@@ -194,6 +194,7 @@ export interface Plataforma {
     comandoDoSistema(comando: ComandoDoSistema): Promise<{ ok: boolean }>;
     donoDaConexao(portaLocal: number, portaRemota: number): Promise<number>;
     focarProcesso(pid: number): Promise<{ ok: boolean; janela: string }>;
+    processoNaFrente(pid: number): Promise<boolean>;
     encerrar(): void;
   };
   janelas: {

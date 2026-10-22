@@ -27,6 +27,11 @@ async function notificarSeEscondida(corpo: string) {
   await notificarWindows(T.app.nome, corpo);
 }
 
+async function terminalDaSessaoNaFrente(sessao: string): Promise<boolean> {
+  if (!sessao || !useConfig.getState().silenciarComTerminalNaFrente) return false;
+  return claudeCode.terminalNaFrente(sessao).then((r) => r.naFrente === true).catch(() => false);
+}
+
 function devolverAoTerminal(pedidoId: string) {
   useClaudeCode.getState().removerPedido(pedidoId);
   void claudeCode.decidir(pedidoId, "terminal").catch(() => undefined);
@@ -86,14 +91,20 @@ function reagir(e: EventoClaude) {
     case "Stop": {
       if (silencio || !abaLigada()) return;
       estado.focar(e.sessao);
-      if (ilha.revelar({ texto: T.ilha.claude.terminouAviso(nome, projeto), tipo: "sucesso", marca, aba: "claude" }, 7000)) void tocarSom("finish", "avisos");
-      void notificarSeEscondida(T.ilha.claude.notificacao.terminou(nome, projeto));
+      void terminalDaSessaoNaFrente(e.sessao).then((naFrente) => {
+        if (naFrente) return;
+        if (useIlha.getState().revelar({ texto: T.ilha.claude.terminouAviso(nome, projeto), tipo: "sucesso", marca, aba: "claude" }, 7000)) void tocarSom("finish", "avisos");
+        void notificarSeEscondida(T.ilha.claude.notificacao.terminou(nome, projeto));
+      });
       return;
     }
     case "StopFailure":
       if (silencio || !abaLigada()) return;
-      if (ilha.revelar({ texto: T.ilha.claude.erroAviso(nome, projeto), tipo: "alerta", marca, aba: "claude" }, 6000)) void tocarSom("error", "avisos");
-      void notificarSeEscondida(T.ilha.claude.notificacao.erro(nome, projeto));
+      void terminalDaSessaoNaFrente(e.sessao).then((naFrente) => {
+        if (naFrente) return;
+        if (useIlha.getState().revelar({ texto: T.ilha.claude.erroAviso(nome, projeto), tipo: "alerta", marca, aba: "claude" }, 6000)) void tocarSom("error", "avisos");
+        void notificarSeEscondida(T.ilha.claude.notificacao.erro(nome, projeto));
+      });
       return;
     case "NikoPedidoEncerrado": {
       const motivo = e.dados.motivo;

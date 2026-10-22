@@ -174,6 +174,7 @@ export interface Configuracoes {
   receberStripe: boolean;
   primeiraExecucaoFeita: boolean;
   notificarClaude: boolean;
+  silenciarComTerminalNaFrente: boolean;
   claudeInstalado: boolean;
   funcoesDesligadas: ("journal" | "estudos" | "financas" | "metas" | "calendario")[];
   ultimaSaudacao: { dia: string; versao: string } | null;
@@ -250,6 +251,7 @@ export const CONFIG_PADRAO: Configuracoes = {
   receberStripe: false,
   primeiraExecucaoFeita: false,
   notificarClaude: false,
+  silenciarComTerminalNaFrente: true,
   claudeInstalado: false,
   funcoesDesligadas: [],
   ultimaSaudacao: null,

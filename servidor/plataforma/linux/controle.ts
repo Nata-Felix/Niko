@@ -227,6 +227,18 @@ const focarProcesso: Plataforma["controle"]["focarProcesso"] = async (pid) => {
   throw new Error("sem_janela");
 };
 
+const processoNaFrente: Plataforma["controle"]["processoNaFrente"] = async (pid) => {
+  const { janelas: lista } = await janelas.listar();
+  const frente = lista.find((j) => j.ativa)?.pid ?? 0;
+  if (frente <= 1) return false;
+  let atual = pid;
+  for (let nivel = 0; nivel < 10 && atual > 1; nivel++) {
+    if (atual === frente) return true;
+    atual = processoPai(atual);
+  }
+  return false;
+};
+
 export const controle: Plataforma["controle"] = {
   audio,
   volume: async (fluxo, valor) => ({ ok: await funcionou(definirVolumeDaPonta(fluxo, valor)) }),
@@ -258,5 +270,6 @@ export const controle: Plataforma["controle"] = {
   },
   donoDaConexao,
   focarProcesso,
+  processoNaFrente,
   encerrar: () => undefined,
 };

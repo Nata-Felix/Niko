@@ -435,6 +435,17 @@ test("lembra o processo de cada sessão uma vez só e traz o terminal dela", asy
   assert.deepEqual(await claude.trazerTerminal({ sessao: "terminal-1" }), { ok: true });
   assert.equal(focados.at(-1), 4242);
   await assert.rejects(claude.trazerTerminal({ sessao: "nunca-vista" }), /sem_processo/);
+
+  const naFrenteOriginal = claude.buscaDeProcesso.naFrente;
+  try {
+    claude.buscaDeProcesso.naFrente = async (pid) => pid === 4242;
+    assert.deepEqual(await claude.terminalNaFrente({ sessao: "terminal-1" }), { naFrente: true });
+    assert.deepEqual(await claude.terminalNaFrente({ sessao: "nunca-vista" }), { naFrente: false });
+    claude.buscaDeProcesso.naFrente = async () => { throw new Error("controle_encerrado"); };
+    assert.deepEqual(await claude.terminalNaFrente({ sessao: "terminal-1" }), { naFrente: false });
+  } finally {
+    claude.buscaDeProcesso.naFrente = naFrenteOriginal;
+  }
 });
 
 test("abrir arquivo do diff só aceita arquivo que existe dentro do projeto", () => {

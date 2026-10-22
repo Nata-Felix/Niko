@@ -5,7 +5,7 @@ import { homedir } from "node:os";
 import { isAbsolute, join, relative, resolve } from "node:path";
 import { randomBytes, randomUUID, timingSafeEqual } from "node:crypto";
 import { pastaDados } from "./ia.ts";
-import { donoDaConexao, focarJanelaDoProcesso } from "./controleRapido.ts";
+import { donoDaConexao, focarJanelaDoProcesso, processoEstaNaFrente } from "./controleRapido.ts";
 import { plataforma } from "./plataforma/index.ts";
 import { CAMINHO_DA_STATUS, anteriorDaStatus, caminhoDoScript, ehStatusDoNiko, garantirScript, receberStatus, statusDoNiko } from "./statusClaude.ts";
 import { metricasDaStatus, type MetricasDaSessao } from "../src/modulos/escritorio/metricasDaSessao.ts";
@@ -598,7 +598,7 @@ const processoDaSessao = new Map<string, number>();
 const procurando = new Set<string>();
 const LIMITE_DE_SESSOES_COM_PROCESSO = 50;
 const ESPERA_PELO_PROCESSO_MS = 700;
-export const buscaDeProcesso = { dono: donoDaConexao, focar: focarJanelaDoProcesso };
+export const buscaDeProcesso = { dono: donoDaConexao, focar: focarJanelaDoProcesso, naFrente: processoEstaNaFrente };
 
 /** Descobre qual processo abriu a conexão do gancho, enquanto ela ainda está aberta, para depois trazer o terminal da sessão para frente. */
 export async function lembrarProcesso(req: IncomingMessage, corpo: Record<string, unknown>) {
@@ -625,6 +625,13 @@ export async function trazerTerminal(corpo: Record<string, unknown>) {
   if (!pid) throw new Error("sem_processo");
   await buscaDeProcesso.focar(pid);
   return { ok: true };
+}
+
+export async function terminalNaFrente(corpo: Record<string, unknown>) {
+  const sessao = typeof corpo.sessao === "string" ? corpo.sessao : "";
+  const pid = processoDaSessao.get(sessao);
+  if (!pid) return { naFrente: false };
+  return { naFrente: await buscaDeProcesso.naFrente(pid).catch(() => false) };
 }
 
 export function processarEvento(corpo: Record<string, unknown>, ferramenta: FerramentaDeCodigo, res: ServerResponse, aoResponderVazio: (res: ServerResponse) => void = responderVazio) {

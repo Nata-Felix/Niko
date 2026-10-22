@@ -179,6 +179,18 @@ export const T = {
     tiposDeMudanca: { novo: "Novo", melhoria: "Melhoria", correcao: "Correção" },
     historico: [
       {
+        versao: "0.2.7",
+        data: "2026-10-22",
+        mudancas: [
+          ["correcao", "As conversas recentes do WhatsApp aparecem na ilha logo depois de conectar, com as últimas mensagens de cada uma."],
+          ["correcao", "Grupos do WhatsApp aparecem na lista. Continuam sem avisar, a não ser quando mencionam você."],
+          ["novo", "O WhatsApp aparece na grade de Conexões da ilha, com as não lidas, e abre direto as conversas."],
+          ["melhoria", "Enquanto o QR do WhatsApp é gerado, a tela mostra que ele está a caminho e quanto tempo leva."],
+          ["correcao", "A atualização confere a versão de novo antes de baixar e, se falhar, diz em que etapa parou."],
+          ["correcao", "As notas de uma versão nova aparecem sem símbolos de markdown."],
+        ],
+      },
+      {
         versao: "0.2.6",
         data: "2026-10-22",
         mudancas: [

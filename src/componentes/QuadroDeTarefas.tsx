@@ -124,24 +124,27 @@ function Cartao({ tarefa, detalhes, semMeta, variante, aoMover, aoAbrir }: { tar
           <Chips detalhes={detalhes} semMeta={semMeta} />
         </button>
       )}
-      <span className="qt-cartao-setas" onMouseLeave={() => setConfirmando(false)}>
-        <button type="button" className="qt-seta" aria-label={T.geral.editar} title={T.geral.editar} onPointerDown={(e) => e.stopPropagation()} onClick={() => { setTitulo(tarefa.titulo); setEditando(true); }}>
-          <Pencil size={11} />
-        </button>
-        <button type="button" className="qt-seta qt-seta-excluir" data-confirmando={confirmando || undefined} aria-label={confirmando ? Q.confirmarExclusao : T.geral.excluir} title={confirmando ? Q.confirmarExclusao : T.geral.excluir} onPointerDown={(e) => e.stopPropagation()} onClick={apagar}>
-          <Trash2 size={11} />
-        </button>
-        {anterior && (
-          <button type="button" className="qt-seta" aria-label={Q.voltarPara(T.ilha.colunasQuadro[anterior])} title={Q.voltarPara(T.ilha.colunasQuadro[anterior])} onPointerDown={(e) => e.stopPropagation()} onClick={() => aoMover(tarefa, anterior)}>
-            <ChevronLeft size={12} />
+      {!editando && (
+        <span className="qt-cartao-acoes" data-confirmando={confirmando || undefined} onMouseLeave={() => setConfirmando(false)}>
+          {anterior && (
+            <button type="button" className="qt-acao" aria-label={Q.voltarPara(T.ilha.colunasQuadro[anterior])} title={Q.voltarPara(T.ilha.colunasQuadro[anterior])} onPointerDown={(e) => e.stopPropagation()} onClick={() => aoMover(tarefa, anterior)}>
+              <ChevronLeft size={13} />
+            </button>
+          )}
+          {proxima && (
+            <button type="button" className="qt-acao" aria-label={Q.avancarPara(T.ilha.colunasQuadro[proxima])} title={Q.avancarPara(T.ilha.colunasQuadro[proxima])} onPointerDown={(e) => e.stopPropagation()} onClick={() => aoMover(tarefa, proxima)}>
+              <ChevronRight size={13} />
+            </button>
+          )}
+          <span className="qt-acoes-divisor" aria-hidden="true" />
+          <button type="button" className="qt-acao" aria-label={T.geral.editar} title={T.geral.editar} onPointerDown={(e) => e.stopPropagation()} onClick={() => { setTitulo(tarefa.titulo); setEditando(true); }}>
+            <Pencil size={12} />
           </button>
-        )}
-        {proxima && (
-          <button type="button" className="qt-seta" aria-label={Q.avancarPara(T.ilha.colunasQuadro[proxima])} title={Q.avancarPara(T.ilha.colunasQuadro[proxima])} onPointerDown={(e) => e.stopPropagation()} onClick={() => aoMover(tarefa, proxima)}>
-            <ChevronRight size={12} />
+          <button type="button" className="qt-acao qt-acao-excluir" data-confirmando={confirmando || undefined} aria-label={confirmando ? Q.confirmarExclusao : T.geral.excluir} title={confirmando ? Q.confirmarExclusao : T.geral.excluir} onPointerDown={(e) => e.stopPropagation()} onClick={apagar}>
+            <Trash2 size={12} />
           </button>
-        )}
-      </span>
+        </span>
+      )}
     </div>
   );
 }

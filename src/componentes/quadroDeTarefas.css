@@ -270,48 +270,70 @@
   background: color-mix(in srgb, var(--qt-vermelho) 14%, transparent);
 }
 
-.qt-cartao-setas {
-  display: grid;
-  grid-template-columns: repeat(2, 20px);
-  align-content: center;
-  gap: 2px;
-  padding: 4px 4px 4px 0;
+.qt-cartao-acoes {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  display: flex;
+  align-items: center;
+  gap: 1px;
+  padding: 2px;
+  border-radius: 8px;
+  border: 1px solid var(--qt-borda);
+  background: var(--qt-cartao-solido);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.28);
   opacity: 0;
-  transition: opacity 0.15s;
+  transform: translateY(-2px);
+  pointer-events: none;
+  transition: opacity 0.12s, transform 0.12s;
 }
 
-.qt-cartao:hover .qt-cartao-setas,
-.qt-cartao:focus-within .qt-cartao-setas {
+.qt-cartao:hover .qt-cartao-acoes,
+.qt-cartao:focus-within .qt-cartao-acoes,
+.qt-cartao-acoes[data-confirmando] {
   opacity: 1;
+  transform: none;
+  pointer-events: auto;
 }
 
-.qt-seta {
+.qt-acao {
   display: grid;
   place-items: center;
-  width: 20px;
-  height: 20px;
+  width: 22px;
+  height: 22px;
   border: 0;
   border-radius: 6px;
-  background: var(--qt-chip);
+  background: none;
   color: var(--qt-texto-2);
   cursor: pointer;
+  transition: background 0.12s, color 0.12s;
 }
 
-.qt-seta:hover {
+.qt-acao:hover {
+  background: var(--qt-chip);
   color: var(--qt-texto);
 }
 
-.qt-seta-excluir:hover,
-.qt-seta-excluir[data-confirmando] {
+.qt-acao:focus-visible {
+  outline: 1.5px solid var(--qt-azul);
+  outline-offset: -1px;
+}
+
+.qt-acoes-divisor {
+  width: 1px;
+  height: 12px;
+  margin: 0 2px;
+  background: var(--qt-borda);
+}
+
+.qt-acoes-divisor:first-child {
+  display: none;
+}
+
+.qt-acao-excluir:hover,
+.qt-acao-excluir[data-confirmando] {
   color: var(--qt-vermelho);
-}
-
-.qt-seta-excluir[data-confirmando] {
-  background: color-mix(in srgb, var(--qt-vermelho) 18%, transparent);
-}
-
-.qt-cartao[data-editando] .qt-cartao-setas {
-  opacity: 1;
+  background: color-mix(in srgb, var(--qt-vermelho) 16%, transparent);
 }
 
 .qt-cartao-campo {
@@ -345,6 +367,7 @@
 @media (prefers-reduced-motion: reduce) {
   .qt-progresso-trilho > span,
   .qt-cartao,
+  .qt-cartao-acoes,
   .qt-coluna {
     transition: none;
   }

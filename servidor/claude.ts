@@ -505,10 +505,6 @@ export function lerCorpoJson(req: IncomingMessage): Promise<Record<string, unkno
   });
 }
 
-const EVENTOS_COM_MODELO = new Set(["SessionStart", "UserPromptSubmit", "Stop", "SubagentStop"]);
-const BYTES_DO_FIM_DO_TRANSCRIPT = 256 * 1024;
-const modelosDosTranscripts = new Map<string, { modificado: number; tamanho: number; modelo: string | undefined }>();
-
 const BYTES_DO_TITULO_POR_EVENTO = 2 * 1024 * 1024;
 const LIMITE_DE_TRANSCRIPTS_COM_TITULO = 50;
 const titulosDosTranscripts = new Map<string, { lido: number; resto: string; titulo: string | undefined }>();
@@ -547,6 +543,10 @@ export function tituloDoTranscript(caminho: string): string | undefined {
     if (descritor !== undefined) closeSync(descritor);
   }
 }
+
+const EVENTOS_COM_MODELO = new Set(["SessionStart", "UserPromptSubmit", "Stop", "SubagentStop"]);
+const BYTES_DO_FIM_DO_TRANSCRIPT = 256 * 1024;
+const modelosDosTranscripts = new Map<string, { modificado: number; tamanho: number; modelo: string | undefined }>();
 
 /** Lê só o fim do transcript da sessão e devolve o modelo da última resposta do assistente. */
 export function modeloDoTranscript(caminho: string): string | undefined {

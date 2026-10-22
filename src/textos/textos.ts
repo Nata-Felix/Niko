@@ -2585,7 +2585,7 @@ export const T = {
     descricao: "Conversas, respostas e menções na ilha",
     aba: "WhatsApp",
     aviso: "O WhatsApp não tem API oficial para contas pessoais. O Niko usa o GOWA, um gateway de código aberto que roda só no seu computador e conecta como um aparelho, igual ao WhatsApp Web. O WhatsApp pode bloquear contas que usam ferramentas não oficiais: use por sua conta e risco.",
-    privacidade: "As mensagens ficam só na memória do Niko e somem ao fechar o app. Nenhuma foto, áudio ou arquivo é baixado: aparece só o tipo da mídia.",
+    privacidade: "Tudo fica neste computador. O gateway guarda a sessão e o histórico das conversas na pasta dele, como o WhatsApp Web guarda no navegador. O Niko mantém as mensagens, fotos e mídias abertas só na memória, e apaga na hora o arquivo de cada mídia que o gateway baixa. Esquecer tudo desconecta o celular e apaga a pasta do gateway.",
     naoSuportado: "Este sistema não tem uma versão do gateway. Ele existe para Windows (x64) e Linux (x64 e ARM).",
     passos: [
       "Instale o gateway. O Niko baixa a versão oficial do GitHub do GOWA e confere a assinatura do arquivo antes de usar.",
@@ -2632,7 +2632,7 @@ export const T = {
     voltarAMostrar: "Voltar a mostrar",
     desconectar: "Desconectar o celular",
     esquecer: "Esquecer tudo",
-    esquecerConfirmar: "Desligar o WhatsApp no Niko e apagar as chaves do gateway? A sessão do celular pode ser desfeita no próprio WhatsApp, em Aparelhos conectados.",
+    esquecerConfirmar: "Desligar o WhatsApp no Niko, desconectar o celular e apagar a sessão, o histórico e as chaves do gateway neste computador?",
     configurar: "Configurar o WhatsApp",
     abrirConfiguracao: "Abrir em Conexões",
     semConversas: "Nenhuma conversa recente.",

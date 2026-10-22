@@ -167,10 +167,11 @@ function Conversa({ conversa, aoVoltar, aoAtualizar }: { conversa: ConversaWhats
     }
   };
 
+  const ultimaMensagem = conversa.mensagens[conversa.mensagens.length - 1]?.id;
   useEffect(() => {
     const el = lista.current;
     if (el) el.scrollTop = el.scrollHeight;
-  }, [conversa.mensagens.length]);
+  }, [ultimaMensagem]);
 
   const enviar = async () => {
     const limpo = texto.trim();
@@ -280,7 +281,8 @@ export function VisaoWhatsapp() {
   useEffect(() => {
     if (!aberta) return;
     const atual = estado?.conversas.find((c) => c.id === aberta.id);
-    if (atual && atual.mensagens.length !== aberta.mensagens.length) setAberta(atual);
+    const ultimaId = (c: ConversaWhatsapp) => c.mensagens[c.mensagens.length - 1]?.id;
+    if (atual && (ultimaId(atual) !== ultimaId(aberta) || atual.mensagens.length !== aberta.mensagens.length || atual.foto !== aberta.foto)) setAberta(atual);
   }, [estado, aberta]);
 
   const abrir = async (c: ConversaWhatsapp) => {

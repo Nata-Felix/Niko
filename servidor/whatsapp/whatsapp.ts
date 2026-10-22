@@ -531,18 +531,14 @@ const TAMANHO_MAXIMO_DO_ENVIO = 16 * 1024 * 1024;
 
 function lerBytes(req: IncomingMessage, limite: number): Promise<Buffer> {
   return new Promise((resolver, rejeitar) => {
-    const partes: Buffer[] = [];
+    let partes: Buffer[] = [];
     let tamanho = 0;
     req.on("data", (p: Buffer) => {
       tamanho += p.length;
-      if (tamanho > limite) {
-        rejeitar(new Error("arquivo_grande_demais"));
-        req.destroy();
-        return;
-      }
-      partes.push(p);
+      if (tamanho > limite) partes = [];
+      else partes.push(p);
     });
-    req.on("end", () => resolver(Buffer.concat(partes)));
+    req.on("end", () => (tamanho > limite ? rejeitar(new Error("arquivo_grande_demais")) : resolver(Buffer.concat(partes))));
     req.on("error", rejeitar);
   });
 }
@@ -597,7 +593,10 @@ export async function desconectarWhatsapp() {
 }
 
 export async function esquecerWhatsapp() {
+  await chamarComSucesso("POST", `/devices/${encodeURIComponent(estado.dispositivo)}/logout`).catch(() => undefined);
   pararTudo(true);
+  await aguardarGowaParar();
+  for (const pasta of ["storages", "statics"]) rmSync(join(pastaDoWhatsapp(), pasta), { recursive: true, force: true });
   await apagarSegredo("whatsapp-acesso").catch(() => undefined);
   await apagarSegredo("whatsapp-webhook").catch(() => undefined);
   estado.acesso = "";

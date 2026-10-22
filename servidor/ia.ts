@@ -4,6 +4,7 @@ import { randomUUID } from "node:crypto";
 import { lerSegredo, gravarSegredo, apagarSegredo } from "./segredos.ts";
 import { plataforma } from "./plataforma/index.ts";
 import { criarFiltroDePensamento } from "./pensamento.ts";
+import { situacaoDoEndereco } from "../src/utilitarios/enderecoDoProvedor.ts";
 
 export type TipoProvedor = "anthropic" | "openai_compativel";
 
@@ -96,11 +97,10 @@ function salvarLista(lista: Provedor[]) {
   renameSync(temporario, ARQUIVO);
 }
 
-export function validarUrlBase(texto: string): string {
-  const url = new URL(texto.trim());
-  const local = ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname);
-  if (url.protocol !== "https:" && !(url.protocol === "http:" && local)) throw new Error("url_insegura");
-  return url.href.replace(/\/$/, "");
+export function validarUrlBase(texto: string, comChave: boolean): string {
+  const situacao = situacaoDoEndereco(texto, comChave);
+  if (situacao.erro) throw new Error(situacao.erro);
+  return situacao.url;
 }
 
 export async function salvarProvedor(dados: { id?: string; tipo: TipoProvedor; nome: string; urlBase?: string; modelo?: string; chave?: string; catalogo?: string }): Promise<Provedor> {
@@ -109,7 +109,7 @@ export async function salvarProvedor(dados: { id?: string; tipo: TipoProvedor; n
   const modelo = String(dados.modelo ?? "").trim().slice(0, 160);
   if (!nome) throw new Error("campos_obrigatorios");
   const catalogo = typeof dados.catalogo === "string" && /^[a-z0-9-]{1,30}$/.test(dados.catalogo) ? dados.catalogo : undefined;
-  const urlBase = dados.tipo === "anthropic" ? "https://api.anthropic.com" : validarUrlBase(dados.urlBase ?? "");
+  const urlBase = dados.tipo === "anthropic" ? "https://api.anthropic.com" : validarUrlBase(dados.urlBase ?? "", Boolean(dados.chave?.trim()));
   const lista = listarProvedores();
   const id = dados.id && lista.some((p) => p.id === dados.id) ? dados.id : `ia-${randomUUID().slice(0, 8)}`;
   if (dados.chave) await gravarSegredo(id, dados.chave.trim());

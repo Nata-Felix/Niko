@@ -820,3 +820,21 @@ test("quadro de tarefas ordena, detecta atraso e move entre colunas vizinhas", a
   assert.deepEqual({ ...detalhes }, { hora: undefined, data: "2026-10-25", atrasada: false, prioridade: "alta", checklist: { feitos: 1, total: 2 }, pomodoros: 2, meta: "Portfólio", materia: "Cálculo" });
   assert.deepEqual(q.progressoDoQuadro([{ status: "concluida" }, { status: "a_fazer" }, { status: "cancelada" }]), { feitas: 1, total: 2 });
 });
+
+test("endereço do provedor de IA aceita http só neste PC e na rede local, e nunca com chave fora deste PC", async () => {
+  const { situacaoDoEndereco, alcanceDoEndereco } = await vite.ssrLoadModule("/src/utilitarios/enderecoDoProvedor.ts");
+  assert.equal(alcanceDoEndereco("localhost"), "este_pc");
+  assert.equal(alcanceDoEndereco("127.0.0.1"), "este_pc");
+  assert.equal(alcanceDoEndereco("[::1]"), "este_pc");
+  for (const host of ["192.168.0.10", "10.0.0.5", "172.20.1.1", "meupc", "servidor.local", "[fd00::1]"]) assert.equal(alcanceDoEndereco(host), "rede_local", host);
+  for (const host of ["172.32.0.1", "8.8.8.8", "api.openai.com", "[2001:db8::1]"]) assert.equal(alcanceDoEndereco(host), "internet", host);
+
+  assert.deepEqual(situacaoDoEndereco("http://localhost:11434/v1/", true), { url: "http://localhost:11434/v1", alcance: "este_pc", semCriptografia: false, erro: null });
+  assert.equal(situacaoDoEndereco("http://192.168.0.10:11434/v1", false).erro, null);
+  assert.equal(situacaoDoEndereco("http://192.168.0.10:11434/v1", false).semCriptografia, true);
+  assert.equal(situacaoDoEndereco("http://192.168.0.10:11434/v1", true).erro, "chave_sem_criptografia");
+  assert.equal(situacaoDoEndereco("https://192.168.0.10/v1", true).erro, null);
+  assert.equal(situacaoDoEndereco("http://api.exemplo.com/v1", false).erro, "url_insegura");
+  assert.equal(situacaoDoEndereco("ftp://localhost/v1", false).erro, "url_invalida");
+  assert.equal(situacaoDoEndereco("não é endereço", false).erro, "url_invalida");
+});

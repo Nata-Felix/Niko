@@ -376,7 +376,7 @@ export async function salvarChaveConexao(servico: Servico, dados: { chave?: unkn
   }
   const chave = typeof dados.chave === "string" ? dados.chave.trim() : "";
   if (chave.length < 8 || chave.length > 4000) throw new Error("chave_invalida");
-  const url = servico === "n8n" ? validarUrlBase(String(dados.url ?? "")) : undefined;
+  const url = servico === "n8n" ? validarUrlBase(String(dados.url ?? ""), true) : undefined;
   await LEITORES[servico](chave, url);
   await gravarSegredo(`conexao-${servico}`, chave);
   const c = lerConfig();

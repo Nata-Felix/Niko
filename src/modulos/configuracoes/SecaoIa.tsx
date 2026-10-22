@@ -7,6 +7,7 @@ import { useInterface } from "../../estado/interface";
 import { T } from "../../textos/textos";
 import { estadoDaPonte, salvarProvedor, removerProvedor, testarProvedor, type Provedor, type EstadoPonte } from "../../ponte/ponteLocal";
 import { CATALOGO_IA, itemDoCatalogo, catalogoPelaUrl, type ItemCatalogo, type CustoProvedor } from "../../dados/provedoresIa";
+import { situacaoDoEndereco } from "../../utilitarios/enderecoDoProvedor";
 
 type Filtro = "todos" | "gratis" | "local" | "pago";
 type Grupo = keyof typeof T.provedoresIa.grupos;
@@ -101,8 +102,17 @@ export function SecaoIa() {
     setModelo(item.modeloSugerido);
     setChave("");
     setErros({});
-    setAvancado(item.id === "personalizado");
+    setAvancado(item.id === "personalizado" || item.custo === "local");
   };
+
+  const avisoDoEndereco = (() => {
+    if (!escolhido || escolhido.tipo !== "openai_compativel") return null;
+    const situacao = situacaoDoEndereco(urlBase, false);
+    if (situacao.erro) return null;
+    if (situacao.semCriptografia) return { tipo: "alerta" as const, texto: T.configuracoes.enderecoSemCriptografia };
+    if (situacao.alcance === "rede_local" || (escolhido.custo === "local" && situacao.alcance === "internet")) return { tipo: "info" as const, texto: T.configuracoes.enderecoDeOutroPc };
+    return null;
+  })();
 
   const testar = async (p: Provedor, sugerido = "") => {
     setTestes((t) => ({ ...t, [p.id]: "testando" }));
@@ -121,13 +131,10 @@ export function SecaoIa() {
     const novos: Record<string, string> = {};
     if (!nome.trim()) novos.nome = T.validacao.obrigatorio;
     if (escolhido.tipo === "openai_compativel") {
-      try {
-        const u = new URL(urlBase.trim());
-        const local = ["localhost", "127.0.0.1"].includes(u.hostname);
-        if (u.protocol !== "https:" && !(u.protocol === "http:" && local)) novos.url = T.configuracoes.urlInsegura;
-      } catch {
-        novos.url = T.validacao.urlInvalida;
-      }
+      const erroDoEndereco = situacaoDoEndereco(urlBase, Boolean(chave.trim())).erro;
+      if (erroDoEndereco === "url_invalida") novos.url = T.validacao.urlInvalida;
+      else if (erroDoEndereco === "url_insegura") novos.url = T.configuracoes.urlInsegura;
+      else if (erroDoEndereco === "chave_sem_criptografia") novos.url = T.configuracoes.chaveSemCriptografia;
     }
     if (escolhido.pedeChave && !chave.trim()) novos.chave = T.validacao.obrigatorio;
     if (chave && chave.trim().length < 8) novos.chave = T.conexoes.chaveCurta;
@@ -352,6 +359,7 @@ export function SecaoIa() {
                 )}
               </div>
             )}
+            {avancado && avisoDoEndereco && <AvisoFaixa tipo={avisoDoEndereco.tipo}>{avisoDoEndereco.texto}</AvisoFaixa>}
 
             {erros.geral && <AvisoFaixa tipo="erro">{erros.geral}</AvisoFaixa>}
             <div className="formulario-acoes">

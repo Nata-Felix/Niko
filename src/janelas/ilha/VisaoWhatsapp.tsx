@@ -62,7 +62,8 @@ export function usarAvisosDoWhatsapp(): boolean {
   return ligado;
 }
 
-function Avatar({ nome, tamanho = 30 }: { nome: string; tamanho?: number }) {
+function Avatar({ nome, foto, tamanho = 30 }: { nome: string; foto?: string | null; tamanho?: number }) {
+  if (foto) return <img className="whatsapp-avatar whatsapp-avatar-foto" src={foto} alt="" width={tamanho} height={tamanho} />;
   return (
     <span className="whatsapp-avatar" style={{ width: tamanho, height: tamanho, background: corDoNome(nome) }} aria-hidden="true">
       {iniciaisDoNome(nome)}
@@ -81,10 +82,11 @@ function Conversa({ conversa, aoVoltar, aoAtualizar }: { conversa: ConversaWhats
   const [texto, setTexto] = useState("");
   const [enviando, setEnviando] = useState(false);
   const [erro, setErro] = useState("");
-  const fim = useRef<HTMLDivElement>(null);
+  const lista = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    fim.current?.scrollIntoView({ block: "end" });
+    const el = lista.current;
+    if (el) el.scrollTop = el.scrollHeight;
   }, [conversa.mensagens.length]);
 
   const enviar = async () => {
@@ -106,10 +108,10 @@ function Conversa({ conversa, aoVoltar, aoAtualizar }: { conversa: ConversaWhats
   };
 
   return (
-    <div className="whatsapp-conversa">
+    <div className="ilha-chat whatsapp-conversa">
       <div className="linha-entre whatsapp-topo">
         <button type="button" className="ilha-botao ilha-botao-icone" aria-label={W.voltar} title={W.voltar} onClick={aoVoltar}><ArrowLeft size={14} /></button>
-        <Avatar nome={conversa.nome} tamanho={24} />
+        <Avatar nome={conversa.nome} foto={conversa.foto} tamanho={24} />
         <span className="ilha-titulo cortar privado" style={{ flex: 1 }}>{conversa.nome}</span>
         <button
           type="button"
@@ -124,7 +126,7 @@ function Conversa({ conversa, aoVoltar, aoAtualizar }: { conversa: ConversaWhats
           <EyeOff size={14} />
         </button>
       </div>
-      <div className="ilha-chat-lista whatsapp-mensagens">
+      <div ref={lista} className="ilha-chat-lista whatsapp-mensagens">
         {conversa.mensagens.map((m) => (
           <div key={m.id} className="whatsapp-mensagem" data-minha={m.minha ? "sim" : "nao"} data-mencao={m.mencionaMe || undefined}>
             {conversa.grupo && !m.minha && m.nomeRemetente && <span className="whatsapp-remetente privado" style={{ color: corDoNome(m.nomeRemetente) }}>{m.nomeRemetente}</span>}
@@ -133,7 +135,6 @@ function Conversa({ conversa, aoVoltar, aoAtualizar }: { conversa: ConversaWhats
             <span className="whatsapp-hora">{horarioRelativo(m.data)}</span>
           </div>
         ))}
-        <div ref={fim} />
       </div>
       {erro && <span className="ilha-erro" role="status">{erro}</span>}
       <div className="ilha-chat-entrada">
@@ -212,14 +213,14 @@ export function VisaoWhatsapp() {
   if (aberta) return <Conversa conversa={aberta} aoVoltar={voltar} aoAtualizar={setAberta} />;
 
   return (
-    <div className="ilha-rolagem whatsapp-lista">
+    <div className="ilha-chat whatsapp-lista">
       {estado.conversas.length === 0 && <span className="ilha-sub">{W.semConversas}</span>}
       {estado.conversas.map((c) => {
         const ultima = c.mensagens[c.mensagens.length - 1];
         const mencao = c.grupo && c.mensagens.some((m) => m.mencionaMe && !m.minha);
         return (
           <button key={c.id} type="button" className="whatsapp-item" data-nao-lida={c.naoLidas > 0 || undefined} onClick={() => void abrir(c)}>
-            <Avatar nome={c.nome} />
+            <Avatar nome={c.nome} foto={c.foto} />
             <span className="whatsapp-item-textos">
               <span className="whatsapp-item-nome cortar privado">{c.nome}</span>
               <span className="whatsapp-item-previa cortar privado">{previa(ultima)}</span>

@@ -119,6 +119,7 @@ export function ConfigWhatsapp({ aberto, aoFechar }: { aberto: boolean; aoFechar
             )}
             {estado && (
               <>
+                <LinhaAlternador rotulo={W.mostrarFotos} dica={W.mostrarFotosDica} ligado={estado.filtros.mostrarFotos} aoMudar={(v) => void agir(() => whatsappPonte.filtros({ mostrarFotos: v }))} />
                 <LinhaAlternador rotulo={W.esconderArquivadas} dica={W.esconderArquivadasDica} ligado={estado.filtros.esconderArquivadas} aoMudar={(v) => void agir(() => whatsappPonte.filtros({ esconderArquivadas: v }))} />
                 <LinhaAlternador rotulo={W.esconderGrupos} dica={W.esconderGruposDica} ligado={estado.filtros.esconderGrupos} aoMudar={(v) => void agir(() => whatsappPonte.filtros({ esconderGrupos: v }))} />
                 {!estado.filtros.esconderGrupos && <LinhaAlternador rotulo={W.silenciarGrupos} ligado={estado.filtros.silenciarGrupos} aoMudar={(v) => void agir(() => whatsappPonte.filtros({ silenciarGrupos: v }))} />}

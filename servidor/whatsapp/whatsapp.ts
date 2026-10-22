@@ -23,9 +23,10 @@ const MAXIMO_DE_NOVIDADES = 50;
 interface ConfigWhatsapp extends FiltrosWhatsapp {
   ligado: boolean;
   lerAoAbrir: boolean;
+  mostrarFotos: boolean;
 }
 
-const PADRAO: ConfigWhatsapp = { ligado: false, silenciarGrupos: true, ignoradas: [], lerAoAbrir: true, esconderArquivadas: true, esconderGrupos: false };
+const PADRAO: ConfigWhatsapp = { ligado: false, silenciarGrupos: true, ignoradas: [], lerAoAbrir: true, esconderArquivadas: true, esconderGrupos: false, mostrarFotos: true };
 const arquivoDeConfig = () => join(pastaDados(), "whatsapp.json");
 
 function lerConfig(): ConfigWhatsapp {
@@ -39,6 +40,7 @@ function lerConfig(): ConfigWhatsapp {
       lerAoAbrir: lido.lerAoAbrir !== false,
       esconderArquivadas: lido.esconderArquivadas !== false,
       esconderGrupos: lido.esconderGrupos === true,
+      mostrarFotos: lido.mostrarFotos !== false,
     };
   } catch {
     return { ...PADRAO };
@@ -266,6 +268,7 @@ function pararTudo(esquecer: boolean) {
   estado.historicoCarregado = false;
   if (esquecer) {
     caixa.limpar();
+    fotos.clear();
     estado.novidades = [];
     estado.conversaAberta = null;
   }
@@ -279,12 +282,62 @@ export function encerrarWhatsapp() {
   pararTudo(true);
 }
 
+const FOTO_VALIDA_MS = 6 * 3600_000;
+const FOTO_FALHOU_MS = 3600_000;
+const TAMANHO_MAXIMO_DA_FOTO = 300_000;
+const fotos = new Map<string, { imagem: string | null; quando: number }>();
+const fotosPedidas = new Set<string>();
+
+function fotoDoServidorDoWhatsapp(url: unknown): string | null {
+  if (typeof url !== "string") return null;
+  try {
+    const u = new URL(url);
+    return u.protocol === "https:" && (u.hostname === "whatsapp.net" || u.hostname.endsWith(".whatsapp.net")) ? u.toString() : null;
+  } catch {
+    return null;
+  }
+}
+
+async function buscarFoto(jid: string) {
+  let imagem: string | null = null;
+  try {
+    const corpo = await chamarComSucesso("GET", "/user/avatar", { query: { phone: jid, is_preview: "true" }, tempoMs: 8000 });
+    const resultado = (corpo as Record<string, unknown> | null)?.results as Record<string, unknown> | undefined;
+    const url = fotoDoServidorDoWhatsapp(resultado?.url);
+    if (url) {
+      const r = await fetch(url, { redirect: "error", signal: AbortSignal.timeout(8000) });
+      const tipo = r.headers.get("content-type") ?? "";
+      const bytes = r.ok && /^image\/(jpeg|png|webp)$/.test(tipo) ? Buffer.from(await r.arrayBuffer()) : null;
+      if (bytes && bytes.length <= TAMANHO_MAXIMO_DA_FOTO) imagem = `data:${tipo};base64,${bytes.toString("base64")}`;
+    }
+  } catch {
+    imagem = null;
+  }
+  fotos.set(jid, { imagem, quando: Date.now() });
+  fotosPedidas.delete(jid);
+}
+
+function pedirFotos(conversas: ConversaWhatsapp[]) {
+  if (estado.config.mostrarFotos === false || estado.vinculo !== "conectado") return;
+  for (const c of conversas) {
+    if (fotosPedidas.size >= 2) return;
+    const guardada = fotos.get(c.id);
+    const validade = guardada?.imagem ? FOTO_VALIDA_MS : FOTO_FALHOU_MS;
+    if (fotosPedidas.has(c.id) || (guardada && Date.now() - guardada.quando < validade)) continue;
+    fotosPedidas.add(c.id);
+    void buscarFoto(c.id);
+  }
+}
+
 function resumoDaConversa(c: ConversaWhatsapp) {
-  return { ...c, mensagens: c.mensagens.slice(-20) };
+  const foto = estado.config.mostrarFotos === false ? null : fotos.get(c.id)?.imagem ?? null;
+  return { ...c, mensagens: c.mensagens.slice(-20), foto };
 }
 
 export function estadoDoWhatsapp() {
   const filtros = estado.config;
+  const visiveis = caixa.visiveis(filtros).slice(0, 30);
+  pedirFotos(visiveis);
   return {
     suportado: alvoDaPlataforma() !== null,
     ligado: estado.config.ligado,
@@ -295,8 +348,8 @@ export function estadoDoWhatsapp() {
     eu: estado.eu,
     qr: estado.vinculo === "precisa_qr" ? estado.qr?.png ?? null : null,
     erro: estado.erro,
-    filtros: { silenciarGrupos: filtros.silenciarGrupos, lerAoAbrir: filtros.lerAoAbrir, esconderArquivadas: filtros.esconderArquivadas !== false, esconderGrupos: filtros.esconderGrupos === true, ignoradas: filtros.ignoradas },
-    conversas: caixa.visiveis(filtros).slice(0, 30).map(resumoDaConversa),
+    filtros: { silenciarGrupos: filtros.silenciarGrupos, lerAoAbrir: filtros.lerAoAbrir, esconderArquivadas: filtros.esconderArquivadas !== false, esconderGrupos: filtros.esconderGrupos === true, mostrarFotos: filtros.mostrarFotos !== false, ignoradas: filtros.ignoradas },
+    conversas: visiveis.map(resumoDaConversa),
     naoLidas: caixa.naoLidasVisiveis(filtros),
     seq: estado.seq,
   };
@@ -331,6 +384,7 @@ export function definirFiltrosDoWhatsapp(dados: Record<string, unknown>) {
     ...(typeof dados.lerAoAbrir === "boolean" ? { lerAoAbrir: dados.lerAoAbrir } : {}),
     ...(typeof dados.esconderArquivadas === "boolean" ? { esconderArquivadas: dados.esconderArquivadas } : {}),
     ...(typeof dados.esconderGrupos === "boolean" ? { esconderGrupos: dados.esconderGrupos } : {}),
+    ...(typeof dados.mostrarFotos === "boolean" ? { mostrarFotos: dados.mostrarFotos } : {}),
   };
   salvarConfig(estado.config);
   return estadoDoWhatsapp();

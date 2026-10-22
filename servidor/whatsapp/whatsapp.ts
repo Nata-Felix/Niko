@@ -185,6 +185,7 @@ async function prepararGateway() {
   estado.acesso ||= await segredoGuardado("whatsapp-acesso", () => `niko:${randomBytes(18).toString("hex")}`);
   estado.segredo ||= await segredoGuardado("whatsapp-webhook", () => randomBytes(32).toString("hex"));
   if (!estado.porta || (!gowaRodando() && estado.falhasSeguidas > 2)) estado.porta = await portaLivre();
+  if (!estado.config.ligado || !relogio) throw new Error("gateway_parado");
   iniciarGowa({ porta: estado.porta, acesso: estado.acesso, urlDoWebhook: `http://127.0.0.1:${portaDaPonte()}${CAMINHO_DO_WEBHOOK}`, segredoDoWebhook: estado.segredo });
 }
 

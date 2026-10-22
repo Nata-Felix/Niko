@@ -31,8 +31,18 @@ export function urlPublicaSegura(bruta: string, hostsPermitidos?: (host: string)
 }
 
 async function textoLimitado(url: string, cabecalhos: Record<string, string>, limite: number): Promise<string> {
-  const r = await fetch(url, { headers: { "user-agent": "Niko", ...cabecalhos }, redirect: "follow", signal: AbortSignal.timeout(20_000) });
+  let atual = url;
+  let r: Response | null = null;
+  for (let saltos = 0; saltos < 5; saltos++) {
+    r = await fetch(atual, { headers: { "user-agent": "Niko", ...cabecalhos }, redirect: "manual", signal: AbortSignal.timeout(20_000) });
+    const destino = r.status >= 300 && r.status < 400 ? r.headers.get("location") : null;
+    if (!destino) break;
+    atual = urlPublicaSegura(new URL(destino, atual).toString()).toString();
+    r = null;
+  }
+  if (!r) throw new Error("redirecionamentos_demais");
   if (!r.ok) throw new Error(`http_${r.status}`);
+  if (Number(r.headers.get("content-length") ?? 0) > limite) throw new Error("resposta_grande_demais");
   const corpo = Buffer.from(await r.arrayBuffer());
   if (corpo.length > limite) throw new Error("resposta_grande_demais");
   return corpo.toString("utf8");

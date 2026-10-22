@@ -322,7 +322,8 @@ const LEITORES: Record<Servico, Leitor> = {
       ),
     );
     return {
-      zonas: zonas.result.map((z) => ({ nome: z.name, status: z.paused ? "pausada" : z.status, plano: z.plan?.name ?? "" })),      dns: dns.flat().map((d) => ({ zona: d.zona, tipo: d.type, nome: d.name, valor: d.content, proxy: Boolean(d.proxied) })),
+      zonas: zonas.result.map((z) => ({ nome: z.name, status: z.paused ? "pausada" : z.status, plano: z.plan?.name ?? "" })),
+      dns: dns.flat().map((d) => ({ zona: d.zona, tipo: d.type, nome: d.name, valor: d.content, proxy: Boolean(d.proxied) })),
       pages: pages.result.map((p) => ({ nome: p.name, dominio: p.domains?.[0] ?? p.subdomain, estado: p.latest_deployment?.latest_stage?.status ?? "", etapa: p.latest_deployment?.latest_stage?.name ?? "", data: p.latest_deployment?.created_on ?? "", ambiente: p.latest_deployment?.environment ?? "" })),
       workers: workers.result.map((w) => ({ nome: w.id, alterado: w.modified_on })),
       metricas,

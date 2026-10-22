@@ -119,7 +119,8 @@ class SessaoImap {
   private bytesPendentes = 0;
   private linhaAtual = "";
   private linhas: string[] = [];
-  private espera: ((linha: string) => void) | null = null;
+  private espera: { resolver: () => void; rejeitar: (e: Error) => void } | null = null;
+  private fechada: Error | null = null;
   private contador = 0;
   private socket: TLSSocket;
 
@@ -127,6 +128,15 @@ class SessaoImap {
     this.socket = socket;
     socket.setEncoding("latin1");
     socket.on("data", (d: string) => this.receber(d));
+    socket.on("error", (e: Error) => this.encerrar(e));
+    socket.on("close", () => this.encerrar(new Error("imap_conexao_fechada")));
+  }
+
+  private encerrar(e: Error) {
+    this.fechada ??= e;
+    const espera = this.espera;
+    this.espera = null;
+    espera?.rejeitar(this.fechada);
   }
 
   private receber(dados: string) {
@@ -153,17 +163,17 @@ class SessaoImap {
       const completa = this.linhaAtual + linha;
       this.linhaAtual = "";
       this.linhas.push(Buffer.from(completa, "latin1").toString("utf8"));
-      this.espera?.(completa);
+      const espera = this.espera;
+      this.espera = null;
+      espera?.resolver();
     }
   }
 
   private proximaLinha(): Promise<string> {
-    return new Promise((resolver) => {
+    return new Promise((resolver, rejeitar) => {
       if (this.linhas.length) return resolver(this.linhas.shift()!);
-      this.espera = () => {
-        this.espera = null;
-        resolver(this.linhas.shift()!);
-      };
+      if (this.fechada) return rejeitar(this.fechada);
+      this.espera = { resolver: () => resolver(this.linhas.shift()!), rejeitar };
     });
   }
 

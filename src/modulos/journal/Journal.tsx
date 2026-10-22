@@ -649,15 +649,14 @@ export default function Journal() {
                 acoes={
                   <>
                     {doDia.length > 0 && <span className="secao-extra mono">{T.journal.tarefasFeitas(feitasDoDia, doDia.length)}</span>}
-                    <Botao
-                      pequeno
-                      soIcone
-                      variante="fantasma"
-                      icone={emQuadro ? <List size={13} /> : <Columns3 size={13} />}
-                      aria-pressed={emQuadro}
-                      aria-label={emQuadro ? T.ilha.verLista : T.ilha.verQuadro}
-                      title={emQuadro ? T.ilha.verLista : T.ilha.verQuadro}
-                      onClick={() => definirConfig({ journalEmQuadro: !emQuadro })}
+                    <Segmentado<"lista" | "quadro">
+                      rotulo={T.ilha.modoDasTarefas}
+                      valor={emQuadro ? "quadro" : "lista"}
+                      aoMudar={(v) => definirConfig({ journalEmQuadro: v === "quadro" })}
+                      opcoes={[
+                        { valor: "lista", rotulo: T.ilha.modoLista, icone: <List size={13} /> },
+                        { valor: "quadro", rotulo: T.ilha.modoQuadro, icone: <Columns3 size={13} /> },
+                      ]}
                     />
                   </>
                 }

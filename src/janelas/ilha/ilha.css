@@ -678,6 +678,43 @@
   color: var(--i-tinta);
 }
 
+.ilha-chips-linha {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ilha-modo {
+  display: inline-flex;
+  flex: none;
+  gap: 2px;
+  margin-left: auto;
+  padding: 2px;
+  border-radius: 999px;
+  background: rgba(var(--i-rgb), 0.06);
+}
+
+.ilha-modo-opcao {
+  height: 20px;
+  padding: 0 9px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--i-dim-2);
+  transition: background 0.15s, color 0.15s;
+}
+
+.ilha-modo-opcao:hover {
+  color: rgba(var(--i-rgb), 0.8);
+}
+
+.ilha-modo-opcao[aria-pressed="true"] {
+  background: rgba(var(--i-rgb), 0.14);
+  color: var(--i-tinta);
+}
+
 .ilha-chip-numero {
   font-size: 10.5px;
   color: var(--i-dim-2);

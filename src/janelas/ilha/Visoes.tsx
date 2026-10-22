@@ -76,7 +76,8 @@ export function VisaoHoje() {
 
   return (
     <Cartao veu={tudoFeito ? "#34d399" : undefined}>
-      <div className="ilha-chips" role="tablist" aria-label={T.ilha.abas.hoje}>
+      <div className="ilha-chips-linha">
+        <div className="ilha-chips" role="tablist" aria-label={T.ilha.abas.hoje}>
         {secoes.map((s) => {
           const c = contagem[s];
           return (
@@ -97,9 +98,32 @@ export function VisaoHoje() {
             </button>
           );
         })}
+        </div>
+        {secao === "tarefas" && <ModoDasTarefas />}
       </div>
       {secao === "agenda" ? <SecaoAgenda /> : secao === "tarefas" ? <SecaoTarefas /> : secao === "habitos" ? <SecaoHabitos /> : null}
     </Cartao>
+  );
+}
+
+function ModoDasTarefas() {
+  const emQuadro = useConfig((s) => s.ilha.tarefasEmQuadro);
+  const definirIlha = useConfig((s) => s.definirIlha);
+  const escolher = (quadro: boolean) => {
+    if (quadro !== emQuadro) void tocarSom("blip");
+    definirIlha({ tarefasEmQuadro: quadro });
+  };
+  return (
+    <span className="ilha-modo" role="group" aria-label={T.ilha.modoDasTarefas}>
+      <button type="button" className="ilha-modo-opcao" aria-pressed={!emQuadro} title={T.ilha.verLista} onClick={() => escolher(false)}>
+        <List size={12} />
+        {T.ilha.modoLista}
+      </button>
+      <button type="button" className="ilha-modo-opcao" aria-pressed={emQuadro} title={T.ilha.verQuadro} onClick={() => escolher(true)}>
+        <Columns3 size={12} />
+        {T.ilha.modoQuadro}
+      </button>
+    </span>
   );
 }
 
@@ -108,7 +132,6 @@ function SecaoTarefas() {
   const criar = useRotina((s) => s.criarTarefa);
   const mudarStatus = useRotina((s) => s.mudarStatus);
   const emQuadro = useConfig((s) => s.ilha.tarefasEmQuadro);
-  const definirIlha = useConfig((s) => s.definirIlha);
   const [texto, setTexto] = useState("");
   const [erro, setErro] = useState("");
   const hoje = hojeISO();
@@ -169,16 +192,6 @@ function SecaoTarefas() {
         />
         <button type="button" className="ilha-botao ilha-botao-icone" aria-label={T.geral.adicionar} onClick={adicionar}>
           <CornerDownLeft size={13} />
-        </button>
-        <button
-          type="button"
-          className="ilha-botao ilha-botao-icone"
-          aria-pressed={emQuadro}
-          aria-label={emQuadro ? T.ilha.verLista : T.ilha.verQuadro}
-          title={emQuadro ? T.ilha.verLista : T.ilha.verQuadro}
-          onClick={() => definirIlha({ tarefasEmQuadro: !emQuadro })}
-        >
-          {emQuadro ? <List size={13} /> : <Columns3 size={13} />}
         </button>
       </div>
     </div>

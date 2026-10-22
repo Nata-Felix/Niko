@@ -16,7 +16,7 @@ import { useAgentes } from "../../estado/agentes";
 import { useConfig, type SecaoHoje } from "../../estado/configuracoes";
 import { useInterface } from "../../estado/interface";
 import { useIlha } from "../../estado/ilha";
-import { Marca, MARCAS } from "../../marcas/Marca";
+import { Marca, corDaMarca } from "../../marcas/Marca";
 import { Anel } from "../../componentes/Graficos";
 import { T } from "../../textos/textos";
 import { deISO, formatarData, hojeISO, paraISO, horarioRelativo } from "../../utilitarios/datas";
@@ -495,7 +495,7 @@ export function VisaoConexoes({ aberta, aoSelecionar }: { aberta: ServicoId | nu
   const atual = conexoes.find((c) => c.id === aberta);
 
   return (
-    <Cartao veu={atual ? `#${MARCAS[atual.id].hex}` : undefined}>
+    <Cartao veu={atual ? corDaMarca(atual.id) : undefined}>
       <AnimatePresence mode="wait" initial={false}>
         {!atual ? (
           <motion.div key="grade" className="coluna" style={{ gap: 8, minHeight: 0, flex: 1 }} initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -12 }} transition={{ duration: 0.18 }}>
@@ -506,7 +506,7 @@ export function VisaoConexoes({ aberta, aoSelecionar }: { aberta: ServicoId | nu
             <div className="ilha-rolagem">
               <div className="ilha-conexoes-grade">
                 {lista.map((c, i) => {
-                  const cor = `#${MARCAS[c.id].hex}`;
+                  const cor = corDaMarca(c.id);
                   const falhas = falhasNaoVistas(c, eventos);
                   return (
                     <motion.button
@@ -548,7 +548,7 @@ export function VisaoConexoes({ aberta, aoSelecionar }: { aberta: ServicoId | nu
               <button type="button" className="ilha-botao ilha-botao-icone" aria-label={T.geral.voltar} title={T.geral.voltar} onClick={() => aoSelecionar(null)}>
                 <ChevronLeft size={14} />
               </button>
-              <span className="ilha-conexao-logo" style={{ ["--marca" as string]: `#${MARCAS[atual.id].hex}` }}><Marca marca={atual.id} tamanho={17} /></span>
+              <span className="ilha-conexao-logo" style={{ ["--marca" as string]: corDaMarca(atual.id) }}><Marca marca={atual.id} tamanho={17} /></span>
               <span className="coluna" style={{ gap: 0, minWidth: 0, flex: 1 }}>
                 <span className="ilha-titulo">{T.conexoes.servicos[atual.id].nome}</span>
                 <span className="ilha-mini cortar">{atual.ligada ? `${T.conexoes.status[atual.status]} . ${atual.ultimaAtualizacao ? T.conexoes.atualizado(horarioRelativo(atual.ultimaAtualizacao)) : T.conexoes.nunca}` : T.ilha.conexaoDesligada}</span>

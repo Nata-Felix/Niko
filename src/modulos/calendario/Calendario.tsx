@@ -5,6 +5,7 @@ import { CabecalhoAba } from "../../componentes/CabecalhoAba";
 import { AvisoFaixa, Botao, Campo, Modal, Segmentado, Vazio } from "../../componentes/basicos";
 import { abrirLink } from "../../desktop/desktop";
 import { usarAgendaGoogle } from "./usarAgendaGoogle";
+import { usarAgendasPorLink } from "./usarAgendasPorLink";
 import { useComunicacao } from "../../estado/comunicacao";
 import { Marca } from "../../marcas/Marca";
 import { useOrganizacao } from "../../estado/organizacao";
@@ -38,11 +39,12 @@ const COR_FONTE: Record<Fonte, string> = {
   financas: "var(--alerta)",
   metas: "var(--info)",
   google: "var(--texto-3)",
+  agendas: "var(--texto-2)",
 };
 
 const FONTES = Object.keys(T.calendario.fontes) as Fonte[];
-const FUNCAO_DA_FONTE: Record<Fonte, Funcao> = { eventos: "calendario", tarefas: "journal", habitos: "journal", estudos: "estudos", financas: "financas", metas: "metas", google: "calendario" };
-const ROTA_DA_FONTE: Record<Exclude<Fonte, "eventos" | "google">, Rota> = { tarefas: "journal", habitos: "journal", estudos: "estudos", financas: "financas", metas: "metas" };
+const FUNCAO_DA_FONTE: Record<Fonte, Funcao> = { eventos: "calendario", tarefas: "journal", habitos: "journal", estudos: "estudos", financas: "financas", metas: "metas", google: "calendario", agendas: "calendario" };
+const ROTA_DA_FONTE: Record<Exclude<Fonte, "eventos" | "google" | "agendas">, Rota> = { tarefas: "journal", habitos: "journal", estudos: "estudos", financas: "financas", metas: "metas" };
 const DISTANCIA_PARA_ARRASTAR = 6;
 const ALTURA_HORA = 48;
 const PRIMEIRA_HORA = 7;
@@ -250,7 +252,7 @@ export default function Calendario() {
   const contasFinanceiras = useFinancas((s) => s.contas);
   const [vista, setVista] = useState<Vista>("mes");
   const [foco, setFoco] = useState(parametros.data && dataValida(parametros.data) ? parametros.data : hojeISO());
-  const [fontes, setFontes] = useState<Record<Fonte, boolean>>({ eventos: true, tarefas: true, habitos: true, estudos: true, financas: true, metas: true, google: true });
+  const [fontes, setFontes] = useState<Record<Fonte, boolean>>({ eventos: true, tarefas: true, habitos: true, estudos: true, financas: true, metas: true, google: true, agendas: true });
   const [novo, setNovo] = useState(false);
   const [edicao, setEdicao] = useState<Edicao | null>(null);
   const [escopo, setEscopo] = useState<PedidoDeEscopo | null>(null);
@@ -303,11 +305,13 @@ export default function Calendario() {
   const agendaConectada = useComunicacao((s) => Boolean(s.conexoes.find((c) => c.id === "google")?.chaveSalva));
   const sugerirGoogle = sugestaoGoogle && !agendaConectada && funcaoLigada("calendario", desligadas);
   const agendaGoogle = usarAgendaGoogle(funcaoLigada("calendario", desligadas) ? [[inicioISO, fimISO], [hoje, fimProximos]] : []);
+  const agendasPorLink = usarAgendasPorLink(funcaoLigada("calendario", desligadas));
   const gerar = useMemo(() => (de: string, ate: string) => {
     const locais = itensDoCalendario({ eventos, tarefas, habitos, datas, revisoes, metas, recorrentes, contas: contasFinanceiras }, de, ate);
     const google: Item[] = agendaGoogle.eventos.filter((e) => e.data >= de && e.data <= ate).map((e) => ({ id: `google-${e.id}`, titulo: e.titulo, data: e.data, hora: e.hora, fonte: "google", link: e.link }));
-    return [...locais, ...google].filter((i) => fontes[i.fonte]).sort((a, b) => `${a.data}${a.hora ?? "99"}`.localeCompare(`${b.data}${b.hora ?? "99"}`));
-  }, [eventos, tarefas, habitos, datas, revisoes, metas, recorrentes, contasFinanceiras, fontes, desligadas, agendaGoogle.eventos]);
+    const porLink: Item[] = agendasPorLink.eventos.filter((e) => e.data >= de && e.data <= ate).map((e) => ({ id: `agenda-${e.id}`, titulo: e.titulo, data: e.data, hora: e.hora, fonte: "agendas" }));
+    return [...locais, ...google, ...porLink].filter((i) => fontes[i.fonte]).sort((a, b) => `${a.data}${a.hora ?? "99"}`.localeCompare(`${b.data}${b.hora ?? "99"}`));
+  }, [eventos, tarefas, habitos, datas, revisoes, metas, recorrentes, contasFinanceiras, fontes, desligadas, agendaGoogle.eventos, agendasPorLink.eventos]);
   const itens = useMemo(() => gerar(inicioISO, fimISO), [gerar, inicioISO, fimISO]);
   const proximosTodos = useMemo(() => gerar(hoje, fimProximos), [gerar, hoje, fimProximos]);
   const proximos = proximosTodos.filter((i) => !repeteTodoDia(i));
@@ -446,7 +450,7 @@ export default function Calendario() {
 
   const abrirNoModulo = (i: Item) => {
     if (i.fonte === "google") return i.link ? { rotulo: T.calendario.abrirNoGoogle, abrir: () => abrirLink(i.link!) } : undefined;
-    if (i.fonte === "eventos") return undefined;
+    if (i.fonte === "eventos" || i.fonte === "agendas") return undefined;
     const rota = ROTA_DA_FONTE[i.fonte];
     return { rotulo: T.calendario.abrirEm(T.rotas[rota]), abrir: () => irPara(rota, rota === "journal" ? { data: i.data } : undefined) };
   };
@@ -565,7 +569,7 @@ export default function Calendario() {
 
       <section className="cl-fontes" role="group" aria-label={T.calendario.mostrar}>
         <span className="cl-fontes-rotulo">{T.calendario.mostrar}</span>
-        {FONTES.filter((f) => funcaoLigada(FUNCAO_DA_FONTE[f], desligadas)).filter((f) => f !== "habitos" || habitos.some((h) => !h.arquivado && h.hora)).filter((f) => f !== "google" || agendaGoogle.situacao !== "desligada").map((f) => (
+        {FONTES.filter((f) => funcaoLigada(FUNCAO_DA_FONTE[f], desligadas)).filter((f) => f !== "habitos" || habitos.some((h) => !h.arquivado && h.hora)).filter((f) => f !== "google" || agendaGoogle.situacao !== "desligada").filter((f) => f !== "agendas" || agendasPorLink.ligada).map((f) => (
           <button key={f} type="button" className="cl-fonte" style={corDa(f)} aria-pressed={fontes[f]} onClick={() => setFontes({ ...fontes, [f]: !fontes[f] })}>
             <span className="cl-ponto" />
             {T.calendario.fontes[f]}

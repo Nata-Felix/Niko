@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { KeyRound, Pin, PinOff, RefreshCw, TriangleAlert, ShieldCheck, ExternalLink, Play, Pause } from "lucide-react";
 import { CabecalhoAba } from "../../componentes/CabecalhoAba";
 import { Botao, AvisoFaixa, Modal, Campo, LinhaAlternador, Alternador } from "../../componentes/basicos";
-import { Marca } from "../../marcas/Marca";
+import { Marca, corDaMarca } from "../../marcas/Marca";
 import { useComunicacao, SERVICOS, CATEGORIA_SERVICO } from "../../estado/comunicacao";
 import { useInterface } from "../../estado/interface";
 import { useConfig } from "../../estado/configuracoes";
@@ -11,8 +11,10 @@ import { horarioRelativo } from "../../utilitarios/datas";
 import { conexoesPonte, resumoDe, LINKS_DO_GUIA, SERVICOS_DO_GOOGLE } from "../../ponte/conexoesReais";
 import { atualizarConexaoAgora } from "../../servicos/servicos";
 import { tocarSom } from "../../ponte/sons";
-import type { ServicoId } from "../../tipos";
+import type { NivelDeAvisosDaConexao, ServicoId } from "../../tipos";
 import { conexaoEmTestes } from "../../utilitarios/disponibilidadeConexoes";
+import { CamposDaConexao, SERVICOS_COM_CAMPOS, valoresIniciais } from "./CamposDaConexao";
+import { mensagemDeErroDaConexao } from "../../utilitarios/errosDeConexao";
 
 type Filtro = keyof typeof T.conexoes.filtros;
 
@@ -47,6 +49,23 @@ function Configurar({ servico, aoFechar }: { servico: ServicoId | null; aoFechar
   const atualizar = useComunicacao((s) => s.atualizarConexao);
   const conexoes = useComunicacao((s) => s.conexoes);
   const avisar = useInterface((s) => s.avisar);
+  const comCampos = servico !== null && SERVICOS_COM_CAMPOS.includes(servico);
+  const [valores, setValores] = useState<Record<string, unknown>>({});
+  const [salva, setSalva] = useState<Record<string, unknown>>({});
+  useEffect(() => {
+    if (!servico || !comCampos) return;
+    let ativo = true;
+    setValores(valoresIniciais(servico, {}));
+    setSalva({});
+    if (conexao?.chaveSalva) {
+      void conexoesPonte.config(servico).then((c) => {
+        if (!ativo) return;
+        setSalva(c);
+        setValores(valoresIniciais(servico, c));
+      }).catch(() => undefined);
+    }
+    return () => { ativo = false; };
+  }, [servico, comCampos, conexao?.chaveSalva]);
   const [chave, setChave] = useState("");
   const [url, setUrl] = useState("");
   const [clienteId, setClienteId] = useState("");
@@ -87,7 +106,7 @@ function Configurar({ servico, aoFechar }: { servico: ServicoId | null; aoFechar
       setErro(T.conexoes.clienteIdInvalido);
       return;
     }
-    if (!loginSimples && chave.trim().length < 8) {
+    if (!comCampos && !loginSimples && chave.trim().length < 8) {
       setErro(T.conexoes.chaveCurta);
       return;
     }
@@ -95,14 +114,15 @@ function Configurar({ servico, aoFechar }: { servico: ServicoId | null; aoFechar
     setTestando(true);
     setErro("");
     try {
-      await conexoesPonte.salvarChave(servico, loginSimples ? "" : chave.trim(), loginSimples ? {} : servico === "n8n" ? { url: url.trim() } : doGoogle ? { clienteId: clienteId.trim(), segredo: chave.trim() } : {});
+      if (comCampos) await conexoesPonte.salvarChave(servico, String(valores.chave ?? "").trim(), valores);
+      else await conexoesPonte.salvarChave(servico, loginSimples ? "" : chave.trim(), loginSimples ? {} : servico === "n8n" ? { url: url.trim() } : doGoogle ? { clienteId: clienteId.trim(), segredo: chave.trim() } : {});
       setChave("");
       const dados = await conexoesPonte.ler(servico, true);
       atualizar(servico, { chaveSalva: true, ligada: true, status: "conectado", ultimaAtualizacao: new Date().toISOString(), resumo: resumoDe(servico, dados) });
       avisar(doGoogle ? T.conexoes.googleConectado : T.conexoes.chaveSalva);
       void tocarSom("approve");
     } catch (e) {
-      setErro(doGoogle ? T.conexoes.falhaLoginGoogle((e as Error).message) : T.conexoes.falhaChave((e as Error).message));
+      setErro(doGoogle ? T.conexoes.falhaLoginGoogle((e as Error).message) : T.conexoes.falhaChave(mensagemDeErroDaConexao((e as Error).message)));
       void tocarSom("error", "avisos");
     } finally {
       salvando.current = false;
@@ -130,7 +150,9 @@ function Configurar({ servico, aoFechar }: { servico: ServicoId | null; aoFechar
             <input id="cx-url" className="campo" type="url" autoComplete="off" spellCheck={false} value={url} onChange={(e) => setUrl(e.target.value)} />
           </Campo>
         )}
-        {!loginSimples && !verificandoLogin && <Campo id="cx-chave" rotulo={doGoogle ? T.conexoes.segredoCliente : T.conexoes.chave} erro={erro} dica={doGoogle ? T.conexoes.gmailDica : T.conexoes.chaveDica}>
+        {comCampos && <CamposDaConexao servico={servico} salva={salva} valores={valores} mudar={(parcial) => { setValores((v) => ({ ...v, ...parcial })); setErro(""); }} />}
+        {comCampos && erro && <AvisoFaixa tipo="erro"><span role="alert">{erro}</span></AvisoFaixa>}
+        {!comCampos && !loginSimples && !verificandoLogin && <Campo id="cx-chave" rotulo={doGoogle ? T.conexoes.segredoCliente : T.conexoes.chave} erro={erro} dica={doGoogle ? T.conexoes.gmailDica : T.conexoes.chaveDica}>
           <input
             id="cx-chave"
             className="campo"
@@ -148,8 +170,8 @@ function Configurar({ servico, aoFechar }: { servico: ServicoId | null; aoFechar
         </Campo>}
         {loginSimples && erro && <AvisoFaixa tipo="erro"><span role="alert">{erro}</span></AvisoFaixa>}
         <div className="linha">
-          <Botao type="submit" variante="primario" icone={loginSimples ? <Marca marca="google" tamanho={14} /> : <KeyRound size={14} />} disabled={testando || verificandoLogin || (!loginSimples && !chave.trim())}>
-            {verificandoLogin ? T.conexoes.verificandoLoginGoogle : testando ? (doGoogle ? T.conexoes.aguardandoGoogle : T.conexoes.testando) : loginSimples ? T.conexoes.entrarGoogle : doGoogle ? T.conexoes.conectarGoogle : T.conexoes.salvarChave}
+          <Botao type="submit" variante="primario" icone={loginSimples ? <Marca marca="google" tamanho={14} /> : servico === "strava" ? <Marca marca="strava" tamanho={14} /> : <KeyRound size={14} />} disabled={testando || verificandoLogin || (!comCampos && !loginSimples && !chave.trim())}>
+            {verificandoLogin ? T.conexoes.verificandoLoginGoogle : testando ? (doGoogle || servico === "strava" ? T.conexoes.aguardandoGoogle : T.conexoes.testando) : loginSimples ? T.conexoes.entrarGoogle : doGoogle ? T.conexoes.conectarGoogle : servico === "strava" ? T.conexoes.campos.conectarStrava : T.conexoes.salvarChave}
           </Botao>
           {conexao.chaveSalva && (
             <Botao
@@ -182,6 +204,11 @@ function Configurar({ servico, aoFechar }: { servico: ServicoId | null; aoFechar
           desativado={!conexao.fixadaNaIlha && fixadas >= 4}
           aoMudar={(v) => atualizar(servico, { fixadaNaIlha: v })}
         />
+        <Campo id="cx-avisos" rotulo={T.conexoes.avisos.rotulo} dica={T.conexoes.avisos.dicas[conexao.avisos ?? "importantes"]}>
+          <select id="cx-avisos" className="seletor" value={conexao.avisos ?? "importantes"} onChange={(e) => atualizar(servico, { avisos: e.target.value as NivelDeAvisosDaConexao })}>
+            {(["importantes", "tudo", "nada"] as const).map((n) => <option key={n} value={n}>{T.conexoes.avisos.opcoes[n]}</option>)}
+          </select>
+        </Campo>
         <Campo id="cx-int" rotulo={T.conexoes.intervalo}>
           <select id="cx-int" className="seletor" value={conexao.intervalo} onChange={(e) => atualizar(servico, { intervalo: Number(e.target.value) })}>
             {INTERVALOS.map((s) => <option key={s} value={s}>{T.conexoes.segundos(s)}</option>)}
@@ -241,7 +268,7 @@ export default function Conexoes() {
           const status = pausadas && c.ligada ? "pausado" : c.status;
           const ativa = c.ligada && c.chaveSalva;
           return (
-            <article key={id} className="conexao-cartao" data-ativa={ativa ? "sim" : "nao"}>
+            <article key={id} className="conexao-cartao" data-ativa={ativa ? "sim" : "nao"} style={{ ["--marca" as string]: corDaMarca(id) }}>
               <button
                 type="button"
                 className="conexao-cartao-abrir"

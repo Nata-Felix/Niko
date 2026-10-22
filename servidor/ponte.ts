@@ -7,7 +7,7 @@ import { lerUltimaVersao } from "./atualizacoes.ts";
 import { lerTudo, gravar, backupManual, zerarBanco, reservarConfirmacao } from "./banco.ts";
 import { pedirMidia } from "./midia.ts";
 import { pedirJanelas } from "./janelas.ts";
-import { estadoConexoes, lerConexao, salvarChaveConexao, removerChaveConexao, servicoValido, chaveDe, SERVICOS as SERVICOS_CONEXAO } from "./conexoes.ts";
+import { configPublica, estadoConexoes, lerConexao, salvarChaveConexao, removerChaveConexao, servicoValido, chaveDe, SERVICOS as SERVICOS_CONEXAO } from "./conexoes.ts";
 import { buscarGmail, criarRascunhoGmail, enviarGmail } from "./gmail.ts";
 import { lerAgendaGoogle } from "./agendaGoogle.ts";
 import { lerCotacoes } from "./cotacoes.ts";
@@ -162,6 +162,8 @@ export const rotas: Connect.NextHandleFunction = async (req, res, proximo) => {
     if (caminho === "/agenda/eventos" && req.method === "GET") return responder(res, 200, await lerAgendaGoogle(await chaveDe("google"), url.searchParams.get("de") ?? "", url.searchParams.get("ate") ?? ""));
     if (caminho === "/gmail/rascunho" && req.method === "POST") return responder(res, 200, await criarRascunhoGmail(await chaveDe("google"), await lerCorpo(req)));
     if (caminho === "/gmail/enviar" && req.method === "POST") return responder(res, 200, await enviarGmail(await chaveDe("google"), await lerCorpo(req)));
+    const configDaConexao = /^\/conexoes\/([a-z]+)\/config$/.exec(caminho);
+    if (configDaConexao && servicoValido(configDaConexao[1]) && req.method === "GET") return responder(res, 200, await configPublica(configDaConexao[1]));
     const conexao = /^\/conexoes\/([a-z]+)(\/chave)?$/.exec(caminho);
     if (conexao && servicoValido(conexao[1])) {
       const servico = conexao[1];

@@ -182,7 +182,11 @@ async function lerArquivoDaMateria(a: Argumentos): Promise<ResultadoFerramenta> 
   return { tipo: "erro", mensagem: T.chat.recursos.arquivoNaoEncontrado };
 }
 
-const SERVICOS_IA: ServicoId[] = (["stripe", "github", "vercel", "google", "supabase", "cloudflare", "resend", "notion", "calcom", "n8n"] as ServicoId[]).filter((id) => !conexaoEmTestes(id));
+const SERVICOS_IA: ServicoId[] = ([
+  "stripe", "github", "vercel", "google", "supabase", "cloudflare", "resend", "notion", "calcom", "n8n",
+  "linear", "jira", "trello", "railway", "discord", "reddit", "strava", "email", "calendario", "cripto",
+] as ServicoId[]).filter((id) => !conexaoEmTestes(id));
+const SERVICOS_FINANCEIROS: ServicoId[] = ["stripe", "cripto"];
 
 function cartaoEmail(tipo: "rascunho" | "email", a: Argumentos): ResultadoFerramenta {
   if (conexaoEmTestes("google")) return { tipo: "erro", mensagem: T.conexoes.emTestesDica };
@@ -421,12 +425,13 @@ const FERRAMENTAS: FerramentaNiko[] = [
   {
     definicao: {
       nome: "ler_conexao",
-      descricao: "Dados reais e detalhados de uma conexão ligada: Stripe (cobranças, saldo), GitHub (PRs, issues, Actions), Vercel (deploys), Gmail (não lidos, importantes), Google Agenda (eventos de hoje e dos próximos 7 dias), Supabase (projetos, usuários, storage, logs), Cloudflare (domínios, DNS, Pages, Workers, métricas), Resend, Notion, Cal.com e n8n.",
+      descricao: "Dados reais e detalhados de uma conexão ligada: Stripe (cobranças, saldo), GitHub (PRs, issues, Actions), Vercel (deploys), Gmail (não lidos, importantes), Google Agenda (eventos de hoje e dos próximos 7 dias), Supabase (projetos, usuários, storage, logs), Cloudflare (domínios, DNS, Pages, Workers, métricas), Resend, Notion, Cal.com, n8n, Linear e Jira (issues atribuídas), Trello (cartões e prazos), Railway (deploys), Discord (menções), Reddit (mensagens), Strava (treinos), e-mail IMAP (caixa de entrada), agendas por link (eventos dos próximos 30 dias) e cripto (cotações e carteira).",
       parametros: { type: "object", properties: { servico: { type: "string", enum: SERVICOS_IA } }, required: ["servico"] },
     },
     assincrona: async (a) => {
       const servico = SERVICOS_IA.find((s) => s === a.servico);
       if (!servico) return { tipo: "erro", mensagem: ERROS.servicoDesconhecido };
+      if (SERVICOS_FINANCEIROS.includes(servico) && useConfig.getState().nuncaFinanceiro) return { tipo: "erro", mensagem: T.chat.recursos.capacidadesPrivacidade };
       const c = useComunicacao.getState().conexoes.find((x) => x.id === servico);
       if (!c?.chaveSalva) return { tipo: "erro", mensagem: ERROS.servicoDesconectado(servico) };
       try {

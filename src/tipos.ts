@@ -395,7 +395,9 @@ export interface Memoria {
   data: string;
 }
 
-export type ServicoId = "stripe" | "github" | "vercel" | "resend" | "notion" | "calcom" | "n8n" | "google" | "supabase" | "cloudflare";
+export type ServicoId =
+  | "stripe" | "github" | "vercel" | "resend" | "notion" | "calcom" | "n8n" | "google" | "supabase" | "cloudflare"
+  | "linear" | "jira" | "trello" | "railway" | "discord" | "reddit" | "strava" | "email" | "calendario" | "cripto";
 
 export type StatusConexao = "conectado" | "sem_chave" | "erro" | "pausado" | "sem_internet";
 
@@ -417,7 +419,10 @@ export interface Conexao {
   resumo: string;
   fixadaNaIlha: boolean;
   falhasVistasEm?: string;
+  avisos?: NivelDeAvisosDaConexao;
 }
+
+export type NivelDeAvisosDaConexao = "importantes" | "tudo" | "nada";
 
 export interface UsoIa {
   id: string;

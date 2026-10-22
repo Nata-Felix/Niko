@@ -5,8 +5,13 @@ import { pastaDados, validarUrlBase } from "./ia.ts";
 import { autorizarWorkspace, lerGoogle } from "./google.ts";
 import { lerContribuicoesGithub, lerCommitsGithub } from "./github.ts";
 import { exigirConexaoDisponivel } from "../src/utilitarios/disponibilidadeConexoes.ts";
+import { autorizarStrava, lerJson, lerCalendarios, lerDiscord, lerEmail, lerJira, lerLinear, lerRailway, lerReddit, lerStrava, lerTrello, urlPublicaSegura } from "./conexoesExtras.ts";
+import { configDaCripto, enderecoValido, lerCripto } from "./cripto.ts";
 
-export const SERVICOS = ["stripe", "github", "vercel", "resend", "notion", "calcom", "n8n", "google", "supabase", "cloudflare"] as const;
+export const SERVICOS = [
+  "stripe", "github", "vercel", "resend", "notion", "calcom", "n8n", "google", "supabase", "cloudflare",
+  "linear", "jira", "trello", "railway", "discord", "reddit", "strava", "email", "calendario", "cripto",
+] as const;
 const SERVICOS_ANTIGOS_DO_GOOGLE = ["gmail", "agenda"];
 export type Servico = (typeof SERVICOS)[number];
 
@@ -317,14 +322,106 @@ const LEITORES: Record<Servico, Leitor> = {
       ),
     );
     return {
-      zonas: zonas.result.map((z) => ({ nome: z.name, status: z.paused ? "pausada" : z.status, plano: z.plan?.name ?? "" })),
-      dns: dns.flat().map((d) => ({ zona: d.zona, tipo: d.type, nome: d.name, valor: d.content, proxy: Boolean(d.proxied) })),
+      zonas: zonas.result.map((z) => ({ nome: z.name, status: z.paused ? "pausada" : z.status, plano: z.plan?.name ?? "" })),      dns: dns.flat().map((d) => ({ zona: d.zona, tipo: d.type, nome: d.name, valor: d.content, proxy: Boolean(d.proxied) })),
       pages: pages.result.map((p) => ({ nome: p.name, dominio: p.domains?.[0] ?? p.subdomain, estado: p.latest_deployment?.latest_stage?.status ?? "", etapa: p.latest_deployment?.latest_stage?.name ?? "", data: p.latest_deployment?.created_on ?? "", ambiente: p.latest_deployment?.environment ?? "" })),
       workers: workers.result.map((w) => ({ nome: w.id, alterado: w.modified_on })),
       metricas,
     };
   },
+  linear: (chave) => lerLinear(chave, pedir),
+  jira: (chave) => lerJira(chave, pedir),
+  trello: (chave) => lerTrello(chave, pedir),
+  railway: (chave) => lerRailway(chave, pedir),
+  discord: (chave) => lerDiscord(chave, pedir),
+  reddit: (chave) => lerReddit(chave),
+  strava: (chave) => lerStrava(chave, pedir),
+  email: (chave) => lerEmail(chave),
+  calendario: (chave) => lerCalendarios(chave),
+  cripto: (chave) => lerCripto(chave),
 };
+
+const PRESETS_DE_EMAIL: Record<string, { servidor: string; porta: number }> = {
+  gmail: { servidor: "imap.gmail.com", porta: 993 },
+  yahoo: { servidor: "imap.mail.yahoo.com", porta: 993 },
+  icloud: { servidor: "imap.mail.me.com", porta: 993 },
+  zoho: { servidor: "imap.zoho.com", porta: 993 },
+  uol: { servidor: "imap.uol.com.br", porta: 993 },
+  terra: { servidor: "imap.terra.com.br", porta: 993 },
+};
+
+const campo = (v: unknown, maximo = 500) => (typeof v === "string" ? v.trim().slice(0, maximo) : "");
+
+function listaDeIds(v: unknown): string[] {
+  const bruta = Array.isArray(v) ? v : typeof v === "string" ? v.split(/[\s,;]+/) : [];
+  return [...new Set(bruta.map((x) => String(x).trim()).filter((x) => /^\d{5,25}$/.test(x)))].slice(0, 8);
+}
+
+function anteriorDe(texto: string | null): Record<string, unknown> {
+  return texto ? lerJson<Record<string, unknown>>(texto) : {};
+}
+
+export async function credencialDoServico(servico: Servico, dados: Record<string, unknown>, guardada: string | null = null): Promise<string> {
+  const anterior = anteriorDe(guardada);
+  const segredoOuAnterior = (novo: string, chaveAntiga: string) => novo || (typeof anterior[chaveAntiga] === "string" ? (anterior[chaveAntiga] as string) : "");
+  switch (servico) {
+    case "jira": {
+      const site = urlPublicaSegura(campo(dados.site, 300)).origin;
+      const token = segredoOuAnterior(campo(dados.chave, 4000), "token");
+      if (!campo(dados.email, 200).includes("@") || token.length < 8) throw new Error("chave_invalida");
+      return JSON.stringify({ site, email: campo(dados.email, 200), token });
+    }
+    case "trello": {
+      const token = segredoOuAnterior(campo(dados.chave, 400), "token");
+      if (!/^[0-9a-f]{32}$/i.test(campo(dados.chaveApi, 64)) || token.length < 20) throw new Error("chave_invalida");
+      return JSON.stringify({ chave: campo(dados.chaveApi, 64), token });
+    }
+    case "discord": {
+      const token = segredoOuAnterior(campo(dados.chave, 200), "token");
+      if (token.length < 30) throw new Error("chave_invalida");
+      return JSON.stringify({ token, usuario: listaDeIds(dados.usuario)[0] ?? "", canais: listaDeIds(dados.canais) });
+    }
+    case "reddit": {
+      const feed = segredoOuAnterior(campo(dados.chave, 1000), "feed");
+      urlPublicaSegura(feed, (h) => h === "www.reddit.com" || h === "old.reddit.com" || h === "reddit.com");
+      return JSON.stringify({ feed });
+    }
+    case "strava":
+      return autorizarStrava(campo(dados.clienteId, 20), segredoOuAnterior(campo(dados.chave, 200), "segredo"));
+    case "email": {
+      const preset = PRESETS_DE_EMAIL[campo(dados.provedor, 20)];
+      const servidor = preset?.servidor ?? campo(dados.servidor, 200).toLowerCase();
+      const porta = preset?.porta ?? (Number(dados.porta) || 993);
+      const senha = segredoOuAnterior(campo(dados.chave, 300), "senha");
+      if (!campo(dados.usuario, 200) || senha.length < 4) throw new Error("chave_invalida");
+      return JSON.stringify({ servidor, porta, usuario: campo(dados.usuario, 200), senha });
+    }
+    case "calendario": {
+      const antigos = Array.isArray(anterior.links) ? (anterior.links as { url: string; nome?: string }[]) : [];
+      const manter = Array.isArray(dados.manter) ? dados.manter.filter((i): i is number => Number.isInteger(i)) : [];
+      const novos = campo(dados.chave, 6000).split(/\s+/).filter(Boolean).map((url) => ({ url: urlPublicaSegura(url).toString(), nome: "" }));
+      const links = [...manter.flatMap((i) => (antigos[i] ? [antigos[i]] : [])), ...novos].slice(0, 8);
+      if (links.length === 0) throw new Error("calendario_sem_links");
+      return JSON.stringify({ links });
+    }
+    case "cripto": {
+      const antigas = Array.isArray(anterior.corretoras) ? (anterior.corretoras as { tipo: string; chave: string; segredo: string; frase?: string }[]) : [];
+      const corretoras = (Array.isArray(dados.corretoras) ? dados.corretoras : []).map((x) => {
+        const c = x as Record<string, unknown>;
+        const igual = antigas.find((a) => a.tipo === c.tipo && a.chave === c.chave);
+        return { tipo: c.tipo, chave: campo(c.chave, 200), segredo: campo(c.segredo, 300) || igual?.segredo || "", frase: campo(c.frase, 100) || igual?.frase || "" };
+      });
+      const c = configDaCripto(JSON.stringify({ ...dados, corretoras }));
+      for (const w of c.carteiras) if (!enderecoValido(w.rede, w.endereco)) throw new Error("endereco_invalido");
+      if (c.corretoras.some((x) => !x.chave || !x.segredo)) throw new Error("corretora_sem_chave");
+      return JSON.stringify(c);
+    }
+    default: {
+      const chave = campo(dados.chave, 4000);
+      if (chave.length < 8) throw new Error("chave_invalida");
+      return chave;
+    }
+  }
+}
 
 const cacheDados = new Map<Servico, { quando: number; dados: unknown }>();
 const leiturasEmAndamento = new Map<Servico, Promise<unknown>>();
@@ -358,7 +455,7 @@ export async function chaveDe(servico: Servico): Promise<string> {
   return chave;
 }
 
-export async function salvarChaveConexao(servico: Servico, dados: { chave?: unknown; url?: unknown; clienteId?: unknown; segredo?: unknown }) {
+export async function salvarChaveConexao(servico: Servico, dados: Record<string, unknown>) {
   exigirConexaoDisponivel(servico);
   if (servico === "google") {
     const credencial = await autorizarWorkspace(String(dados.clienteId ?? "").trim(), String(dados.segredo ?? "").trim());
@@ -374,9 +471,10 @@ export async function salvarChaveConexao(servico: Servico, dados: { chave?: unkn
     leiturasEmAndamento.delete(servico);
     return { ok: true };
   }
-  const chave = typeof dados.chave === "string" ? dados.chave.trim() : "";
-  if (chave.length < 8 || chave.length > 4000) throw new Error("chave_invalida");
   const url = servico === "n8n" ? validarUrlBase(String(dados.url ?? ""), true) : undefined;
+  const guardada = lerConfig()[servico]?.temChave ? await lerSegredo(`conexao-${servico}`) : null;
+  const chave = await credencialDoServico(servico, dados, guardada);
+  if (chave.length > 8000) throw new Error("chave_invalida");
   await LEITORES[servico](chave, url);
   await gravarSegredo(`conexao-${servico}`, chave);
   const c = lerConfig();
@@ -385,6 +483,37 @@ export async function salvarChaveConexao(servico: Servico, dados: { chave?: unkn
   cacheDados.delete(servico);
   leiturasEmAndamento.delete(servico);
   return { ok: true };
+}
+
+const finalDaChave = (v: unknown) => (typeof v === "string" && v.length > 4 ? `...${v.slice(-4)}` : "");
+
+export async function configPublica(servico: Servico): Promise<Record<string, unknown>> {
+  exigirConexaoDisponivel(servico);
+  const texto = lerConfig()[servico]?.temChave ? await lerSegredo(`conexao-${servico}`) : null;
+  if (!texto) return {};
+  const c = lerJson<Record<string, unknown>>(texto);
+  switch (servico) {
+    case "jira":
+      return { site: c.site, email: c.email, temToken: Boolean(c.token) };
+    case "trello":
+      return { chaveApi: c.chave, temToken: Boolean(c.token) };
+    case "discord":
+      return { usuario: c.usuario, canais: c.canais, temToken: Boolean(c.token) };
+    case "reddit":
+      return { usuario: typeof c.feed === "string" ? new URL(c.feed).searchParams.get("user") : null, temToken: Boolean(c.feed) };
+    case "strava":
+      return { clienteId: c.clienteId, temToken: Boolean(c.segredo) };
+    case "email":
+      return { servidor: c.servidor, porta: c.porta, usuario: c.usuario, temToken: Boolean(c.senha) };
+    case "calendario":
+      return { links: (Array.isArray(c.links) ? c.links : []).map((l: { url?: string; nome?: string }) => ({ nome: l.nome ?? "", host: (() => { try { return new URL(String(l.url)).hostname; } catch { return ""; } })() })) };
+    case "cripto": {
+      const cfg = configDaCripto(texto);
+      return { moedas: cfg.moedas, moeda: cfg.moeda, fonte: cfg.fonte, alerta: cfg.alerta, carteiras: cfg.carteiras, corretoras: cfg.corretoras.map((x) => ({ tipo: x.tipo, chave: x.chave, final: finalDaChave(x.segredo) })) };
+    }
+    default:
+      return { temToken: true };
+  }
 }
 
 export async function removerChaveConexao(servico: Servico) {

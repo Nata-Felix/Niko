@@ -1,92 +1,32 @@
-import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { RefreshCw, ExternalLink, Search, Settings2, Lock, Globe, Star } from "lucide-react";
 import { Janela } from "../../janelas/Janela";
 import { useInterface, type JanelaConexao as EstadoJanela } from "../../estado/interface";
 import { useComunicacao } from "../../estado/comunicacao";
 import { Marca } from "../../marcas/Marca";
 import { Botao, Vazio, AvisoFaixa, Alternador } from "../../componentes/basicos";
-import { Paginacao, usarPaginacao } from "../../componentes/Paginacao";
 import { T } from "../../textos/textos";
 import { conexoesPonte, PAINEL_OFICIAL, resumoDe, type DadosServico } from "../../ponte/conexoesReais";
 import { formatarDinheiro } from "../../utilitarios/dinheiro";
 import { formatar, horarioRelativo } from "../../utilitarios/datas";
-import { contem } from "../../utilitarios/basicos";
 import { tocarSom } from "../../ponte/sons";
 import type { ServicoId } from "../../tipos";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
 import { ContribuicoesGithub } from "./ContribuicoesGithub";
 import { CommitsGithub } from "./CommitsGithub";
 import { conexaoEmTestes } from "../../utilitarios/disponibilidadeConexoes";
+import { Tabela, Estado, Metrica, dataCurta } from "./pecasDaJanela";
+import { ConteudoExtra, ehServicoExtra } from "./ConteudoExtra";
+import { mensagemDeErroDaConexao } from "../../utilitarios/errosDeConexao";
 
 const MINIMO = { w: 560, h: 420 };
 const INTERVALOS = [30, 60, 120, 300, 600];
 const C = T.janelaConexao.colunas;
 const E = T.janelaConexao.estados;
 
-interface Coluna<L> {
-  titulo: string;
-  render: (linha: L) => ReactNode;
-  texto?: (linha: L) => string;
-  direita?: boolean;
-}
-
-function Tabela<L>({ linhas, colunas, filtro }: { linhas: L[]; colunas: Coluna<L>[]; filtro: string }) {
-  const filtradas = filtro
-    ? linhas.filter((l) => colunas.some((c) => (c.texto ? contem(c.texto(l), filtro) : false)))
-    : linhas;
-  const paginas = usarPaginacao(filtradas, 15, `${filtro}|${linhas.length}`);
-  if (filtradas.length === 0) return <Vazio titulo={T.janelaConexao.semResultados} />;
-  return (
-    <>
-    <div className="tabela-rolagem">
-      <table className="tabela">
-        <thead>
-          <tr>
-            {colunas.map((c) => (
-              <th key={c.titulo} className={c.direita ? "direita" : undefined}>{c.titulo}</th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {paginas.visiveis.map((l, i) => (
-            <tr key={i}>
-              {colunas.map((c) => (
-                <td key={c.titulo} className={c.direita ? "direita numero" : undefined}>{c.render(l)}</td>
-              ))}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-    <Paginacao {...paginas} />
-    </>
-  );
-}
-
-function Estado({ valor }: { valor: string }) {
-  const tom = ["pago", "sucesso", "pronto", "entregue", "aberto", "confirmado", "aprovado", "pago"].includes(valor)
-    ? "sucesso"
-    : ["falhou", "erro", "devolvido", "spam", "cancelado"].includes(valor)
-      ? "erro"
-      : ["rodando", "construindo", "a_caminho", "pendente", "mudancas", "reembolsado", "revisar"].includes(valor)
-        ? "alerta"
-        : "";
-  return <span className={`etiqueta ${tom ? `etiqueta-${tom}` : ""}`}>{E[valor] ?? valor}</span>;
-}
-
-function Metrica({ rotulo, valor }: { rotulo: string; valor: ReactNode }) {
-  return (
-    <div className="conexao-metrica">
-      <span className="numero-grande privado">{valor}</span>
-      <span className="conexao-metrica-rotulo">{rotulo}</span>
-    </div>
-  );
-}
-
-const data = (iso: string) => format(new Date(iso), "d MMM, HH:mm", { locale: ptBR });
+const data = dataCurta;
 
 function ConteudoServico({ servico, aba, filtro, dados }: { servico: ServicoId; aba: string; filtro: string; dados: DadosServico[ServicoId] }) {
+  if (ehServicoExtra(servico)) return <ConteudoExtra servico={servico} aba={aba} filtro={filtro} dados={dados} />;
 
   if (servico === "stripe") {
     const d = dados as DadosServico["stripe"];
@@ -637,7 +577,7 @@ export function JanelaConexao({ janela }: { janela: EstadoJanela }) {
             <Botao soIcone icone={<Settings2 size={14} />} aria-label={T.janelaConexao.configurar} title={T.janelaConexao.configurar} onClick={() => configurarConexao()} />
           </div>
         </header>
-        {erro && <div className="conexao-janela-erro"><AvisoFaixa tipo="erro">{T.conexoes.falhaLeitura(erro)}</AvisoFaixa></div>}
+        {erro && <div className="conexao-janela-erro"><AvisoFaixa tipo="erro">{T.conexoes.falhaLeitura(mensagemDeErroDaConexao(erro))}</AvisoFaixa></div>}
         {!ativa ? (
           <Vazio
             icone={<Marca marca={janela.id} tamanho={32} />}

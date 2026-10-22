@@ -1,7 +1,8 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { conexoesPonte, type DadosServico } from "../../ponte/conexoesReais";
+import { conexoesPonte, formatarMoedaCripto, type DadosServico } from "../../ponte/conexoesReais";
 import { formatarDinheiro } from "../../utilitarios/dinheiro";
-import { formatar, horarioRelativo } from "../../utilitarios/datas";
+import { formatar, hojeISO, horarioRelativo, paraISO } from "../../utilitarios/datas";
+import { Curva } from "../../modulos/conexoes/pecasDaJanela";
 import { T } from "../../textos/textos";
 import type { ServicoId } from "../../tipos";
 import { ContribuicoesGithub } from "../../modulos/conexoes/ContribuicoesGithub";
@@ -11,6 +12,7 @@ import { resumirContribuicoesGithub } from "../../utilitarios/contribuicoesGithu
 const M = T.janelaConexao.metricas;
 const E = T.janelaConexao.estados;
 const I = T.ilha.conexao;
+const X = T.janelaConexao.extras;
 
 type Tom = "sucesso" | "erro" | "alerta" | "";
 
@@ -27,6 +29,7 @@ interface Linha {
   estado?: string;
   quando?: string;
   valor?: string;
+  curva?: number[];
 }
 
 interface Resumo {
@@ -249,6 +252,110 @@ export function montarResumo(servico: ServicoId, dados: DadosServico[ServicoId])
         ],
       };
     }
+    case "linear":
+    case "jira": {
+      const d = dados as DadosServico["linear"];
+      const hoje = hojeISO();
+      const vencem = d.issues.filter((i) => i.prazo?.slice(0, 10) === hoje).length;
+      return {
+        numeros: [
+          { rotulo: X.metricas.atribuidas, valor: d.issues.length },
+          { rotulo: X.metricas.vencemHoje, valor: vencem, tom: vencem ? "alerta" : "" },
+        ],
+        tituloDaLista: I.listas.issues,
+        linhas: d.issues.slice(0, 8).map((i) => ({ chave: i.id, principal: i.titulo, secundario: `${i.id} . ${i.estado}`, quando: i.atualizada })),
+      };
+    }
+    case "trello": {
+      const d = dados as DadosServico["trello"];
+      const abertos = d.cartoes.filter((c) => !c.concluido);
+      const agora = new Date().toISOString();
+      const atrasados = abertos.filter((c) => c.prazo && c.prazo < agora).length;
+      return {
+        numeros: [
+          { rotulo: X.metricas.atribuidas, valor: abertos.length },
+          { rotulo: X.metricas.atrasados, valor: atrasados, tom: atrasados ? "erro" : "" },
+        ],
+        tituloDaLista: I.listas.cartoes,
+        linhas: abertos.slice(0, 8).map((c) => ({ chave: c.id, principal: c.titulo, secundario: c.quadro, estado: c.prazo && c.prazo < agora ? "erro" : "", quando: c.prazo ?? undefined })),
+      };
+    }
+    case "railway": {
+      const d = dados as DadosServico["railway"];
+      const falhas = d.projetos.filter((p) => p.estado === "erro").length;
+      return {
+        numeros: [
+          { rotulo: M.projetos, valor: d.projetos.length },
+          { rotulo: X.metricas.comFalha, valor: falhas, tom: falhas ? "erro" : "sucesso" },
+        ],
+        tituloDaLista: I.listas.deploys,
+        linhas: d.deploys.slice(0, 8).map((x) => ({ chave: x.id, principal: x.projeto, estado: x.estado, quando: x.data })),
+      };
+    }
+    case "discord": {
+      const d = dados as DadosServico["discord"];
+      return {
+        numeros: [{ rotulo: I.mencoes, valor: d.mencoes, tom: d.mencoes ? "alerta" : "" }],
+        tituloDaLista: I.listas.mensagens,
+        linhas: d.mensagens.slice(0, 8).map((m) => ({ chave: m.id, principal: m.texto || m.canal, secundario: `${m.autor} . ${m.canal}`, estado: m.mencionaMe ? "pendente" : "", quando: m.data })),
+      };
+    }
+    case "reddit": {
+      const d = dados as DadosServico["reddit"];
+      return {
+        numeros: [{ rotulo: I.naoLidas, valor: d.naoLidas, tom: d.naoLidas ? "alerta" : "" }],
+        tituloDaLista: I.listas.caixa,
+        linhas: d.itens.slice(0, 8).map((i) => ({ chave: i.id, principal: i.assunto || i.texto, secundario: `u/${i.autor}`, estado: i.naoLida ? "pendente" : "", quando: i.data })),
+      };
+    }
+    case "strava": {
+      const d = dados as DadosServico["strava"];
+      const metros = (d.ultimas4Semanas?.corrida?.metros ?? 0) + (d.ultimas4Semanas?.pedal?.metros ?? 0) + (d.ultimas4Semanas?.natacao?.metros ?? 0);
+      return {
+        numeros: [
+          { rotulo: I.km, valor: (metros / 1000).toLocaleString("pt-BR", { maximumFractionDigits: 1 }) },
+          { rotulo: X.metricas.treinos, valor: d.atividades.length },
+        ],
+        tituloDaLista: I.listas.treinos,
+        linhas: d.atividades.slice(0, 8).map((a) => ({ chave: a.id, principal: a.nome, secundario: a.esporte, valor: a.metros ? `${(a.metros / 1000).toLocaleString("pt-BR", { maximumFractionDigits: 1 })} km` : undefined, quando: a.data })),
+      };
+    }
+    case "email": {
+      const d = dados as DadosServico["email"];
+      return {
+        numeros: [{ rotulo: I.naoLidas, valor: d.naoLidas, tom: d.naoLidas ? "alerta" : "" }],
+        tituloDaLista: I.listas.caixa,
+        linhas: d.mensagens.slice(0, 8).map((m) => ({ chave: String(m.uid), principal: m.assunto, secundario: m.de, estado: m.lido ? "" : "pendente", quando: m.data })),
+      };
+    }
+    case "calendario": {
+      const d = dados as DadosServico["calendario"];
+      const hoje = hojeISO();
+      const semana = new Date(Date.now() + 7 * 86400_000).toISOString();
+      return {
+        numeros: [
+          { rotulo: I.hoje, valor: d.eventos.filter((e) => paraISO(new Date(e.inicio)) === hoje).length },
+          { rotulo: I.semana, valor: d.eventos.filter((e) => e.inicio <= semana).length },
+        ],
+        tituloDaLista: I.listas.eventos,
+        linhas: d.eventos.slice(0, 8).map((e) => ({ chave: e.id, principal: e.titulo, secundario: `${e.diaInteiro ? X.diaInteiro : formatar(e.inicio, "EEE, d MMM HH:mm")} . ${e.agenda}` })),
+      };
+    }
+    case "cripto": {
+      const d = dados as DadosServico["cripto"];
+      return {
+        numeros: d.carteira.posicoes.length ? [{ rotulo: I.carteira, valor: formatarMoedaCripto(d.carteira.total, d.moeda) }] : [],
+        tituloDaLista: I.listas.cotacoes,
+        linhas: d.cotacoes.map((q) => ({
+          chave: q.simbolo,
+          principal: q.simbolo,
+          secundario: formatarMoedaCripto(q.preco, d.moeda),
+          valor: `${q.variacao24h >= 0 ? "+" : ""}${q.variacao24h.toFixed(1).replace(".", ",")}%`,
+          estado: q.variacao24h >= 0 ? "sucesso" : "erro",
+          curva: q.curva,
+        })),
+      };
+    }
     default:
       return { numeros: [], tituloDaLista: "", linhas: [] };
   }
@@ -302,7 +409,8 @@ export function ConexaoNaIlha({ servico }: { servico: ServicoId }) {
               <span className="cortar privado">{l.principal}</span>
               {l.secundario && <span className="ilha-mini cortar privado">{l.secundario}</span>}
             </span>
-            {l.estado && E[l.estado] && <span className="ilha-conexao-etiqueta" data-tom={tomDo(l.estado) || undefined}>{E[l.estado]}</span>}
+            {l.curva && <Curva pontos={l.curva} largura={64} altura={20} />}
+            {l.estado && !l.curva && (E as Record<string, string>)[l.estado] && <span className="ilha-conexao-etiqueta" data-tom={tomDo(l.estado) || undefined}>{(E as Record<string, string>)[l.estado]}</span>}
             {l.valor && <span className="ilha-conexao-valor numero privado">{l.valor}</span>}
             {l.quando && <span className="ilha-mini numero ilha-conexao-quando">{horarioRelativo(l.quando)}</span>}
           </div>

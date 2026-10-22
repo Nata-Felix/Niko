@@ -5,9 +5,14 @@ import type { AgenteId, Conexao, Conversa, EventoConexao, Memoria, Mensagem, Ser
 import { gerarId } from "../utilitarios/basicos";
 import { conexaoEmTestes } from "../utilitarios/disponibilidadeConexoes";
 
-export const SERVICOS: ServicoId[] = ["stripe", "github", "vercel", "google", "supabase", "cloudflare", "resend", "notion", "calcom", "n8n"];
+export const SERVICOS: ServicoId[] = [
+  "stripe", "github", "vercel", "google", "supabase", "cloudflare", "resend", "notion", "calcom", "n8n",
+  "email", "calendario", "linear", "jira", "trello", "railway", "discord", "reddit", "strava", "cripto",
+];
 
-export const CATEGORIA_SERVICO: Record<ServicoId, "pagamentos" | "codigo" | "deploy" | "produtividade"> = {
+export type CategoriaServico = "pagamentos" | "codigo" | "deploy" | "produtividade" | "comunicacao" | "pessoal";
+
+export const CATEGORIA_SERVICO: Record<ServicoId, CategoriaServico> = {
   stripe: "pagamentos",
   github: "codigo",
   vercel: "deploy",
@@ -18,6 +23,16 @@ export const CATEGORIA_SERVICO: Record<ServicoId, "pagamentos" | "codigo" | "dep
   google: "produtividade",
   supabase: "codigo",
   cloudflare: "deploy",
+  linear: "codigo",
+  jira: "produtividade",
+  trello: "produtividade",
+  railway: "deploy",
+  discord: "comunicacao",
+  reddit: "comunicacao",
+  email: "comunicacao",
+  calendario: "pessoal",
+  strava: "pessoal",
+  cripto: "pagamentos",
 };
 
 export const INTERVALO_PADRAO: Record<ServicoId, number> = {
@@ -31,6 +46,16 @@ export const INTERVALO_PADRAO: Record<ServicoId, number> = {
   google: 120,
   supabase: 300,
   cloudflare: 300,
+  linear: 300,
+  jira: 300,
+  trello: 300,
+  railway: 120,
+  discord: 120,
+  reddit: 300,
+  strava: 1800,
+  email: 120,
+  calendario: 900,
+  cripto: 60,
 };
 
 function conexaoInicial(id: ServicoId): Conexao {

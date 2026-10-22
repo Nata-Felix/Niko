@@ -265,8 +265,10 @@ export async function atualizarConexaoAgora(id: ServicoId, forcar = true) {
       if (conhecidas.has(o.chave)) continue;
       conhecidas.add(o.chave);
       com.registrarEventoConexao({ servico: id, texto: o.texto, tipo: o.tipo });
+      const nivel = com.conexoes.find((c) => c.id === id)?.avisos ?? "importantes";
+      if (nivel === "nada") continue;
       if (o.tipo === "falha") useAgentes.getState().alertar("java", o.texto, "conexoes", "error", id);
-      else {
+      else if ((o.aviso === "importante" || nivel === "tudo") && !useConfig.getState().naoPerturbe && avisoLigado("conexoes")) {
         useAgentes.getState().registrar("java", o.texto);
         useIlha.getState().revelar({ texto: o.texto, tipo: "sucesso", marca: id, aba: "conexoes" }, 3800, "normal");
       }

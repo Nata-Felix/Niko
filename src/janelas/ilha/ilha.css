@@ -2085,3 +2085,15 @@
 .ia-conectada-configurar:hover {
   color: #fff;
 }
+
+.ilha-conexao-linha-item .conexao-curva {
+  flex: none;
+}
+
+.ilha-conexao-linha-item .conexao-curva polyline {
+  stroke: #3dd68c;
+}
+
+.ilha-conexao-linha-item .conexao-curva[data-subiu="nao"] polyline {
+  stroke: #ff5a63;
+}

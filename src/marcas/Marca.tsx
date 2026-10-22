@@ -2,7 +2,9 @@ import {
   siStripe, siGithub, siVercel, siResend, siNotion, siCaldotcom, siN8n, siAnthropic, siOllama,
   siNvidia, siOpencode, siQwen, siGooglegemini, siOpenrouter, siMistralai, siHuggingface, siDeepseek, siLmstudio, siGmail, siGooglecalendar, siGoogle, siGoogledrive, siGoogletasks, siSupabase, siCloudflare, siClaudecode, siGithubcopilot, siKimi,
   siSpotify, siGooglechrome, siFirefoxbrowser, siZenbrowser, siYoutube, siYoutubemusic, siDeezer, siApplemusic, siTidal, siSoundcloud,
+  siLinear, siJira, siTrello, siRailway, siDiscord, siReddit, siStrava,
 } from "simple-icons";
+import { Bitcoin, CalendarDays, Mail } from "lucide-react";
 import type { ServicoId } from "../tipos";
 import logoCodex from "./lobe/codex.svg";
 import logoAntigravity from "./lobe/antigravity.svg";
@@ -47,7 +49,25 @@ export function marcaDoApp(app: string): MarcaDeMidia | null {
   return PADROES_DE_MIDIA.find(([padrao]) => padrao.test(app))?.[1] ?? null;
 }
 
-export const MARCAS: Record<Exclude<MarcaId, MarcaColorida>, IconeMarca> = {
+type MarcaGenerica = "email" | "calendario" | "cripto";
+
+const ICONES_GENERICOS: Record<MarcaGenerica, { title: string; hex: string; Icone: typeof Mail }> = {
+  email: { title: "E-mail", hex: "4F8EF7", Icone: Mail },
+  calendario: { title: "Agendas", hex: "E5484D", Icone: CalendarDays },
+  cripto: { title: "Cripto", hex: "F7931A", Icone: Bitcoin },
+};
+
+function ehGenerica(marca: MarcaId): marca is MarcaGenerica {
+  return Object.hasOwn(ICONES_GENERICOS, marca);
+}
+
+export function corDaMarca(marca: MarcaId): string {
+  if (ehGenerica(marca)) return `#${ICONES_GENERICOS[marca].hex}`;
+  if (ehColorida(marca)) return "currentColor";
+  return `#${MARCAS[marca].hex}`;
+}
+
+export const MARCAS: Record<Exclude<MarcaId, MarcaColorida | MarcaGenerica>, IconeMarca> = {
   stripe: siStripe,
   github: siGithub,
   vercel: siVercel,
@@ -86,6 +106,13 @@ export const MARCAS: Record<Exclude<MarcaId, MarcaColorida>, IconeMarca> = {
   applemusic: siApplemusic,
   tidal: siTidal,
   soundcloud: siSoundcloud,
+  linear: siLinear,
+  jira: siJira,
+  trello: siTrello,
+  railway: siRailway,
+  discord: siDiscord,
+  reddit: siReddit,
+  strava: siStrava,
 };
 
 function escura(hex: string): boolean {
@@ -106,6 +133,10 @@ export function Marca({ marca, tamanho = 18, monocromatica = false }: Props) {
   if (ehColorida(marca)) {
     const colorida = MARCAS_COLORIDAS[marca];
     return <img src={colorida.url} alt={colorida.title} width={tamanho} height={tamanho} draggable={false} style={{ flex: "0 0 auto", filter: monocromatica ? "grayscale(1) brightness(1.4)" : undefined }} />;
+  }
+  if (ehGenerica(marca)) {
+    const { Icone, title } = ICONES_GENERICOS[marca];
+    return <Icone role="img" aria-label={title} size={tamanho} color={monocromatica ? "currentColor" : `#${ICONES_GENERICOS[marca].hex}`} style={{ flex: "0 0 auto" }} />;
   }
   const icone = MARCAS[marca];
   const cor = monocromatica || escura(icone.hex) ? "currentColor" : `#${icone.hex}`;

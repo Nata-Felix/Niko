@@ -87,6 +87,12 @@ export const useAtualizacao = create<EstadoAtualizacao>()((set, get) => ({
     let ponteParada = false;
     let etapa: "download" | "salvamento" | "instalacao" = "download";
     try {
+      const { check } = await import("@tauri-apps/plugin-updater");
+      const recente = await check({ timeout: 15000 });
+      if (!recente) throw new Error("atualizacao_sumiu");
+      const anterior = pendente;
+      pendente = recente;
+      if (anterior !== recente) await anterior.close().catch(() => undefined);
       await pendente.download((e) => {
         if (e.event === "Started") total = e.data?.contentLength ?? 0;
         if (e.event === "Progress") {

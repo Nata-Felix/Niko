@@ -252,9 +252,11 @@ export function ConteudoExtra({ servico, aba, filtro, dados }: { servico: Servic
   }
 
   const d = dados as DadosServico["cripto"];
+  const paginaDaMoeda = (fonte: string, simbolo: string) =>
+    fonte === "okx" ? `https://www.okx.com/trade-spot/${simbolo.toLowerCase()}-usdt` : `https://www.coinbase.com/advanced-trade/spot/${simbolo}-USD`;
   const cotacoes = (
     <Tabela filtro={filtro} linhas={d.cotacoes} colunas={[
-      { titulo: C.moeda, render: (l) => <b>{l.simbolo}</b>, texto: (l) => l.simbolo },
+      { titulo: C.moeda, render: (l) => <Link href={paginaDaMoeda(d.fonte, l.simbolo)}><b>{l.simbolo}</b></Link>, texto: (l) => l.simbolo },
       { titulo: C.preco, render: (l) => formatarMoedaCripto(l.preco, d.moeda), direita: true },
       { titulo: C.variacao, render: (l) => <span className={l.variacao24h >= 0 ? "texto-sucesso" : "texto-erro"}>{percentual(l.variacao24h)}</span>, direita: true },
       { titulo: "", render: (l) => <Curva pontos={l.curva} />, direita: true },

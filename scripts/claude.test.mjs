@@ -710,6 +710,7 @@ test("prévia dos ganchos mostra só as linhas que entram e saem", async () => {
   assert.deepEqual(linhasQueMudam("}\n", "}\n}\n"), [{ tipo: "entra", texto: "}" }]);
   assert.deepEqual(linhasQueMudam(null, "novo\r\n"), [{ tipo: "entra", texto: "novo" }]);
   assert.deepEqual(linhasQueMudam("igual\n", "igual\n"), []);
+  assert.deepEqual(linhasQueMudam('{\n\t"a": 1\n}', '{\n  "a": 1,\n  "b": 2\n}\n'), [{ tipo: "sai", texto: '  "a": 1' }, { tipo: "entra", texto: '  "a": 1,' }, { tipo: "entra", texto: '  "b": 2' }]);
   const { previaDoAgente } = await vite.ssrLoadModule("/servidor/agentesDeCodigo.ts");
   assert.throws(() => previaDoAgente("inexistente", "instalar"), /ferramenta_desconhecida/);
 });

@@ -21,9 +21,21 @@ function sobrando(linhas: string[], outras: string[]): string[] {
   });
 }
 
+function jsonFormatado(texto: string | null): string | null {
+  if (texto === null) return null;
+  try {
+    return JSON.stringify(JSON.parse(texto), null, 2);
+  } catch {
+    return null;
+  }
+}
+
 export function linhasQueMudam(antes: string | null, depois: string | null): LinhaQueMuda[] {
-  const linhasAntes = (antes ?? "").replace(/\r\n/g, "\n").split("\n");
-  const linhasDepois = (depois ?? "").replace(/\r\n/g, "\n").split("\n");
+  const antesJson = jsonFormatado(antes);
+  const depoisJson = jsonFormatado(depois);
+  const ambosJson = antesJson !== null && depoisJson !== null;
+  const linhasAntes = ((ambosJson ? antesJson : antes) ?? "").replace(/\r\n/g, "\n").split("\n");
+  const linhasDepois = ((ambosJson ? depoisJson : depois) ?? "").replace(/\r\n/g, "\n").split("\n");
   return [
     ...sobrando(linhasAntes, linhasDepois).map((texto): LinhaQueMuda => ({ tipo: "sai", texto })),
     ...sobrando(linhasDepois, linhasAntes).map((texto): LinhaQueMuda => ({ tipo: "entra", texto })),

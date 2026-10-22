@@ -1,8 +1,9 @@
-import { useRef, useState, type CSSProperties } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
 import { DndContext, DragOverlay, PointerSensor, useDraggable, useDroppable, useSensor, useSensors, type DragEndEvent, type DragStartEvent } from "@dnd-kit/core";
-import { BookOpen, ChevronLeft, ChevronRight, CircleAlert, Clock, Flag, ListChecks, Target, Timer } from "lucide-react";
+import { BookOpen, ChevronLeft, ChevronRight, CircleAlert, Clock, Flag, ListChecks, Pencil, Target, Timer, Trash2 } from "lucide-react";
 import { useRotina } from "../estado/rotina";
+import { useInterface } from "../estado/interface";
 import { useOrganizacao } from "../estado/organizacao";
 import { useEstudos } from "../estado/estudos";
 import { tocarSom } from "../ponte/sons";
@@ -47,27 +48,89 @@ function Chips({ detalhes, semMeta }: { detalhes: DetalhesDoCartao; semMeta?: bo
   return itens.length ? <span className="qt-chips">{itens}</span> : null;
 }
 
-function Cartao({ tarefa, detalhes, semMeta, aoMover, aoAbrir }: { tarefa: Tarefa; detalhes: DetalhesDoCartao; semMeta?: boolean; aoMover: (t: Tarefa, c: ColunaDoQuadro) => void; aoAbrir?: (t: Tarefa) => void }) {
-  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: tarefa.id });
+function Cartao({ tarefa, detalhes, semMeta, variante, aoMover, aoAbrir }: { tarefa: Tarefa; detalhes: DetalhesDoCartao; semMeta?: boolean; variante: Variante; aoMover: (t: Tarefa, c: ColunaDoQuadro) => void; aoAbrir?: (t: Tarefa) => void }) {
+  const atualizar = useRotina((s) => s.atualizarTarefa);
+  const excluir = useRotina((s) => s.excluirTarefa);
+  const restaurar = useRotina((s) => s.restaurarTarefa);
+  const avisar = useInterface((s) => s.avisar);
+  const [editando, setEditando] = useState(false);
+  const [titulo, setTitulo] = useState(tarefa.titulo);
+  const [confirmando, setConfirmando] = useState(false);
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: tarefa.id, disabled: editando });
   const coluna = colunaDaTarefa(tarefa);
   const anterior = colunaVizinha(coluna, -1);
   const proxima = colunaVizinha(coluna, 1);
   const rotulo = aoAbrir ? `${tarefa.titulo}. ${Q.abrir}` : proxima ? T.ilha.moverCartao(tarefa.titulo, T.ilha.colunasQuadro[proxima]) : tarefa.titulo;
+
+  useEffect(() => {
+    if (!confirmando) return;
+    const id = window.setTimeout(() => setConfirmando(false), 3000);
+    return () => window.clearTimeout(id);
+  }, [confirmando]);
+
+  const salvarTitulo = () => {
+    const limpo = titulo.trim();
+    if (limpo && limpo !== tarefa.titulo) atualizar(tarefa.id, { titulo: limpo.slice(0, 200) });
+    else setTitulo(tarefa.titulo);
+    setEditando(false);
+  };
+
+  const apagar = () => {
+    if (variante === "ilha" && !confirmando) {
+      setConfirmando(true);
+      return;
+    }
+    const removida = excluir(tarefa.id);
+    if (removida && variante === "sistema") avisar(T.geral.excluido, () => restaurar(removida));
+  };
+
   return (
-    <div ref={setNodeRef} className="qt-cartao" data-coluna={coluna} data-prioridade={tarefa.prioridade} data-atrasada={detalhes.atrasada || undefined} data-arrastando={isDragging || undefined}>
-      <button
-        type="button"
-        className="qt-cartao-corpo privado"
-        aria-label={rotulo}
-        title={rotulo}
-        {...attributes}
-        {...listeners}
-        onClick={() => (aoAbrir ? aoAbrir(tarefa) : proxima && aoMover(tarefa, proxima))}
-      >
-        <span className="qt-cartao-titulo">{tarefa.titulo}</span>
-        <Chips detalhes={detalhes} semMeta={semMeta} />
-      </button>
-      <span className="qt-cartao-setas">
+    <div ref={setNodeRef} className="qt-cartao" data-coluna={coluna} data-prioridade={tarefa.prioridade} data-atrasada={detalhes.atrasada || undefined} data-arrastando={isDragging || undefined} data-editando={editando || undefined}>
+      {editando ? (
+        <span className="qt-cartao-corpo">
+          <input
+            className="qt-cartao-campo privado"
+            value={titulo}
+            autoFocus
+            maxLength={200}
+            aria-label={T.geral.editar}
+            onChange={(e) => setTitulo(e.target.value)}
+            onBlur={salvarTitulo}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") salvarTitulo();
+              if (e.key === "Escape") {
+                e.stopPropagation();
+                setTitulo(tarefa.titulo);
+                setEditando(false);
+              }
+            }}
+          />
+        </span>
+      ) : (
+        <button
+          type="button"
+          className="qt-cartao-corpo privado"
+          aria-label={rotulo}
+          title={rotulo}
+          {...attributes}
+          {...listeners}
+          onClick={() => (aoAbrir ? aoAbrir(tarefa) : proxima && aoMover(tarefa, proxima))}
+          onKeyDown={(e) => {
+            if (e.key === "F2") setEditando(true);
+            else listeners?.onKeyDown?.(e);
+          }}
+        >
+          <span className="qt-cartao-titulo">{tarefa.titulo}</span>
+          <Chips detalhes={detalhes} semMeta={semMeta} />
+        </button>
+      )}
+      <span className="qt-cartao-setas" onMouseLeave={() => setConfirmando(false)}>
+        <button type="button" className="qt-seta" aria-label={T.geral.editar} title={T.geral.editar} onPointerDown={(e) => e.stopPropagation()} onClick={() => { setTitulo(tarefa.titulo); setEditando(true); }}>
+          <Pencil size={11} />
+        </button>
+        <button type="button" className="qt-seta qt-seta-excluir" data-confirmando={confirmando || undefined} aria-label={confirmando ? Q.confirmarExclusao : T.geral.excluir} title={confirmando ? Q.confirmarExclusao : T.geral.excluir} onPointerDown={(e) => e.stopPropagation()} onClick={apagar}>
+          <Trash2 size={11} />
+        </button>
         {anterior && (
           <button type="button" className="qt-seta" aria-label={Q.voltarPara(T.ilha.colunasQuadro[anterior])} title={Q.voltarPara(T.ilha.colunasQuadro[anterior])} onPointerDown={(e) => e.stopPropagation()} onClick={() => aoMover(tarefa, anterior)}>
             <ChevronLeft size={12} />
@@ -83,7 +146,7 @@ function Cartao({ tarefa, detalhes, semMeta, aoMover, aoAbrir }: { tarefa: Taref
   );
 }
 
-function Coluna({ id, tarefas, detalhes, semMeta, aoMover, aoAbrir }: { id: ColunaDoQuadro; tarefas: Tarefa[]; detalhes: Map<string, DetalhesDoCartao>; semMeta?: boolean; aoMover: (t: Tarefa, c: ColunaDoQuadro) => void; aoAbrir?: (t: Tarefa) => void }) {
+function Coluna({ id, tarefas, detalhes, semMeta, variante, aoMover, aoAbrir }: { id: ColunaDoQuadro; tarefas: Tarefa[]; detalhes: Map<string, DetalhesDoCartao>; semMeta?: boolean; variante: Variante; aoMover: (t: Tarefa, c: ColunaDoQuadro) => void; aoAbrir?: (t: Tarefa) => void }) {
   const { setNodeRef, isOver } = useDroppable({ id });
   return (
     <section ref={setNodeRef} className="qt-coluna" data-coluna={id} data-sobre={isOver || undefined} aria-label={`${T.ilha.colunasQuadro[id]}, ${tarefas.length}`}>
@@ -96,7 +159,7 @@ function Coluna({ id, tarefas, detalhes, semMeta, aoMover, aoAbrir }: { id: Colu
         {tarefas.length === 0 ? (
           <span className="qt-vazio">{isOver ? T.ilha.arrasteAqui : Q.vazioColuna}</span>
         ) : (
-          tarefas.map((t) => <Cartao key={t.id} tarefa={t} detalhes={detalhes.get(t.id)!} semMeta={semMeta} aoMover={aoMover} aoAbrir={aoAbrir} />)
+          tarefas.map((t) => <Cartao key={t.id} tarefa={t} detalhes={detalhes.get(t.id)!} semMeta={semMeta} variante={variante} aoMover={aoMover} aoAbrir={aoAbrir} />)
         )}
       </div>
     </section>
@@ -155,7 +218,7 @@ export function QuadroDeTarefas({ tarefas, variante, mostrarData, semMeta, aoAbr
         )}
         <div className="qt-colunas">
           {COLUNAS_DO_QUADRO.map((c) => (
-            <Coluna key={c} id={c} tarefas={ordenarCartoes(visiveis.filter((t) => colunaDaTarefa(t) === c), c)} detalhes={detalhes} semMeta={semMeta} aoMover={mover} aoAbrir={abrir} />
+            <Coluna key={c} id={c} tarefas={ordenarCartoes(visiveis.filter((t) => colunaDaTarefa(t) === c), c)} detalhes={detalhes} semMeta={semMeta} variante={variante} aoMover={mover} aoAbrir={abrir} />
           ))}
         </div>
       </div>

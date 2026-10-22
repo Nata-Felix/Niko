@@ -271,9 +271,9 @@
 }
 
 .qt-cartao-setas {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
+  display: grid;
+  grid-template-columns: repeat(2, 20px);
+  align-content: center;
   gap: 2px;
   padding: 4px 4px 4px 0;
   opacity: 0;
@@ -299,6 +299,36 @@
 
 .qt-seta:hover {
   color: var(--qt-texto);
+}
+
+.qt-seta-excluir:hover,
+.qt-seta-excluir[data-confirmando] {
+  color: var(--qt-vermelho);
+}
+
+.qt-seta-excluir[data-confirmando] {
+  background: color-mix(in srgb, var(--qt-vermelho) 18%, transparent);
+}
+
+.qt-cartao[data-editando] .qt-cartao-setas {
+  opacity: 1;
+}
+
+.qt-cartao-campo {
+  width: 100%;
+  min-width: 0;
+  padding: 2px 4px;
+  margin: -2px -4px;
+  border: 1px solid var(--qt-borda);
+  border-radius: 6px;
+  background: var(--qt-coluna);
+  color: inherit;
+  font: inherit;
+  outline: none;
+}
+
+.qt-cartao-campo:focus {
+  border-color: var(--qt-azul);
 }
 
 .qt-flutuante-ilha {

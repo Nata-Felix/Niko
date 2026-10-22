@@ -531,11 +531,8 @@ export default function Metas() {
       <ConfirmarModal aberto={!!excluir} titulo={T.geral.confirmarExclusao} texto={excluir?.nome ?? ""} aoFechar={() => setExcluir(null)} aoConfirmar={() => excluir && excluirMeta(excluir)} />
       <LigarTarefas meta={ligando} aoFechar={() => setLigando(null)} />
       <Modal aberto={!!vendoQuadro} largo titulo={vendoQuadro ? T.metas.quadroDe(vendoQuadro.nome) : ""} aoFechar={() => setVendoQuadro(null)}>
-        {vendoQuadro && (tarefas.some((t) => t.metaId === vendoQuadro.id) ? (
-          <div className="mt-quadro"><QuadroDeTarefas tarefas={tarefas.filter((t) => t.metaId === vendoQuadro.id)} variante="sistema" mostrarData semMeta /></div>
-        ) : (
-          <p className="campo-dica">{T.metas.quadroVazio}</p>
-        ))}
+        {vendoQuadro && !tarefas.some((t) => t.metaId === vendoQuadro.id) && <p className="campo-dica">{T.metas.quadroVazio}</p>}
+        {vendoQuadro && <div className="mt-quadro"><QuadroDeTarefas tarefas={tarefas.filter((t) => t.metaId === vendoQuadro.id)} variante="sistema" mostrarData semMeta /></div>}
       </Modal>
     </>
   );

@@ -915,6 +915,7 @@ export const T = {
       materia: (nome: string) => `Matéria: ${nome}`,
       progresso: (feitas: number, total: number) => `${feitas} de ${total} feitas`,
       vazioColuna: "Nada aqui",
+      confirmarExclusao: "Clique de novo para excluir",
       dicaDeUso: "Arraste os cartões entre as colunas ou use as setas",
     },
     tiposCaptura: { tarefa: "Tarefa", gasto: "Gasto", link: "Link", nota: "Nota", lembrete: "Lembrete" },

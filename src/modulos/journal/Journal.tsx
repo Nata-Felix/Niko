@@ -694,7 +694,7 @@ export default function Journal() {
                     </div>
                   </div>
                 )}
-                {emQuadro && doDia.length > 0 && <div className="jn-quadro"><QuadroDeTarefas tarefas={doDia} variante="sistema" /></div>}
+                {emQuadro && <div className="jn-quadro"><QuadroDeTarefas tarefas={doDia} variante="sistema" /></div>}
                 {!emQuadro && semHora.length > 0 && (
                   <div className="jn-periodo">
                     <span className="jn-periodo-nome">{T.journal.semHora}</span>

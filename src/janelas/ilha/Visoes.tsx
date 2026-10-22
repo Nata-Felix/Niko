@@ -130,10 +130,10 @@ function SecaoTarefas() {
   return (
     <div className="ilha-hoje-secao">
       <div className="ilha-rolagem">
-        {lista.length === 0 ? (
-          <span className="ilha-sub">{T.ilha.semTarefasHoje}</span>
-        ) : emQuadro ? (
+        {emQuadro ? (
           <QuadroDeTarefas tarefas={lista} variante="ilha" />
+        ) : lista.length === 0 ? (
+          <span className="ilha-sub">{T.ilha.semTarefasHoje}</span>
         ) : (
           lista.map((t) => (
             <div key={t.id} className="ilha-linha">

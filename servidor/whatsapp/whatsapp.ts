@@ -171,10 +171,15 @@ async function varrerSemWebhook() {
   }
 }
 
+function gatewayAindaConectando(corpo: unknown) {
+  const mensagem = (corpo as Record<string, unknown> | null)?.message;
+  return codigoDeErro(corpo) === "AUTHENTICATION_ERROR" && typeof mensagem === "string" && /reconnect/i.test(mensagem);
+}
+
 async function atualizarQr() {
   if (estado.qr && estado.qr.expira > Date.now()) return;
   const r = await chamar("GET", `/devices/${encodeURIComponent(estado.dispositivo)}/login`, { tempoMs: 45_000 });
-  if (codigoDeErro(r.corpo) === "ALREADY_LOGGED_IN") return;
+  if (codigoDeErro(r.corpo) === "ALREADY_LOGGED_IN" || gatewayAindaConectando(r.corpo)) return;
   if (r.status < 200 || r.status >= 300) throw new Error(codigoDeErro(r.corpo) || `gateway_${r.status}`);
   const qr = caminhoDoQr(r.corpo);
   if (!qr) return;

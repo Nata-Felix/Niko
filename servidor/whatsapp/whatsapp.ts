@@ -15,6 +15,7 @@ export const CAMINHO_DO_WEBHOOK = "/ponte/whatsapp/webhook";
 const DISPOSITIVO = "niko";
 const TICK_MS = 5000;
 const SILENCIO_DO_WEBHOOK_MS = 90_000;
+const STATUS_CONECTADO_MS = 60_000;
 const HISTORICO_MS = 6 * 3600_000;
 const MAXIMO_DE_NOVIDADES = 50;
 
@@ -70,6 +71,7 @@ const estado = {
   historicoCarregado: false,
   ultimoWebhook: 0,
   ultimaVarredura: 0,
+  ultimoStatus: 0,
   conversaAberta: null as string | null,
   nomesPedidos: new Set<string>(),
   novidades: [] as { seq: number; jid: string; nome: string; grupo: boolean }[],
@@ -198,7 +200,12 @@ async function passo() {
       return;
     }
     await prepararGateway();
+    if (estado.vinculo === "conectado" && estado.historicoCarregado && estado.falhasSeguidas === 0 && gowaRodando() &&Date.now() - estado.ultimoStatus < STATUS_CONECTADO_MS) {
+      if (Date.now() - estado.ultimoWebhook > SILENCIO_DO_WEBHOOK_MS && Date.now() - estado.ultimaVarredura > 20_000) await varrerSemWebhook();
+      return;
+    }
     let dispositivo = dispositivoDoGateway(await chamarComSucesso("GET", "/devices"));
+    estado.ultimoStatus = Date.now();
     if (!dispositivo) {
       await chamarComSucesso("POST", "/devices", { json: { device_id: DISPOSITIVO } });
       dispositivo = { id: DISPOSITIVO, vinculo: "precisa_qr", eu: null };

@@ -138,7 +138,25 @@ function Conversa({ conversa, aoVoltar, aoAtualizar }: { conversa: ConversaWhats
       {erro && <span className="ilha-erro" role="status">{erro}</span>}
       <div className="ilha-chat-entrada">
         <div className="ilha-campo" style={{ flex: 1 }}>
-          <input value={texto} maxLength={4096} aria-label={W.responder} placeholder={W.responder} onChange={(e) => setTexto(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") void enviar(); }} />
+          <textarea
+            className="whatsapp-resposta"
+            rows={Math.min(4, texto.split("\n").length)}
+            value={texto}
+            maxLength={4096}
+            aria-label={W.responder}
+            placeholder={W.responder}
+            onChange={(e) => setTexto(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
+                e.preventDefault();
+                void enviar();
+              } else if (e.key === "Escape") {
+                e.preventDefault();
+                e.stopPropagation();
+                aoVoltar();
+              }
+            }}
+          />
         </div>
         <button type="button" className="ilha-botao ilha-botao-icone" aria-label={W.enviar} title={W.enviar} disabled={!texto.trim() || enviando} onClick={() => void enviar()}><Send size={13} /></button>
       </div>

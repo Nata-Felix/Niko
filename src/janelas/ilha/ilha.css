@@ -578,8 +578,23 @@
   outline: none;
 }
 
-.ilha-campo input::placeholder {
+.ilha-campo input::placeholder,
+.ilha-campo textarea::placeholder {
   color: var(--i-dim-3);
+}
+
+.ilha-campo textarea.whatsapp-resposta {
+  flex: 1 1 auto;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  color: var(--i-tinta);
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.35;
+  outline: none;
+  resize: none;
+  padding: 0;
 }
 
 .ilha-erro {

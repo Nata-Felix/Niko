@@ -1,4 +1,5 @@
 import { TourDoNiko } from "./TourDoNiko";
+import { EstilosDaMidia } from "../ilha/midia/EstilosDaMidia";
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { ArrowLeft } from "lucide-react";
 import { useInterface, type Geometria } from "../../estado/interface";
@@ -114,6 +115,7 @@ export function JanelaSistema() {
       </div>
       <AvisosRodape />
       <TourDoNiko />
+      <EstilosDaMidia />
     </Janela>
   );
 }

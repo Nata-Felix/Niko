@@ -6,7 +6,6 @@ import { JanelaSistema } from "../sistema/JanelaSistema";
 import { JanelaConexao } from "../../modulos/conexoes/JanelaConexao";
 import { BuscaGlobal } from "../../modulos/busca/BuscaGlobal";
 import { CapturaRapida } from "../../modulos/busca/CapturaRapida";
-import { EstilosDaMidia } from "../ilha/midia/EstilosDaMidia";
 import { PrimeiraExecucao } from "../../modulos/configuracoes/PrimeiraExecucao";
 import { useInterface } from "../../estado/interface";
 import { useConfig } from "../../estado/configuracoes";
@@ -36,7 +35,6 @@ export function AreaDeTrabalho() {
       <AssistiveTouch />
       <BuscaGlobal />
       <CapturaRapida />
-      <EstilosDaMidia />
       {!primeira && <PrimeiraExecucao />}
     </div>
   );

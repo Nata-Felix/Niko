@@ -207,7 +207,8 @@ export const useInterface = create<EstadoInterface>()((set, get) => ({
       enviarComando({ tipo: "abrirEstilosDaMidia" });
       return;
     }
-    set({ estilosDaMidiaAbertos: abertos });
+    if (abertos && NATIVO) void mostrarSistema();
+    set(abertos ? { estilosDaMidiaAbertos: true, sistemaAberto: true, sistemaMinimizado: false } : { estilosDaMidiaAbertos: false });
   },
   avisar: (texto, desfazer) => {
     const id = gerarId();

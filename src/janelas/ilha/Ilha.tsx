@@ -799,7 +799,7 @@ export function Ilha() {
                     <span className="ilha-lateral-nome cortar">{nomes[agenteLateral]}</span>
                     {abaAtual === "claude" && sessaoLateral ? (
                       <>
-                        <span className="ilha-lateral-cargo cortar" title={sessaoLateral.cwd}>{sessaoLateral.projeto}</span>
+                        <span className="ilha-lateral-cargo cortar" title={sessaoLateral.cwd}>{sessaoLateral.titulo || sessaoLateral.projeto}</span>
                         {sessaoLateral.modelo && <span className="ilha-lateral-modelo cortar" title={sessaoLateral.modelo}>{nomeDoModelo(sessaoLateral.modelo)}</span>}
                         <span className="ilha-lateral-estado" data-estado={estadoLateral}>{T.ilha.claude.estados[estadoLateral]}</span>
                         <AnimatePresence mode="wait" initial={false}>

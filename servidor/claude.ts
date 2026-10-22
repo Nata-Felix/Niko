@@ -509,6 +509,45 @@ const EVENTOS_COM_MODELO = new Set(["SessionStart", "UserPromptSubmit", "Stop", 
 const BYTES_DO_FIM_DO_TRANSCRIPT = 256 * 1024;
 const modelosDosTranscripts = new Map<string, { modificado: number; tamanho: number; modelo: string | undefined }>();
 
+const BYTES_DO_TITULO_POR_EVENTO = 2 * 1024 * 1024;
+const LIMITE_DE_TRANSCRIPTS_COM_TITULO = 50;
+const titulosDosTranscripts = new Map<string, { lido: number; resto: string; titulo: string | undefined }>();
+
+export function tituloDoTranscript(caminho: string): string | undefined {
+  if (!isAbsolute(caminho) || !caminho.endsWith(".jsonl") || caminho.length > 1000) return undefined;
+  let descritor: number | undefined;
+  try {
+    const tamanho = statSync(caminho).size;
+    let leitura = titulosDosTranscripts.get(caminho);
+    if (!leitura || tamanho < leitura.lido) leitura = { lido: 0, resto: "", titulo: undefined };
+    if (tamanho > leitura.lido) {
+      const buffer = Buffer.alloc(Math.min(tamanho - leitura.lido, BYTES_DO_TITULO_POR_EVENTO));
+      descritor = openSync(caminho, "r");
+      readSync(descritor, buffer, 0, buffer.length, leitura.lido);
+      const linhas = (leitura.resto + buffer.toString("utf8")).split("\n");
+      const resto = linhas.pop() ?? "";
+      for (const linha of linhas) {
+        if (!linha.includes('"custom-title"')) continue;
+        try {
+          const dado = JSON.parse(linha) as { type?: string; customTitle?: unknown };
+          if (dado.type === "custom-title" && typeof dado.customTitle === "string") leitura.titulo = dado.customTitle.trim().slice(0, 80) || undefined;
+        } catch {
+          // linha que não é JSON
+        }
+      }
+      leitura = { lido: leitura.lido + buffer.length, resto: resto.length > 64 * 1024 ? "" : resto, titulo: leitura.titulo };
+    }
+    titulosDosTranscripts.delete(caminho);
+    titulosDosTranscripts.set(caminho, leitura);
+    if (titulosDosTranscripts.size > LIMITE_DE_TRANSCRIPTS_COM_TITULO) titulosDosTranscripts.delete(titulosDosTranscripts.keys().next().value as string);
+    return leitura.titulo;
+  } catch {
+    return undefined;
+  } finally {
+    if (descritor !== undefined) closeSync(descritor);
+  }
+}
+
 /** Lê só o fim do transcript da sessão e devolve o modelo da última resposta do assistente. */
 export function modeloDoTranscript(caminho: string): string | undefined {
   if (!isAbsolute(caminho) || !caminho.endsWith(".jsonl") || caminho.length > 1000) return undefined;
@@ -641,8 +680,10 @@ export function processarEvento(corpo: Record<string, unknown>, ferramenta: Ferr
   for (const pedidoId of pedidosRespondidosForaDoNiko(nome, sessaoDoEvento, assinatura, pendentes)) encerrarPedido(pedidoId, null, "cancelado");
   acompanharSessao(sessaoDoEvento, ferramenta, corpo.transcript_path, nome);
   const modeloAtual = EVENTOS_COM_MODELO.has(nome) && typeof corpo.transcript_path === "string" ? modeloDoTranscript(corpo.transcript_path) : undefined;
+  const tituloAtual = EVENTOS_COM_MODELO.has(nome) && typeof corpo.transcript_path === "string" ? tituloDoTranscript(corpo.transcript_path) : undefined;
   for (const campo of CAMPOS_DESCARTADOS) delete corpo[campo];
   if (modeloAtual) corpo.model = modeloAtual;
+  if (tituloAtual) corpo.titulo_da_sessao = tituloAtual;
   const ultima = typeof corpo.last_assistant_message === "string" ? corpo.last_assistant_message.slice(0, LIMITE_RESPOSTA_FINAL) : undefined;
   const dados = cortar(corpo) as Record<string, unknown>;
   const metricas = ferramenta === "claude" && typeof corpo.session_id === "string" ? metricasPorSessao.get(corpo.session_id) : undefined;

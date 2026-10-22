@@ -36,6 +36,7 @@ export interface SessaoClaude {
   modoAtualizadoEm?: string;
   modoConfirmado?: boolean;
   modelo?: string;
+  titulo?: string;
   metricas?: MetricasDaSessao;
   ferramentasUsadas: number;
   iniciadaEm: string;
@@ -305,7 +306,8 @@ export const useClaudeCode = create<EstadoClaude>((set, get) => ({
       const modoMaisRecente = Boolean(modoInformado) && (!base.modoAtualizadoEm || Date.parse(e.recebidoEm) >= Date.parse(base.modoAtualizadoEm));
       const reiniciouSemModo = e.evento === "SessionStart" && !modoInformado;
       const sessao: SessaoClaude = {
-        ...base, cwd: e.cwd || base.cwd, projeto: e.cwd ? nomeDoProjeto(e.cwd, nomeReserva) : base.projeto,
+        ...base, cwd: e.cwd || base.cwd, projeto: anterior?.cwd || !e.cwd ? base.projeto : nomeDoProjeto(e.cwd, nomeReserva),
+        titulo: texto(d.titulo_da_sessao) || base.titulo,
         atualizadaEm: Date.parse(e.recebidoEm) < Date.parse(base.atualizadaEm) ? base.atualizadaEm : e.recebidoEm,
         modo: modoMaisRecente ? modoInformado : reiniciouSemModo ? undefined : base.modo,
         modoAtualizadoEm: modoMaisRecente ? e.recebidoEm : reiniciouSemModo ? undefined : base.modoAtualizadoEm,

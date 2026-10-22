@@ -324,7 +324,7 @@ function Resposta({ sessao }: { sessao: SessaoClaude }) {
   return (
     <div className="vsc-editor">
       <div className="vsc-migalhas">
-        <span>{sessao.projeto}</span>
+        <span>{sessao.titulo || sessao.projeto}</span>
         <span className="vsc-dim">›</span>
         <span>{C.resposta}</span>
         <button
@@ -450,7 +450,7 @@ export function VisaoClaude({ somenteSessaoSelecionada = false }: { somenteSessa
             <div key={id} className="vsc-aba" data-ativa={s.id === sessao?.id || undefined} data-estado={temPedido ? "aprovacao" : s.estado}>
               <button type="button" role="tab" aria-selected={s.id === sessao?.id} className="vsc-aba-botao" onClick={() => focar(id)} title={s.cwd}>
                 <Marca marca={MARCA_DA_FERRAMENTA[s.ferramenta ?? "claude"]} tamanho={12} />
-                <span className="vsc-aba-nome">{s.projeto}</span>
+                <span className="vsc-aba-nome">{s.titulo || s.projeto}</span>
                 <span className="vsc-ponto" />
               </button>
               <button type="button" className="vsc-aba-fechar" aria-label={C.fechar} title={C.fechar} onClick={() => fecharSessao(id)}>
@@ -496,7 +496,7 @@ export function VisaoClaude({ somenteSessaoSelecionada = false }: { somenteSessa
             return (
               <button key={id} type="button" role="option" aria-selected={s.id === sessao?.id} className="vsc-lista-item" data-estado={estado} onClick={() => { focar(id); setListaAberta(false); }} title={s.cwd}>
                 <Marca marca={MARCA_DA_FERRAMENTA[s.ferramenta ?? "claude"]} tamanho={12} />
-                <span className="vsc-aba-nome">{s.projeto}</span>
+                <span className="vsc-aba-nome">{s.titulo || s.projeto}</span>
                 <span className="vsc-lista-estado">{C.estados[estado]}</span>
                 <span className="vsc-ponto" />
               </button>

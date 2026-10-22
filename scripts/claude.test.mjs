@@ -542,6 +542,30 @@ test("lê o modelo da última resposta no fim do transcript", () => {
   assert.equal(claude.modeloDoTranscript(join(raizTemporaria, "settings.txt")), undefined);
 });
 
+test("título do /rename é lido do transcript aos poucos e o último vence", async () => {
+  const { appendFileSync } = await import("node:fs");
+  const caminho = join(raizTemporaria, "titulo.jsonl");
+  writeFileSync(caminho, `${JSON.stringify({ type: "user", message: { content: "oi" } })}\n`);
+  assert.equal(claude.tituloDoTranscript(caminho), undefined);
+  appendFileSync(caminho, `${JSON.stringify({ type: "custom-title", customTitle: "Primeiro nome", sessionId: "s" })}\n${"x".repeat(3 * 1024 * 1024)}\n`);
+  assert.equal(claude.tituloDoTranscript(caminho), "Primeiro nome");
+  appendFileSync(caminho, `${JSON.stringify({ type: "custom-title", customTitle: "Nome novo", sessionId: "s" })}\n`);
+  assert.equal(claude.tituloDoTranscript(caminho), "Nome novo");
+  assert.equal(claude.tituloDoTranscript("relativo.jsonl"), undefined);
+});
+
+test("sessão guarda o nome da pasta onde começou e o título do /rename", () => {
+  const estado = useClaudeCode.getState();
+  const evento = (nome, cwd, dados = {}) => ({ id: `${nome}-${cwd}-${Math.random()}`, recebidoEm: new Date().toISOString(), ferramenta: "claude", evento: nome, sessao: "s-pasta", cwd, dados });
+  estado.aplicar(evento("SessionStart", "C:\\projetos\\niko"));
+  estado.aplicar(evento("UserPromptSubmit", "C:\\projetos\\niko\\src", { titulo_da_sessao: "Arrumar a ilha" }));
+  const sessao = useClaudeCode.getState().sessoes["s-pasta"];
+  assert.equal(sessao.projeto, "niko");
+  assert.equal(sessao.cwd, "C:\\projetos\\niko\\src");
+  assert.equal(sessao.titulo, "Arrumar a ilha");
+  useClaudeCode.getState().fechar("s-pasta");
+});
+
 test("mostra o modelo com nome legível", async () => {
   const { nomeDoModelo } = await vite.ssrLoadModule("/src/estado/claudeCode.ts");
   assert.equal(nomeDoModelo("claude-opus-4-7[1m]"), "Opus 4.7");

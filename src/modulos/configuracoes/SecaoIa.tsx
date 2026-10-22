@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
-import { KeyRound, Plug, Trash2, CheckCircle2, ShieldCheck, BrainCircuit, RefreshCw, ExternalLink, LifeBuoy, Cpu, Zap, Globe, ChevronDown, Lock, LockOpen } from "lucide-react";
+import { KeyRound, Plug, Trash2, CheckCircle2, ShieldCheck, BrainCircuit, RefreshCw, ExternalLink, LifeBuoy, Cpu, Zap, Globe, ChevronDown, Lock, LockOpen, Eye } from "lucide-react";
 import { Botao, Campo, AvisoFaixa, ConfirmarModal, Vazio, Modal, Pilulas } from "../../componentes/basicos";
 import { Marca, type MarcaId } from "../../marcas/Marca";
 import { useConfig } from "../../estado/configuracoes";
 import { useInterface } from "../../estado/interface";
 import { T } from "../../textos/textos";
 import { estadoDaPonte, salvarProvedor, removerProvedor, testarProvedor, type Provedor, type EstadoPonte } from "../../ponte/ponteLocal";
-import { CATALOGO_IA, itemDoCatalogo, catalogoPelaUrl, type ItemCatalogo, type CustoProvedor } from "../../dados/provedoresIa";
+import { CATALOGO_IA, itemDoCatalogo, catalogoPelaUrl, provedorEntendeImagens, type ItemCatalogo, type CustoProvedor } from "../../dados/provedoresIa";
 import { situacaoDoEndereco } from "../../utilitarios/enderecoDoProvedor";
 
 type Filtro = "todos" | "gratis" | "local" | "pago";
@@ -37,7 +37,7 @@ const ICONE_SEM_MARCA: Record<string, (tamanho: number) => React.ReactNode> = {
   personalizado: (t) => <Globe size={t} />,
 };
 
-function LogoProvedor({ id, tamanho = 16 }: { id?: string; tamanho?: number }) {
+export function LogoProvedor({ id, tamanho = 16 }: { id?: string; tamanho?: number }) {
   const marca = id ? MARCA_DO_CATALOGO[id] : undefined;
   if (marca) return <Marca marca={marca} tamanho={tamanho} />;
   return <>{id && ICONE_SEM_MARCA[id] ? ICONE_SEM_MARCA[id](tamanho) : <Plug size={tamanho} />}</>;
@@ -70,6 +70,19 @@ function ResultadoTeste({ teste }: { teste?: Teste }) {
 export function SecaoIa() {
   const ia = useConfig((s) => s.ia);
   const definir = useConfig((s) => s.definir);
+  const temVisao = (p: Provedor) => provedorEntendeImagens(p, ia.visao);
+  const botaoDeVisao = (p: Provedor) => (
+    <Botao
+      pequeno
+      variante={temVisao(p) ? "primario" : "secundario"}
+      icone={<Eye size={12} />}
+      aria-pressed={temVisao(p)}
+      title={P.visaoDica}
+      onClick={() => definir({ ia: { ...ia, visao: { ...ia.visao, [p.id]: temVisao(p) ? "nao" : "sim" } } })}
+    >
+      {temVisao(p) ? P.comVisao : P.marcarVisao}
+    </Botao>
+  );
   const avisar = useInterface((s) => s.avisar);
   const [ponte, setPonte] = useState<EstadoPonte | null>(null);
   const [filtro, setFiltro] = useState<Filtro>("todos");
@@ -245,6 +258,8 @@ export function SecaoIa() {
                 <span className="ia-campo-rotulo">{T.configuracoes.modeloPadrao}</span>
                 {seletorDeModelo(emUso)}
                 <ResultadoTeste teste={testes[emUso.id]} />
+                {botaoDeVisao(emUso)}
+                <span className="ia-campo-dica">{P.visaoDica}</span>
               </div>
               <div className="ia-campo">
                 <span className="ia-campo-rotulo">{P.chaveAcesso}</span>
@@ -283,6 +298,7 @@ export function SecaoIa() {
                     {posReserva >= 0 && <span className="etiqueta" title={T.configuracoes.reservaDica}><LifeBuoy size={11} />{T.configuracoes.reserva(posReserva + 1)}</span>}
                     {cat && itemDoCatalogo(cat) && <span className={`etiqueta ia-custo-${itemDoCatalogo(cat)!.custo}`}>{C.custos[itemDoCatalogo(cat)!.custo]}</span>}
                     {!p.temChave && itemDoCatalogo(cat)?.pedeChave && <span className="etiqueta etiqueta-alerta">{T.configuracoes.semChave}</span>}
+                    {temVisao(p) && <span className="etiqueta"><Eye size={11} />{P.visao}</span>}
                   </span>
                   {teste && teste !== "testando" && teste.ok && teste.modelos.length > 0 && seletorDeModelo(p)}
                   <ResultadoTeste teste={teste} />
@@ -297,6 +313,7 @@ export function SecaoIa() {
                       {posReserva >= 0 ? T.configuracoes.tirarReserva : T.configuracoes.usarReserva}
                     </Botao>
                     <Botao pequeno icone={<RefreshCw size={12} className={teste === "testando" ? "girando" : ""} />} disabled={teste === "testando"} onClick={() => void testar(p, itemDoCatalogo(cat)?.modeloSugerido)}>{T.configuracoes.testar}</Botao>
+                    {botaoDeVisao(p)}
                   </div>
                 </div>
               );

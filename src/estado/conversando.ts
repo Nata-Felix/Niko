@@ -132,7 +132,9 @@ async function perguntar(conversaId: string, pedido: string, agente: AgenteId, r
   if (r.parado && !r.texto.trim()) adicionar(conversaId, { autor: "agente", agenteId: agente, texto: T.chat.paradoAntes, repetir: pedido, analiseAnexo: apenasAnalise });
   if (!r.parado && r.falha === null && !r.texto.trim() && !r.confirmacoes.length) {
     void tocarSom("error", "avisos");
-    adicionar(conversaId, { autor: "agente", agenteId: agente, texto: r.cortada === "so_raciocinio" ? T.chat.confianca.soRaciocinio : T.chat.confianca.respostaVazia, erro: true, repetir: pedido, analiseAnexo: apenasAnalise });
+    const tinhaImagem = Boolean(mensagemPedido?.anexos?.some((a) => a.imagem));
+    const vazia = r.cortada === "so_raciocinio" ? T.chat.confianca.soRaciocinio : tinhaImagem ? T.chat.confianca.respostaVaziaComImagem : T.chat.confianca.respostaVazia;
+    adicionar(conversaId, { autor: "agente", agenteId: agente, texto: vazia, erro: true, repetir: pedido, analiseAnexo: apenasAnalise });
   }
   if (r.falha !== null && !r.parado) {
     void tocarSom("error", "avisos");

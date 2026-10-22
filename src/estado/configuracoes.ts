@@ -164,7 +164,7 @@ export interface Configuracoes {
   sons: { ligado: boolean; volume: number; categorias: Record<CategoriaSom, boolean> };
   agentes: { nomes: Record<AgenteId, string>; cargos: Record<AgenteId, string>; aparencias: Record<AgenteId, AparenciaAgente>; acessorios: Record<AgenteId, AcessoriosAgente>; coresAcessorios: Record<AgenteId, string | null>; personas: Record<AgenteId, string>; inatividadeMin: number; favorito: AgenteId };
   consumo: { precoEntrada: number; precoSaida: number; limiteMensal: number; lerPlanos: boolean };
-  ia: { provedorId: string | null; modelo: string; reservas: string[]; modelos: Record<string, string>; autoAprovar: CartaoConfirmacao["tipo"][] };
+  ia: { provedorId: string | null; modelo: string; reservas: string[]; modelos: Record<string, string>; autoAprovar: CartaoConfirmacao["tipo"][]; visao: Record<string, string> };
   privacidade: boolean;
   naoPerturbe: boolean;
   avisosDesligados: CategoriaDeAviso[];
@@ -242,7 +242,7 @@ export const CONFIG_PADRAO: Configuracoes = {
     favorito: "organizador",
   },
   consumo: { precoEntrada: 0, precoSaida: 0, limiteMensal: 20, lerPlanos: false },
-  ia: { provedorId: null, modelo: "", reservas: [], modelos: {}, autoAprovar: [] },
+  ia: { provedorId: null, modelo: "", reservas: [], modelos: {}, autoAprovar: [], visao: {} },
   privacidade: false,
   naoPerturbe: false,
   avisosDesligados: [],

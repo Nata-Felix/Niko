@@ -23,6 +23,7 @@ import {
 } from "./Visoes";
 import { alguemCobre } from "../geometria";
 import { VisaoChat } from "./VisaoChat";
+import { DestinoDoArquivo } from "./DestinoDoArquivo";
 import { VisaoClaude } from "./claude/VisaoClaude";
 import { usarClaudeCode, devolverPendentesAoTerminal } from "./claude/usarClaudeCode";
 import { MARCA_DA_FERRAMENTA, nomeDaFerramenta } from "./claude/ferramentas";
@@ -223,6 +224,15 @@ export function Ilha() {
   const abaAtual: VisaoIlha = aba === "captura" && capturaDisponivel ? "captura" : abas.includes(aba as AbaIlha) ? aba : abas[0] ?? "hoje";
   const abaAntesDaCaptura = useRef<AbaIlha>("hoje");
   const rolagemDasAbas = useRef({ acumulado: 0, ultimaTroca: 0 });
+  const [destinoDoArquivo, setDestinoDoArquivo] = useState(false);
+  const fecharDestinoDoArquivo = useCallback(() => setDestinoDoArquivo(false), []);
+  const mostrarDestinoDoArquivo = () => {
+    const agora = useIlha.getState();
+    if (destinoDoArquivo || (agora.estado === "expandida" && agora.aba === "chat")) return;
+    if (agora.estado !== "expandida") abrir();
+    setDestinoDoArquivo(true);
+    void tocarSom("open");
+  };
   const [fixada, setFixada] = useState(false);
   const paraOAtalho = useRef({ abas, abaAtual, estado });
   paraOAtalho.current = { abas, abaAtual, estado };
@@ -548,7 +558,7 @@ export function Ilha() {
           onDragEnter={(e) => {
             if (!Array.from(e.dataTransfer.types).includes("Files")) return;
             setRevelada(true);
-            abrir("chat");
+            mostrarDestinoDoArquivo();
           }}
           onPointerEnter={() => {
             setRevelada(true);
@@ -582,10 +592,7 @@ export function Ilha() {
         }}
         onDragEnter={(e) => {
           if (!Array.from(e.dataTransfer.types).includes("Files")) return;
-          if (useIlha.getState().estado !== "expandida" || useIlha.getState().aba !== "chat") {
-            abrir("chat");
-            void tocarSom("open");
-          }
+          mostrarDestinoDoArquivo();
         }}
         onPointerLeave={() => {
           setSobre(false);
@@ -603,6 +610,7 @@ export function Ilha() {
           animate={{ width: alvo.w, height: alvo.h, borderBottomLeftRadius: alvo.r, borderBottomRightRadius: alvo.r }}
           transition={transicao}
         >
+          <AnimatePresence>{destinoDoArquivo && <DestinoDoArquivo key="destino-do-arquivo" aoFechar={fecharDestinoDoArquivo} comChat={abas.includes("chat")} />}</AnimatePresence>
           <AnimatePresence>
             {revelacao && !saudando && <motion.div key={revelacao.texto} className="ilha-sinal-aviso" aria-hidden="true" initial={{ opacity: 0 }} animate={{ opacity: reduzirAnimacoes ? 0.45 : [0, 0.7, 0.25, 0.6, 0.25] }} exit={{ opacity: 0 }} transition={{ duration: reduzirAnimacoes ? 0.12 : 1.2 }} />}
           </AnimatePresence>

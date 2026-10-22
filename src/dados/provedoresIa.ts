@@ -50,6 +50,15 @@ export const CATALOGO_IA: ItemCatalogo[] = [
   { id: "personalizado", nome: "", tipo: "openai_compativel", url: "", modeloSugerido: "", custo: "pago", pedeChave: false },
 ];
 
+const CATALOGOS_COM_VISAO_PADRAO = new Set<string>(["anthropic", "openai", "gemini"]);
+
+export function provedorEntendeImagens(p: { id: string; catalogo?: string; urlBase: string }, marcados: Record<string, string> | undefined): boolean {
+  const marcado = marcados?.[p.id];
+  if (marcado === "sim" || marcado === "nao") return marcado === "sim";
+  const catalogo = p.catalogo ?? catalogoPelaUrl(p.urlBase)?.id;
+  return Boolean(catalogo && CATALOGOS_COM_VISAO_PADRAO.has(catalogo));
+}
+
 export function itemDoCatalogo(id?: string): ItemCatalogo | undefined {
   return CATALOGO_IA.find((c) => c.id === id);
 }

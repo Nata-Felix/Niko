@@ -17,6 +17,13 @@ function politicaDeSeguranca(): Plugin {
 export default defineConfig({
   cacheDir: "node_modules/.vite-niko",
   plugins: [react(), politicaDeSeguranca(), ponteLocal()],
+  optimizeDeps: {
+    include: [
+      "pdfjs-dist",
+      "@tauri-apps/api/app", "@tauri-apps/api/core", "@tauri-apps/api/event", "@tauri-apps/api/webviewWindow", "@tauri-apps/api/window",
+      "@tauri-apps/plugin-autostart", "@tauri-apps/plugin-notification", "@tauri-apps/plugin-process", "@tauri-apps/plugin-updater",
+    ],
+  },
   server: { port: 5420, strictPort: false, host: "localhost" },
   preview: { port: 5421, host: "localhost" },
   build: { chunkSizeWarningLimit: 1500 },

@@ -10,6 +10,8 @@ import { CartoesDaMensagem } from "../../componentes/CartaoAcao";
 import { EscolhaDoAgente } from "../../componentes/EscolhaDoAgente";
 import { AnexosDaMensagem, ChipsAnexos, ZonaDeSoltar, useAnexos, useArrastarArquivos } from "../../componentes/AnexosChat";
 import { T } from "../../textos/textos";
+import { useArquivosSoltos } from "../../estado/arquivosSoltos";
+import { IaConectada } from "./IaConectada";
 
 let conversaRapidaId: string | null = null;
 
@@ -30,6 +32,10 @@ export function VisaoChat() {
   const [aviso, setAviso] = useState("");
   const anexos = useAnexos(setAviso);
   const arrastando = useArrastarArquivos(raiz, anexos.adicionar);
+  const soltosParaOChat = useArquivosSoltos((s) => s.paraOChat.length);
+  useEffect(() => {
+    if (soltosParaOChat > 0) anexos.adicionar(useArquivosSoltos.getState().retirarDoChat());
+  }, [soltosParaOChat, anexos.adicionar]);
   const campo = useRef<HTMLInputElement>(null);
   const conversa = conversas.find((c) => c.id === id);
   const mensagens = conversa?.mensagens.slice(-12) ?? [];
@@ -107,6 +113,7 @@ export function VisaoChat() {
       {aviso && <span className="ilha-erro" role="status">{aviso}</span>}
       <ChipsAnexos lista={anexos.lista} agente={favorito} aoRemover={anexos.remover} />
       <div className="ilha-chat-entrada">
+        <IaConectada />
         <div className="ilha-campo" style={{ flex: 1 }}>
           <input
             ref={campo}

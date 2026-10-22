@@ -11,6 +11,7 @@ import { hojeISO } from "./datas";
 import { textoComAnexos, imagensDaMensagem } from "./anexos";
 import { T } from "../textos/textos";
 import { afirmaExecucao, removerPrefixoDeAgente } from "./recursosChat";
+import { provedorEntendeImagens } from "../dados/provedoresIa";
 
 export interface ProvedorEmUso {
   provedor: Provedor;
@@ -113,9 +114,16 @@ export async function perguntarAssistente(opcoes: {
   apenasAnalise?: boolean;
 }): Promise<RespostaAssistente> {
   const resposta: RespostaAssistente = { texto: "", confirmacoes: [], acoes: [], origem: null, trocas: [], falha: null, parado: false };
-  const fila = await provedoresEmOrdem();
-  if (fila.length === 0) {
+  const todos = await provedoresEmOrdem();
+  if (todos.length === 0) {
     resposta.falha = "sem_provedor";
+    return resposta;
+  }
+  const comImagem = Boolean(opcoes.historico.at(-1)?.imagens?.length);
+  const marcados = useConfig.getState().ia.visao;
+  const fila = comImagem ? todos.filter((f) => provedorEntendeImagens(f.provedor, marcados)) : todos;
+  if (fila.length === 0) {
+    resposta.falha = "sem_visao";
     return resposta;
   }
   const sistema = promptDoAgente(opcoes.agente, opcoes.apenasAnalise);
@@ -285,12 +293,13 @@ export async function perguntarAssistente(opcoes: {
   return resposta;
 }
 
-export type TipoErroIa = "cota" | "sobrecarga" | "limite" | "chave" | "modelo" | "recusado" | "tempo" | "rede" | "ponte" | "sem_provedor" | "outro";
+export type TipoErroIa = "cota" | "sobrecarga" | "limite" | "chave" | "modelo" | "recusado" | "tempo" | "rede" | "ponte" | "sem_provedor" | "sem_visao" | "outro";
 
 export function classificarErroIa(erro: string): { tipo: TipoErroIa; status: number | null } {
   const status = Number(/http_(\d{3})/.exec(erro)?.[1]) || null;
   const texto = erro.toLowerCase();
   if (erro === "sem_provedor") return { tipo: "sem_provedor", status };
+  if (erro === "sem_visao") return { tipo: "sem_visao", status };
   if (erro === T.chat.semPonte) return { tipo: "ponte", status };
   if (texto.includes("tempo_esgotado") || status === 408 || status === 504) return { tipo: "tempo", status };
   if (/exceeded your current quota|quota exceeded|insufficient_quota|billing/.test(texto)) return { tipo: "cota", status };

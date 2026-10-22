@@ -57,6 +57,7 @@ export function useAnexos(aoErro: (texto: string) => void) {
             void tocarSom("approve", "interface");
           })
           .catch((e: Error) => {
+            console.error("Falha ao ler o anexo", arquivo.name, e);
             setLista((l) => l.filter((a) => a.id !== id));
             const motivo = (["grande", "tipo", "leitura"].includes(e.message) ? e.message : "leitura") as FalhaAnexo;
             aoErro(mensagemDeLeitura(e, arquivo.name) ?? T.chat.anexos[motivo](arquivo.name));
@@ -187,7 +188,7 @@ export function ZonaDeSoltar({ ativo, agente, compacta, texto = T.chat.anexos.so
           <span className="zona-soltar-brilho" />
           <motion.div className="zona-soltar-boneco" style={{ x, rotate: inclinacao }}>
             <div ref={escopo}>
-              <Personagem agente={agente} estado={engoliu ? "pensando" : perto ? "ouvindo" : "pensando"} tamanho={compacta ? 54 : 84} interativo={false} halo={false} />
+              <Personagem agente={agente} estado={engoliu ? "pensando" : perto ? "ouvindo" : "pensando"} tamanho={compacta ? 84 : 112} interativo={false} halo={false} />
             </div>
           </motion.div>
           <div className="zona-soltar-texto" style={{ opacity: perto ? 0.35 : 1 }}>

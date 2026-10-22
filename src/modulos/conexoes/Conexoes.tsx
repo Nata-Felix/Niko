@@ -15,6 +15,7 @@ import type { NivelDeAvisosDaConexao, ServicoId } from "../../tipos";
 import { conexaoEmTestes } from "../../utilitarios/disponibilidadeConexoes";
 import { CamposDaConexao, SERVICOS_COM_CAMPOS, valoresIniciais } from "./CamposDaConexao";
 import { mensagemDeErroDaConexao } from "../../utilitarios/errosDeConexao";
+import { CartaoWhatsapp, ConfigWhatsapp } from "./ConexaoWhatsapp";
 
 type Filtro = keyof typeof T.conexoes.filtros;
 
@@ -232,8 +233,10 @@ export default function Conexoes() {
   const [filtro, setFiltro] = useState<Filtro>("todas");
   const [configurando, setConfigurando] = useState<ServicoId | null>((parametros.servico as ServicoId) || null);
 
+  const [configurandoWhatsapp, setConfigurandoWhatsapp] = useState(parametros.servico === "whatsapp");
   useEffect(() => {
     if (parametros.servico && SERVICOS.includes(parametros.servico as ServicoId)) setConfigurando(parametros.servico as ServicoId);
+    if (parametros.servico === "whatsapp") setConfigurandoWhatsapp(true);
   }, [parametros]);
 
   const lista = SERVICOS.filter((id) => filtro === "todas" || CATEGORIA_SERVICO[id] === filtro);
@@ -261,6 +264,7 @@ export default function Conexoes() {
         </span>
       </section>
       <section className="conexoes-grade">
+        {(filtro === "todas" || filtro === "comunicacao") && <CartaoWhatsapp aoConfigurar={() => setConfigurandoWhatsapp(true)} />}
         {lista.map((id) => {
           const c = conexoes.find((x) => x.id === id)!;
           const servico = T.conexoes.servicos[id];
@@ -338,6 +342,7 @@ export default function Conexoes() {
         })}
       </section>
       <Configurar key={configurando ?? "fechado"} servico={configurando} aoFechar={() => setConfigurando(null)} />
+      <ConfigWhatsapp aberto={configurandoWhatsapp} aoFechar={() => setConfigurandoWhatsapp(false)} />
     </>
   );
 }

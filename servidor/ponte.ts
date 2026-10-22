@@ -15,6 +15,10 @@ import { lerAudio, lerNivelDaSaida, definirVolume, definirMudo, ajustarSessao, l
 import { ocrDaRequisicao } from "./ocr.ts";
 import { receberEventoDoGancho, ehRotaDoGancho, ouvirEventos, decidirPedido, estadoDaInstalacao, previaDaInstalacao, removerGanchos, abrirProjeto, trazerTerminal, terminalNaFrente, ehRotaDaStatus, receberStatusDoClaude } from "./claude.ts";
 import { buscarNaWeb, lerPagina } from "./web.ts";
+import {
+  CAMINHO_DO_WEBHOOK, abrirConversa, definirFiltrosDoWhatsapp, desconectarWhatsapp, enviarMensagem, esquecerWhatsapp, estadoDoWhatsapp, fecharConversa, ignorarConversa,
+  iniciarWhatsapp, instalarWhatsapp, ligarWhatsapp, novidadesDoWhatsapp, receberWebhookDoWhatsapp,
+} from "./whatsapp/whatsapp.ts";
 import { ehRotaDeAgente, receberEventoDeAgente, estadoDosAgentes, instalarAgente, previaDoAgente, removerAgente } from "./agentesDeCodigo.ts";
 import { listarArquivos, receberArquivo, enviarConteudo, excluirArquivo, excluirArquivosDaMateria, baixarArquivo, abrirArquivoNoPrograma, exportarParaDownloads } from "./arquivos.ts";
 import { tipoDoComputador, estadoDoSistema, listarRedes, listarBluetooth, lerComputador, conectarRede, esquecerRede, desconectarRede, definirBrilho, definirRadio, abrirConfiguracoesDoSistema } from "./sistema.ts";
@@ -86,6 +90,7 @@ export const rotas: Connect.NextHandleFunction = async (req, res, proximo) => {
   if (ehRotaDoGancho(url.pathname) && req.method === "POST") return receberEventoDoGancho(req, res);
   if (ehRotaDaStatus(url.pathname) && req.method === "POST") return receberStatusDoClaude(req, res);
   if (ehRotaDeAgente(url.pathname) && req.method === "POST") return receberEventoDeAgente(req, res, url);
+  if (url.pathname === CAMINHO_DO_WEBHOOK && req.method === "POST") return receberWebhookDoWhatsapp(req, res);
   if (!origemConfiavel(req)) return responder(res, 403, { erro: "origem_nao_permitida" });
   const caminho = url.pathname.slice("/ponte".length);
 
@@ -123,6 +128,24 @@ export const rotas: Connect.NextHandleFunction = async (req, res, proximo) => {
     const agente = /^\/agentes\/([a-z]{2,20})\/(instalar|remover)$/.exec(caminho);
     if (agente && req.method === "POST") return responder(res, 200, agente[2] === "instalar" ? instalarAgente(agente[1], await lerCorpo(req)) : removerAgente(agente[1], await lerCorpo(req)));
     if (caminho === "/ocr" && req.method === "POST") return responder(res, 200, await ocrDaRequisicao(req));
+    if (caminho.startsWith("/whatsapp/")) {
+      iniciarWhatsapp();
+      const acao = caminho.slice("/whatsapp/".length);
+      if (acao === "estado" && req.method === "GET") return responder(res, 200, estadoDoWhatsapp());
+      if (acao === "novidades" && req.method === "GET") return responder(res, 200, novidadesDoWhatsapp(Number(url.searchParams.get("desde")) || 0));
+      if (req.method === "POST") {
+        const corpo = await lerCorpo(req);
+        if (acao === "instalar") return responder(res, 200, await instalarWhatsapp());
+        if (acao === "ligar") return responder(res, 200, ligarWhatsapp(corpo.ligado === true));
+        if (acao === "filtros") return responder(res, 200, definirFiltrosDoWhatsapp(corpo));
+        if (acao === "ignorar") return responder(res, 200, ignorarConversa(corpo.jid, corpo.ignorar));
+        if (acao === "abrir") return responder(res, 200, await abrirConversa(corpo.jid));
+        if (acao === "fechar") return responder(res, 200, fecharConversa());
+        if (acao === "enviar") return responder(res, 200, await enviarMensagem(corpo.jid, corpo.texto));
+        if (acao === "desconectar") return responder(res, 200, await desconectarWhatsapp());
+        if (acao === "esquecer") return responder(res, 200, await esquecerWhatsapp());
+      }
+    }
     if (caminho === "/web/buscar" && req.method === "POST") return responder(res, 200, await buscarNaWeb(String((await lerCorpo(req)).consulta ?? "")));
     if (caminho === "/web/ler" && req.method === "POST") return responder(res, 200, await lerPagina(String((await lerCorpo(req)).url ?? "")));
     if (caminho === "/exportar" && req.method === "POST") return responder(res, 200, await exportarParaDownloads(req, url.searchParams.get("nome") ?? "", url.searchParams.get("mostrar") !== "0"));

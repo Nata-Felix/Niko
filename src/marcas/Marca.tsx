@@ -2,7 +2,7 @@ import {
   siStripe, siGithub, siVercel, siResend, siNotion, siCaldotcom, siN8n, siAnthropic, siOllama,
   siNvidia, siOpencode, siQwen, siGooglegemini, siOpenrouter, siMistralai, siHuggingface, siDeepseek, siLmstudio, siGmail, siGooglecalendar, siGoogle, siGoogledrive, siGoogletasks, siSupabase, siCloudflare, siClaudecode, siGithubcopilot, siKimi,
   siSpotify, siGooglechrome, siFirefoxbrowser, siZenbrowser, siYoutube, siYoutubemusic, siDeezer, siApplemusic, siTidal, siSoundcloud,
-  siLinear, siJira, siTrello, siRailway, siDiscord, siReddit, siStrava,
+  siLinear, siJira, siTrello, siRailway, siDiscord, siReddit, siStrava, siWhatsapp,
 } from "simple-icons";
 import { Bitcoin, CalendarDays, Mail } from "lucide-react";
 import type { ServicoId } from "../tipos";
@@ -16,7 +16,7 @@ interface IconeMarca {
   hex: string;
 }
 
-export type MarcaId = ServicoId | "gmail" | "agenda" | "drive" | "tarefasGoogle" | "anthropic" | "ollama" | "nvidia" | "opencode" | "qwen" | "gemini" | "openrouter" | "mistral" | "huggingface" | "deepseek" | "lmstudio" | "claudecode" | "copilot" | "kimi" | MarcaDeMidia | MarcaColorida;
+export type MarcaId = ServicoId | "gmail" | "agenda" | "drive" | "tarefasGoogle" | "anthropic" | "ollama" | "nvidia" | "opencode" | "qwen" | "gemini" | "openrouter" | "mistral" | "huggingface" | "deepseek" | "lmstudio" | "claudecode" | "copilot" | "kimi" | "whatsapp" | MarcaDeMidia | MarcaColorida;
 
 export type MarcaColorida = "codex" | "antigravity" | "amp";
 
@@ -113,6 +113,7 @@ export const MARCAS: Record<Exclude<MarcaId, MarcaColorida | MarcaGenerica>, Ico
   discord: siDiscord,
   reddit: siReddit,
   strava: siStrava,
+  whatsapp: siWhatsapp,
 };
 
 function escura(hex: string): boolean {

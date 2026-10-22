@@ -5,6 +5,7 @@ import { encerrarMidia } from "./midia.ts";
 import { encerrarJanelas } from "./janelas.ts";
 import { encerrarControle } from "./controleRapido.ts";
 import { encerrarSistema } from "./sistema.ts";
+import { encerrarWhatsapp } from "./whatsapp/whatsapp.ts";
 
 const porta = Number(process.env.NIKO_PORTA) || 47831;
 const ORIGENS = new Set(["http://tauri.localhost", "https://tauri.localhost", "tauri://localhost"]);
@@ -38,6 +39,7 @@ servidor.on("error", (e) => {
 servidor.listen(porta, "127.0.0.1", () => process.stderr.write(`${new Date().toISOString()} ponte ouvindo em 127.0.0.1:${porta}\n`));
 
 const encerrar = () => {
+  encerrarWhatsapp();
   encerrarMidia();
   encerrarJanelas();
   encerrarControle();

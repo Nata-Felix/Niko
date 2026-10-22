@@ -25,6 +25,7 @@ scripts/*
 !scripts/guarda-roupa.test.mjs
 !scripts/conexoes-em-testes.test.mjs
 !scripts/conexoes-novas.test.mjs
+!scripts/whatsapp.test.mjs
 !scripts/concorrencia.test.mjs
 !scripts/pre-lancamento.test.mjs
 !scripts/assistive.test.mjs

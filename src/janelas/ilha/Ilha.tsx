@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import {
-  Plus, Eye, EyeOff, Music, Timer, CalendarDays, MessageCircle, Plug, Bell, Volume2, VolumeX, AppWindow, ChevronUp, Pin, PinOff, Check, CircleAlert, Download, CodeXml, ShieldAlert, LoaderCircle,
+  Plus, Eye, EyeOff, Music, Timer, CalendarDays, MessageCircle, Plug, Bell, Volume2, VolumeX, AppWindow, ChevronUp, Pin, PinOff, Check, CircleAlert, Download, CodeXml, ShieldAlert, LoaderCircle, MessagesSquare,
   Users, Palette, type LucideIcon,
 } from "lucide-react";
 import { useConfig, type AbaIlha, type SecaoHoje, type VisaoIlha } from "../../estado/configuracoes";
@@ -48,6 +48,7 @@ import type { AgenteId, EstadoAgente, ServicoId } from "../../tipos";
 import { alturaDasConexoes } from "./alturaDasConexoes";
 import { atrasoDeFechamento, editandoNaIlha } from "./fechamento";
 import { VisaoTime } from "./VisaoTime";
+import { VisaoWhatsapp, usarAvisosDoWhatsapp } from "./VisaoWhatsapp";
 import "./ilha.css";
 
 const ICONE_ABA: Record<AbaIlha, LucideIcon> = {
@@ -59,6 +60,7 @@ const ICONE_ABA: Record<AbaIlha, LucideIcon> = {
   avisos: Bell,
   claude: CodeXml,
   time: Users,
+  whatsapp: MessagesSquare,
 };
 
 const VISAO_ABA: Record<Exclude<VisaoIlha, "conexoes">, () => React.JSX.Element | null> = {
@@ -70,6 +72,7 @@ const VISAO_ABA: Record<Exclude<VisaoIlha, "conexoes">, () => React.JSX.Element 
   avisos: VisaoAvisos,
   claude: VisaoClaude,
   time: VisaoTime,
+  whatsapp: VisaoWhatsapp,
 };
 
 const ALTURA_ABA: Record<Exclude<VisaoIlha, "hoje">, number> = {
@@ -81,6 +84,7 @@ const ALTURA_ABA: Record<Exclude<VisaoIlha, "hoje">, number> = {
   avisos: 178,
   claude: 296,
   time: 430,
+  whatsapp: 340,
 };
 
 const ALTURA_DO_HOJE: Record<SecaoHoje, number> = { agenda: 318, tarefas: 258, habitos: 238 };
@@ -219,7 +223,8 @@ export function Ilha() {
 
   const desligadas = useConfig((s) => s.funcoesDesligadas);
   const comAvisos = agentes.alertas.length > 0 || (estado === "expandida" && aba === "avisos");
-  const abas = cfg.ordemAbas.filter((a) => cfg.blocos[a] && (a !== "avisos" || comAvisos) && abaLigada(a, desligadas));
+  const whatsappLigado = usarAvisosDoWhatsapp();
+  const abas = cfg.ordemAbas.filter((a) => cfg.blocos[a] && (a !== "avisos" || comAvisos) && (a !== "whatsapp" || whatsappLigado) && abaLigada(a, desligadas));
   const capturaDisponivel = tiposDeCapturaLigados(desligadas).length > 0;
   const abaAtual: VisaoIlha = aba === "captura" && capturaDisponivel ? "captura" : abas.includes(aba as AbaIlha) ? aba : abas[0] ?? "hoje";
   const abaAntesDaCaptura = useRef<AbaIlha>("hoje");
@@ -776,7 +781,7 @@ export function Ilha() {
                         aria-label={T.ilha.abrirSistema}
                         data-dica={T.ilha.abrirSistema}
                         onClick={() => {
-                          const rota = { hoje: secaoHoje === "agenda" ? "calendario" : "journal", captura: "inicio", midia: "inicio", foco: "estudos", chat: "chat", conexoes: "conexoes", avisos: "inicio", claude: "configuracoes", time: "agentes" } as const;
+                          const rota = { hoje: secaoHoje === "agenda" ? "calendario" : "journal", captura: "inicio", midia: "inicio", foco: "estudos", chat: "chat", conexoes: "conexoes", avisos: "inicio", claude: "configuracoes", time: "agentes", whatsapp: "conexoes" } as const;
                           irPara(rota[abaAtual]);
                           recolher();
                           void tocarSom("open");

@@ -857,9 +857,9 @@ test("componentes do easyui: escala, curva sem ultrapassar, busca, cartão do to
   assert.equal(series["7d"].length, 7);
   assert.equal(series["30d"].length, 30);
   assert.equal(series["12m"].length, 53);
-  assert.equal(series["7d"][0].valor, 1000);
-  assert.equal(series["7d"].at(-1).valor, 1300);
-  assert.equal(series["7d"][5].valor, 800);
+  assert.equal(series["7d"][0].valor, 100000);
+  assert.equal(series["7d"].at(-1).valor, 130000);
+  assert.equal(series["7d"][5].valor, 80000);
 });
 
 test("endereço do provedor de IA aceita http só neste PC e na rede local, e nunca com chave fora deste PC", async () => {

@@ -211,7 +211,6 @@ export function TourGuiado({ passos, aberto, aoFechar }: Props) {
     return () => {
       cancelado = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [aberto, indice]);
 
   useEffect(() => {
@@ -235,7 +234,6 @@ export function TourGuiado({ passos, aberto, aoFechar }: Props) {
     obs.observe(el);
     medir();
     return () => obs.disconnect();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [aberto, indice]);
 
   useEffect(() => {
@@ -266,7 +264,6 @@ export function TourGuiado({ passos, aberto, aoFechar }: Props) {
       window.removeEventListener("scroll", atualizar, true);
       window.removeEventListener("resize", atualizar);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [aberto]);
 
   useEffect(() => {
@@ -294,7 +291,6 @@ export function TourGuiado({ passos, aberto, aoFechar }: Props) {
     };
     window.addEventListener("keydown", tecla, true);
     return () => window.removeEventListener("keydown", tecla, true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [aberto, indice]);
 
   useEffect(() => {
